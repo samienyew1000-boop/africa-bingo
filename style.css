@@ -4016,18 +4016,19 @@ body.is-game-active #view-game {
 .lb-game-view {
   display: none !important;
   flex-direction: column !important;
-  justify-content: flex-start !important;
+  justify-content: space-between !important;
   align-items: stretch !important;
   width: 100% !important;
-  height: 100% !important;
+  height: 100dvh !important;
   min-height: 100dvh !important;
   max-height: 100dvh !important;
-  padding: 6px 8px 8px !important;
+  padding: 3px 6px 3px !important;
   background: #bfa2d0 !important;
   color: #ffffff !important;
   overflow: hidden !important;
   overscroll-behavior: none !important;
   box-sizing: border-box !important;
+  gap: 2px !important;
 }
 
 .lb-game-view.is-on {
@@ -4165,10 +4166,12 @@ body.is-game-active #view-game {
   width: 100% !important;
   background: #0e121c !important;
   border: 1px solid #1a2233 !important;
-  border-radius: 12px !important;
-  padding: 6px 12px !important;
-  margin-top: 4px !important;
-  margin-bottom: 7px !important;
+  border-radius: 10px !important;
+  padding: 2px 8px !important;
+  margin-top: 1px !important;
+  margin-bottom: 2px !important;
+  height: 27px !important;
+  min-height: 27px !important;
   flex: 0 0 auto !important;
   box-sizing: border-box !important;
 }
@@ -4246,8 +4249,8 @@ body.is-game-active #view-game {
 
 .lb-h-board {
   display: grid !important;
-  grid-template-columns: 14px repeat(15, minmax(0, 1fr)) !important;
-  grid-template-rows: repeat(5, 13px) !important;
+  grid-template-columns: 16px repeat(15, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(5, 15.5px) !important;
   gap: 1.5px 1.5px !important;
   width: 100% !important;
   box-sizing: border-box !important;
@@ -4258,7 +4261,7 @@ body.is-game-active #view-game {
   align-items: center !important;
   justify-content: center !important;
   font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 10.5px !important;
+  font-size: 11.5px !important;
   font-weight: 900 !important;
   text-align: center !important;
   line-height: 1 !important;
@@ -4275,15 +4278,15 @@ body.is-game-active #view-game {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  height: 13.5px !important;
+  height: 15.5px !important;
   min-width: 0 !important;
   border-radius: 3px !important;
   background: #bbbbd3 !important;
   border: none !important;
   color: #ffffff !important;
   font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 8px !important;
-  font-weight: 700 !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
   line-height: 1 !important;
   text-align: center !important;
   user-select: none !important;
@@ -4489,7 +4492,7 @@ body.is-game-active #view-game {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
-  gap: 3px 5px !important;
+  gap: 2.5px 3.5px !important;
   width: 100% !important;
   max-width: 440px !important;
   height: 100% !important;
@@ -4523,11 +4526,11 @@ body.is-game-active #view-game {
 /* Individual Registered Card Frame (Matching Image 2: Lavender frosted panel, green title) */
 .lb-card {
   background: rgba(255, 255, 255, 0.45) !important;
-  border: 2px solid rgba(255, 255, 255, 0.75) !important;
-  border-radius: 12px !important;
-  padding: 3px 5px 5px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.75) !important;
+  border-radius: 8px !important;
+  padding: 2px 3px 3px !important;
   box-sizing: border-box !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-between !important;
@@ -4544,17 +4547,17 @@ body.is-game-active #view-game {
   text-align: center !important;
   color: #008000 !important;
   font-family: inherit !important;
-  font-size: 13px !important;
+  font-size: 10.5px !important;
   font-weight: 800 !important;
-  margin: 0 0 2px 0 !important;
+  margin: 0 0 1px 0 !important;
   padding: 0 !important;
-  line-height: 1.1 !important;
+  line-height: 1 !important;
   flex: 0 0 auto !important;
 }
 
 .lb-card-title {
   color: #008000 !important;
-  font-size: 13px !important;
+  font-size: 10.5px !important;
   font-weight: 800 !important;
   text-align: center !important;
 }
@@ -4568,10 +4571,11 @@ body.is-game-active #view-game {
 .lb-gold-card-frame .lb-card-header-row {
   display: grid !important;
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-  gap: 2.5px !important;
-  margin-bottom: 2.5px !important;
+  gap: 1.5px !important;
+  margin-bottom: 1.5px !important;
   width: 100% !important;
-  height: 18px !important;
+  height: 14px !important;
+  min-height: 14px !important;
   flex: 0 0 auto !important;
 }
 
@@ -4580,11 +4584,11 @@ body.is-game-active #view-game {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  height: 18px !important;
-  border-radius: 4px !important;
+  height: 14px !important;
+  border-radius: 3px !important;
   color: #ffffff !important;
   font-family: inherit !important;
-  font-size: 10.5px !important;
+  font-size: 8.5px !important;
   font-weight: 900 !important;
   line-height: 1 !important;
   text-align: center !important;
@@ -4603,7 +4607,7 @@ body.is-game-active #view-game {
   display: grid !important;
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   grid-template-rows: repeat(5, minmax(0, 1fr)) !important;
-  gap: 2.5px !important;
+  gap: 1.5px !important;
   width: 100% !important;
   height: 100% !important;
   flex: 1 1 0px !important;
@@ -4620,12 +4624,12 @@ body.is-game-active #view-game {
   height: 100% !important;
   min-width: 0 !important;
   min-height: 0 !important;
-  border-radius: 5px !important;
+  border-radius: 3.5px !important;
   background: #ede8ec !important;
   border: none !important;
   color: #1e1b4b !important;
   font-family: inherit !important;
-  font-size: 12.5px !important;
+  font-size: 10.5px !important;
   font-weight: 800 !important;
   line-height: 1 !important;
   user-select: none !important;
@@ -4793,14 +4797,18 @@ body.is-game-active #view-game {
   justify-content: space-between !important;
   width: 100% !important;
   max-width: 440px !important;
-  margin: 3px auto 1px auto !important;
-  padding: 4px 6px !important;
+  margin: 1px auto 0 auto !important;
+  padding: 3px 5px !important;
   background: #231b34 !important;
-  border: 1.5px solid rgba(167, 139, 250, 0.3) !important;
-  border-radius: 22px !important;
-  gap: 8px !important;
+  border: 1.5px solid rgba(167, 139, 250, 0.35) !important;
+  border-radius: 18px !important;
+  gap: 6px !important;
   box-sizing: border-box !important;
   flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 100 !important;
+  margin-bottom: max(env(safe-area-inset-bottom, 2px), 2px) !important;
 }
 
 .lb-game-action-btn {
@@ -4808,21 +4816,21 @@ body.is-game-active #view-game {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 6px !important;
-  height: 38px !important;
-  min-height: 38px !important;
+  gap: 5px !important;
+  height: 34px !important;
+  min-height: 34px !important;
   border: none !important;
-  border-radius: 16px !important;
+  border-radius: 13px !important;
   color: #ffffff !important;
   font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 14px !important;
+  font-size: 13px !important;
   font-weight: 800 !important;
   line-height: 1 !important;
   cursor: pointer !important;
   box-sizing: border-box !important;
   transition: transform 0.12s ease, filter 0.12s ease !important;
   user-select: none !important;
-  padding: 0 6px !important;
+  padding: 0 4px !important;
 }
 
 .lb-game-action-btn:active {
