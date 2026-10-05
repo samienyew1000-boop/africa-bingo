@@ -120,7 +120,7 @@ const DEFAULT_SETTINGS = {
   threshold: 10,
   countdown: 60,
   winningPattern: "1",
-  startingBonus: 50,
+  startingBonus: 100,
   startingBonusEnabled: true,
   autoCall: true,
   maintenance: false,
