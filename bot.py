@@ -1977,7 +1977,7 @@ def start_background_web_server() -> None:
     base_dir = os.path.dirname(os.path.abspath(__file__))
     primary_port = int(os.getenv("PORT", "3000"))
     ports = [primary_port]
-    for p in (3000, 8080, 8000, 5000, 80):
+    for p in (3000, 8080):
         if p not in ports:
             ports.append(p)
 
@@ -1987,13 +1987,24 @@ def start_background_web_server() -> None:
             
         def send_cors_headers(self):
             self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
+            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, HEAD')
             self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Telegram-Init-Data, X-Telegram-User-Id, X-Telegram-User-Name, X-Admin-Token, X-Admin-Password, Authorization')
             
         def do_OPTIONS(self):
             self.send_response(200)
             self.send_cors_headers()
             self.end_headers()
+
+        def do_HEAD(self):
+            if self.path in ("/health", "/healthz", "/ping", "/api/health"):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain")
+                self.send_cors_headers()
+                self.end_headers()
+                return
+            if self.path == "/" or not self.path:
+                self.path = "/index.html"
+            return super().do_HEAD()
             
         def is_admin_request(self) -> bool:
             user = self.get_user_from_headers()
@@ -2026,7 +2037,7 @@ def start_background_web_server() -> None:
                     u = get_or_create_user(
                         user_id=uid,
                         username=username or f"player_{str(uid)[-4:]}",
-                        first_name="Lucky Player"
+                        first_name="Africa Player"
                     )
                 if not u.get('is_verified'):
                     with get_db_connection() as conn:
@@ -2045,7 +2056,7 @@ def start_background_web_server() -> None:
             self.wfile.write(json.dumps(data).encode('utf-8'))
             
         def do_GET(self):
-            if self.path in ("/health", "/healthz", "/ping"):
+            if self.path in ("/health", "/healthz", "/ping", "/api/health"):
                 self.send_response(200)
                 self.send_header("Content-Type", "text/plain")
                 self.send_cors_headers()

@@ -5,4 +5,5 @@ Thumbs.db
 __pycache__/
 *.pyc
 *.db
-data/*.db
+data/
+
