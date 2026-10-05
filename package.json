@@ -1,0 +1,12 @@
+{
+  "name": "africa-bingo",
+  "version": "1.0.0",
+  "description": "Africa Bingo Web App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
