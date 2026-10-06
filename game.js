@@ -2398,8 +2398,6 @@ function onBoardNumberClick(n) {
   if (claimed || !playing) return;
 
   if (!called.includes(n)) {
-    playNopeVoice();
-    toast(`WAIT FOR ${letterFor(n)}-${n}`, "lose");
     return;
   }
 
@@ -2586,8 +2584,6 @@ function toggleManualMark(value) {
   if (claimed || !playing || value === "FREE") return;
 
   if (!called.includes(value)) {
-    playNopeVoice();
-    toast(`WAIT FOR ${letterFor(value)}-${value}`, "lose");
     return;
   }
 
@@ -2689,36 +2685,7 @@ function playBingoVoice() {
 
 let currentNopeAudio = null;
 function playNopeVoice() {
-  if (!soundEffectsEnabled) return;
-  try {
-    if (currentNopeAudio) {
-      currentNopeAudio.pause();
-      currentNopeAudio.currentTime = 0;
-    }
-    const voice = getSelectedVoice();
-    const candidates = [
-      `assets/audio/${voice}/nop.m4a`,
-      `assets/audio/${voice}/nop.mp3`,
-      "assets/audio/amharic/nop.m4a",
-      "assets/audio/nop.m4a",
-      "assets/audio/nop.mp3",
-    ];
-    let candidateIndex = 0;
-    const audio = new Audio();
-    audio.preload = "auto";
-    audio.onerror = () => {
-      candidateIndex++;
-      if (candidateIndex < candidates.length) {
-        audio.src = candidates[candidateIndex];
-        audio.play().catch(() => {});
-      }
-    };
-    audio.src = candidates[0];
-    currentNopeAudio = audio;
-    audio.play().catch(() => {});
-  } catch (err) {
-    // Graceful ignore
-  }
+  // Voice removed per user request
 }
 
 function handleSingleCall(n) {
