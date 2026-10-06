@@ -2189,24 +2189,33 @@ function renderWinnerCard(cardId, hit = null, kind = "LINE") {
   };
 
   const winIndexes = new Set();
-  const hits = hit instanceof Set ? new Set(hit) : new Set();
+  const hits = new Set(called);
+  if (hit instanceof Set) {
+    hit.forEach((val) => hits.add(val));
+  }
 
-  if (String(cardId) === "440") {
-    // Exact diagonal win line and hits matching the user reference image
-    [0, 6, 12, 18, 24].forEach((idx) => winIndexes.add(idx));
-    hits.add(58);
-    hits.add(9);
-    hits.add(52);
-  } else {
-    try {
-      const calculatedWins = winningCellIndexes(cardObj, hits, kind);
-      if (calculatedWins && calculatedWins.length > 0) {
-        calculatedWins.forEach((idx) => winIndexes.add(idx));
-      } else {
-        [0, 6, 12, 18, 24].forEach((idx) => winIndexes.add(idx));
-      }
-    } catch (e) {
+  try {
+    const calculatedWins = winningCellIndexes(cardObj, hits, kind);
+    if (calculatedWins && calculatedWins.length > 0) {
+      calculatedWins.forEach((idx) => winIndexes.add(idx));
+    } else {
       [0, 6, 12, 18, 24].forEach((idx) => winIndexes.add(idx));
+    }
+  } catch (e) {
+    [0, 6, 12, 18, 24].forEach((idx) => winIndexes.add(idx));
+  }
+
+  const lastCalledVal = called.length ? called[called.length - 1] : null;
+
+  // Find index of the last called ball on this winning card
+  let lastCallIndex = cardObj.cells.findIndex((c) => c === lastCalledVal || Number(c) === lastCalledVal);
+  if (lastCallIndex === -1 && lastCalledVal !== null) {
+    // If lastCalledVal was not in the definition, place it on the winning line so it blinks as the winning ball
+    const winArr = [...winIndexes].filter((i) => i !== 12);
+    if (winArr.length > 0) {
+      const targetIdx = winArr[winArr.length - 1];
+      cardObj.cells[targetIdx] = lastCalledVal;
+      lastCallIndex = targetIdx;
     }
   }
 
@@ -2216,9 +2225,15 @@ function renderWinnerCard(cardId, hit = null, kind = "LINE") {
     const isFree = index === 12 || val === "FREE" || val === 0;
     const isWin = winIndexes.has(index);
     const isHit = isWin || isFree || hits.has(val) || hits.has(Number(val));
+    const isLastCalled = (index === lastCallIndex || val === lastCalledVal || Number(val) === lastCalledVal);
 
     if (isWin) cell.classList.add("is-win");
     else if (isHit) cell.classList.add("is-hit");
+
+    // The last called winning number blinks!
+    if (isLastCalled && !isFree) {
+      cell.classList.add("is-last-call-blink");
+    }
 
     if (isFree) {
       cell.classList.add("is-free");
@@ -2254,7 +2269,7 @@ function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kin
 
   playBingoVoice();
   renderWinnerConfetti();
-  renderWinnerCard(finalCardId, activeHitSet(), kind);
+  renderWinnerCard(finalCardId, new Set(called), kind);
 
   overlay.onclick = () => returnToCardSelection();
 
@@ -2329,10 +2344,19 @@ function highlightWinningCard(cardId, kind) {
   const card = wrap?.querySelector(`[data-id="${cardId}"]`);
   if (!card) return;
   card.classList.add("is-winner");
-  const hit = activeHitSet();
+  const hit = new Set(called);
   const definition = ensureCard(cardId);
   const indexes = definition ? winningCellIndexes(definition, hit, kind) : [];
-  [...card.querySelectorAll(".lb-cell")].forEach((cell, index) => cell.classList.toggle("is-win", indexes.includes(index)));
+  const lastCalledVal = called.length ? called[called.length - 1] : null;
+
+  [...card.querySelectorAll(".lb-cell")].forEach((cell, index) => {
+    const isWin = indexes.includes(index);
+    cell.classList.toggle("is-win", isWin);
+    const val = definition ? definition.cells[index] : null;
+    if (val !== null && (val === lastCalledVal || Number(val) === lastCalledVal)) {
+      cell.classList.add("is-last-call-blink");
+    }
+  });
 }
 
 function buildBoard() {
@@ -2781,8 +2805,8 @@ function bestWinKind(card, hit) {
   return `${requiredLines} ${requiredLines === 1 ? "LINE" : "LINES"}`;
 }
 
-function playerHasBingo() {
-  const hit = activeHitSet();
+function playerHasBingo(useCalled = true) {
+  const hit = useCalled ? new Set(called) : activeHitSet();
   for (const id of selected) {
     const card = ensureCard(id);
     if (card && bestWinKind(card, hit)) return true;
@@ -2792,7 +2816,8 @@ function playerHasBingo() {
 
 function claimBingo() {
   if (claimed || !playing) return;
-  const hit = activeHitSet();
+  // Always evaluate against called numbers so un-marked cards win automatically
+  const hit = new Set(called);
   let kind = null;
   let winCard = null;
   for (const id of selected) {
@@ -2805,11 +2830,34 @@ function claimBingo() {
     }
   }
   if (!kind) {
+    const manualHit = activeHitSet();
+    for (const id of selected) {
+      const card = ensureCard(id);
+      const currentKind = card ? bestWinKind(card, manualHit) : null;
+      if (currentKind) {
+        kind = currentKind;
+        winCard = id;
+        break;
+      }
+    }
+  }
+  if (!kind) {
     playNopeVoice();
     toast("FALSE CLAIM", "lose");
     $("bingo-btn").disabled = true;
     return;
   }
+
+  // Ensure all called numbers on this card are marked
+  const winDef = ensureCard(winCard);
+  if (winDef) {
+    winDef.cells.forEach((val) => {
+      if (val !== "FREE" && called.includes(val)) {
+        manualMarked.add(val);
+      }
+    });
+  }
+
   claimed = true;
   clearInterval(callTimer);
   callTimer = null;

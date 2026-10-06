@@ -2823,6 +2823,52 @@ button {
   display: none !important;
 }
 
+/* Last called winning number on winner card blinks! */
+.lb-winner-cell.is-last-call-blink {
+  animation: lb-winner-last-call-blink 0.45s infinite alternate ease-in-out !important;
+  z-index: 10 !important;
+}
+
+@keyframes lb-winner-last-call-blink {
+  0% {
+    background: #e11d48 !important;
+    color: #ffffff !important;
+    transform: scale(1);
+    box-shadow: 0 0 6px rgba(225, 29, 72, 0.8) !important;
+    border: 2px solid #ffffff !important;
+  }
+  100% {
+    background: #fde047 !important;
+    color: #713f12 !important;
+    transform: scale(1.18);
+    box-shadow: 0 0 20px rgba(253, 224, 71, 1), inset 0 0 6px rgba(254, 240, 138, 0.9) !important;
+    border: 2px solid #ca8a04 !important;
+  }
+}
+
+/* Last called winning number on game cards blinks! */
+.lb-cell.is-last-call-blink {
+  animation: lb-cell-last-call-blink 0.45s infinite alternate ease-in-out !important;
+  z-index: 10 !important;
+}
+
+@keyframes lb-cell-last-call-blink {
+  0% {
+    background: #ff7a00 !important;
+    color: #ffffff !important;
+    transform: scale(1);
+    box-shadow: 0 0 6px rgba(255, 122, 0, 0.8) !important;
+    border: 2px solid #ffffff !important;
+  }
+  100% {
+    background: #fde047 !important;
+    color: #713f12 !important;
+    transform: scale(1.18);
+    box-shadow: 0 0 16px rgba(234, 179, 8, 1) !important;
+    border: 2px solid #ca8a04 !important;
+  }
+}
+
 @keyframes lb-winner-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
