@@ -92,6 +92,7 @@ def get_game_web_url(subpath: str = "", extra_query: str = "", is_admin_user: bo
 
     tunnel_url = os.getenv("TUNNEL_API_URL") or os.getenv("PUBLIC_API_URL", "https://africa-bingo.ethiodeploy.com")
     params = []
+    params.append(f"v={int(time.time())}")
     if tunnel_url and "api=" not in base:
         params.append(f"api={urllib.parse.quote(tunnel_url, safe='')}")
     if is_admin_user:

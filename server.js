@@ -340,10 +340,13 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      const isDynamic = ext === ".html" || ext === ".js" || ext === ".css";
       res.writeHead(200, {
         "Content-Type": contentType,
         "Access-Control-Allow-Origin": "*",
-        "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=86400",
+        "Cache-Control": isDynamic ? "no-cache, no-store, must-revalidate" : "public, max-age=86400",
+        "Pragma": isDynamic ? "no-cache" : "public",
+        "Expires": isDynamic ? "0" : "86400",
       });
       res.end(content);
     });
