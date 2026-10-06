@@ -2336,38 +2336,62 @@ function highlightWinningCard(cardId, kind) {
 }
 
 function buildBoard() {
-  const board = $("board");
-  if (!board) return;
-  board.replaceChildren();
+  const hBoard = $("h-board") || $("board");
+  if (hBoard) {
+    hBoard.replaceChildren();
+    LETTERS.forEach((letter, colIndex) => {
+      const hdr = document.createElement("div");
+      hdr.className = "lb-h-letter";
+      hdr.dataset.letter = letter;
+      hdr.textContent = letter;
+      hBoard.appendChild(hdr);
 
-  LETTERS.forEach((letter, colIndex) => {
-    const col = document.createElement("div");
-    col.className = "lb-v-col";
-    col.dataset.letter = letter;
+      const [start, end] = COL_RANGES[colIndex];
+      for (let n = start; n <= end; n++) {
+        const d = document.createElement("button");
+        d.type = "button";
+        d.className = "lb-dot lb-h-dot";
+        d.dataset.n = String(n);
+        d.dataset.letter = letter;
+        d.textContent = String(n);
+        d.addEventListener("click", () => onBoardNumberClick(n));
+        hBoard.appendChild(d);
+      }
+    });
+  }
 
-    const hdr = document.createElement("div");
-    hdr.className = "lb-v-hdr";
-    hdr.innerHTML = `<span class="lb-v-letter">${letter}</span><div class="lb-v-bar"></div>`;
-    col.appendChild(hdr);
+  const vBoard = $("v-board");
+  if (vBoard) {
+    vBoard.replaceChildren();
+    LETTERS.forEach((letter, colIndex) => {
+      const col = document.createElement("div");
+      col.className = "lb-v-col";
+      col.dataset.letter = letter;
 
-    const cellsWrap = document.createElement("div");
-    cellsWrap.className = "lb-v-cells";
+      const hdr = document.createElement("div");
+      hdr.className = "lb-v-hdr";
+      hdr.innerHTML = `<span class="lb-v-letter">${letter}</span><div class="lb-v-bar"></div>`;
+      col.appendChild(hdr);
 
-    const [start, end] = COL_RANGES[colIndex];
-    for (let n = start; n <= end; n++) {
-      const d = document.createElement("button");
-      d.type = "button";
-      d.className = "lb-dot lb-v-dot";
-      d.dataset.n = String(n);
-      d.dataset.letter = letter;
-      d.textContent = String(n);
-      d.addEventListener("click", () => onBoardNumberClick(n));
-      cellsWrap.appendChild(d);
-    }
+      const cellsWrap = document.createElement("div");
+      cellsWrap.className = "lb-v-cells";
 
-    col.appendChild(cellsWrap);
-    board.appendChild(col);
-  });
+      const [start, end] = COL_RANGES[colIndex];
+      for (let n = start; n <= end; n++) {
+        const d = document.createElement("button");
+        d.type = "button";
+        d.className = "lb-dot lb-v-dot";
+        d.dataset.n = String(n);
+        d.dataset.letter = letter;
+        d.textContent = String(n);
+        d.addEventListener("click", () => onBoardNumberClick(n));
+        cellsWrap.appendChild(d);
+      }
+
+      col.appendChild(cellsWrap);
+      vBoard.appendChild(col);
+    });
+  }
 }
 
 function onBoardNumberClick(n) {
@@ -2400,13 +2424,11 @@ function onBoardNumberClick(n) {
 }
 
 function paintBoard() {
-  const board = $("board");
-  if (!board) return;
   const set = new Set(called);
   const hits = activeHitSet();
   const currentCall = called.length ? called[called.length - 1] : null;
 
-  board.querySelectorAll(".lb-dot").forEach((el) => {
+  document.querySelectorAll(".lb-dot").forEach((el) => {
     if (el.dataset.n) {
       const n = Number(el.dataset.n);
       const isCalled = set.has(n);
@@ -2473,10 +2495,25 @@ function renderMineCards() {
     bingoBtn.classList.add("is-visible");
   }
 
-  wrap.style.display = "flex";
+  const isMulti = cardList.length > 4;
+  const gameView = $("view-game");
+  if (gameView) {
+    gameView.classList.toggle("has-many-cards-layout", isMulti);
+    gameView.classList.toggle("is-standard-layout", !isMulti);
+  }
+
+  wrap.style.display = isMulti ? "flex" : "grid";
   wrap.classList.remove("is-hidden");
   wrap.hidden = false;
   wrap.removeAttribute("hidden");
+
+  wrap.className = "lb-mine-cards-grid";
+  if (!isMulti) {
+    wrap.classList.toggle("has-single-card", cardList.length === 1);
+    wrap.classList.toggle("has-two-cards", cardList.length === 2);
+    wrap.classList.toggle("has-three-cards", cardList.length === 3);
+    wrap.classList.toggle("has-four-cards", cardList.length === 4);
+  }
 
   wrap.replaceChildren(
     ...cardList.map((id) => {
@@ -2488,7 +2525,7 @@ function renderMineCards() {
       el.dataset.id = String(id);
 
       el.innerHTML = `
-        <div class="lb-cartela-title">Card ${id}</div>
+        <div class="lb-cartela-title">Cartela #${id}</div>
         <div class="lb-card-header-row" aria-hidden="true">
           <span class="lb-hdr-b">B</span>
           <span class="lb-hdr-i">I</span>

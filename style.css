@@ -4243,7 +4243,89 @@ body.is-game-active #view-game {
 
 
 
-/* 4. BALL CALL BAR & CONTROLS (IMAGE 2) */
+/* 2. FULL-WIDTH HORIZONTAL 75-NUMBER MASTER BOARD (IMAGE 1 - ALWAYS PRESENT) */
+.lb-h-board-section {
+  width: 100% !important;
+  margin-bottom: 2px !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+.lb-h-board {
+  display: grid !important;
+  grid-template-columns: 15px repeat(15, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(5, 14px) !important;
+  gap: 1.5px 1.5px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.lb-h-letter {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: Arial, -apple-system, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+  line-height: 1 !important;
+  user-select: none !important;
+}
+
+.lb-h-letter[data-letter="B"] { color: #f59e0b !important; }
+.lb-h-letter[data-letter="I"] { color: #38bdf8 !important; }
+.lb-h-letter[data-letter="N"] { color: #ec4899 !important; }
+.lb-h-letter[data-letter="G"] { color: #10b981 !important; }
+.lb-h-letter[data-letter="O"] { color: #a855f7 !important; }
+
+.lb-h-dot {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 14px !important;
+  min-width: 0 !important;
+  border-radius: 3px !important;
+  background: #bbbbd3 !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-family: Arial, -apple-system, sans-serif !important;
+  font-size: 8.5px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  user-select: none !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  padding: 0 !important;
+  transition: background 0.15s ease, transform 0.15s ease !important;
+}
+
+.lb-h-dot.is-on,
+.lb-h-dot.is-called {
+  background: #ff7a00 !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+.lb-h-dot.is-current-call {
+  background: #3d8c44 !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  animation: lb-current-call-blink 0.65s infinite alternate ease-in-out !important;
+}
+
+.lb-h-dot.is-hit {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+@keyframes lb-current-call-blink {
+  0% { transform: scale(1); box-shadow: 0 0 3px rgba(61, 140, 68, 0.6); }
+  100% { transform: scale(1.15); box-shadow: 0 0 8px rgba(34, 197, 94, 0.95); }
+}
+
+/* 4. BALL CALL BAR & CONTROLS (IMAGE 1) */
 .lb-call-bar {
   display: flex !important;
   align-items: center !important;
@@ -4382,26 +4464,182 @@ body.is-game-active #view-game {
   margin-top: 1px !important;
 }
 
-/* 5. BINGO CARD SECTION WITH GOLD FRAME */
-.lb-mobile-card-section {
+/* ========================================================== */
+/* STANDARD LAYOUT: WHEN <= 4 CARDS (MATCHING IMAGE 2 EXACTLY) */
+/* ========================================================== */
+.is-standard-layout .lb-game-arena,
+.lb-game-arena:not(.has-many-cards-layout) {
   display: flex !important;
   flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
+  width: 100% !important;
+  max-width: 440px !important;
+  margin: auto !important;
   flex: 1 1 0px !important;
   min-height: 0 !important;
   height: 100% !important;
-  max-height: 100% !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  padding: 0 !important;
   overflow: hidden !important;
+  box-sizing: border-box !important;
 }
 
-/* 5. MAIN GAME ARENA (TWO COLUMNS: LEFT CARDS, RIGHT MASTER BOARD) */
-.lb-game-arena {
+.is-standard-layout .lb-game-right-col,
+.lb-game-arena:not(.has-many-cards-layout) .lb-game-right-col {
+  display: none !important;
+}
+
+.is-standard-layout .lb-game-left-col,
+.lb-game-arena:not(.has-many-cards-layout) .lb-game-left-col {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.is-standard-layout .lb-mine-cards-grid,
+.lb-game-arena:not(.has-many-cards-layout) .lb-mine-cards-grid {
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr) !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  gap: 2.5px 3.5px !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  margin: auto !important;
+  box-sizing: border-box !important;
+  flex: 1 1 0px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+}
+
+.is-standard-layout .lb-mine-cards-grid.has-single-card {
+  grid-template-columns: minmax(0, 240px) !important;
+  grid-template-rows: minmax(0, 240px) !important;
+  justify-content: center !important;
+}
+
+.is-standard-layout .lb-mine-cards-grid.has-two-cards {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-rows: 1fr !important;
+}
+
+.is-standard-layout .lb-card {
+  background: rgba(255, 255, 255, 0.45) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.75) !important;
+  border-radius: 8px !important;
+  padding: 2px 3px 3px !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  flex-shrink: 1 !important;
+}
+
+.is-standard-layout .lb-cartela-title {
+  display: block !important;
+  text-align: center !important;
+  color: #008000 !important;
+  font-family: inherit !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  margin: 0 0 1px 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  flex: 0 0 auto !important;
+}
+
+.is-standard-layout .lb-card-header-row {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 1.5px !important;
+  margin-bottom: 1.5px !important;
+  width: 100% !important;
+  height: 14px !important;
+  min-height: 14px !important;
+  flex: 0 0 auto !important;
+}
+
+.is-standard-layout .lb-card-header-row span {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 14px !important;
+  border-radius: 3px !important;
+  color: #ffffff !important;
+  font-family: inherit !important;
+  font-size: 8.5px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+.is-standard-layout .lb-card-header-row .lb-hdr-b { background: #fea500 !important; }
+.is-standard-layout .lb-card-header-row .lb-hdr-i { background: #008001 !important; }
+.is-standard-layout .lb-card-header-row .lb-hdr-n { background: #0000fe !important; }
+.is-standard-layout .lb-card-header-row .lb-hdr-g { background: #fe0000 !important; }
+.is-standard-layout .lb-card-header-row .lb-hdr-o { background: #81007f !important; }
+
+.is-standard-layout .lb-cells {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(5, minmax(0, 1fr)) !important;
+  gap: 1.5px !important;
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 1 0px !important;
+  min-height: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.is-standard-layout .lb-cell {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  border-radius: 3.5px !important;
+  background: #ede8ec !important;
+  border: none !important;
+  color: #1e1b4b !important;
+  font-family: inherit !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  user-select: none !important;
+  box-sizing: border-box !important;
+  cursor: pointer !important;
+  transition: transform 0.08s ease, background 0.12s ease !important;
+}
+
+.is-standard-layout .lb-cell.is-free {
+  background: #028b00 !important;
+  color: #ffe600 !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+
+.is-standard-layout .lb-cell.is-hit:not(.is-free) {
+  background: #ff7a00 !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 1px 4px rgba(255, 122, 0, 0.45) !important;
+}
+
+/* ========================================================== */
+/* MULTI-CARD LAYOUT: WHEN > 4 CARDS (SCROLLABLE ON LEFT + BOARD ON RIGHT) */
+/* ========================================================== */
+.has-many-cards-layout .lb-game-arena {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) !important;
   gap: 5px !important;
   width: 100% !important;
   max-width: 460px !important;
@@ -4413,8 +4651,7 @@ body.is-game-active #view-game {
   box-sizing: border-box !important;
 }
 
-/* LEFT COLUMN: SCROLLABLE REGISTERED CARTELLAS */
-.lb-game-left-col {
+.has-many-cards-layout .lb-game-left-col {
   display: flex !important;
   flex-direction: column !important;
   height: 100% !important;
@@ -4425,15 +4662,15 @@ body.is-game-active #view-game {
   box-sizing: border-box !important;
 }
 
-.lb-game-left-col::-webkit-scrollbar {
+.has-many-cards-layout .lb-game-left-col::-webkit-scrollbar {
   width: 3px !important;
 }
-.lb-game-left-col::-webkit-scrollbar-thumb {
+.has-many-cards-layout .lb-game-left-col::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.5) !important;
   border-radius: 4px !important;
 }
 
-.lb-mine-cards-grid {
+.has-many-cards-layout .lb-mine-cards-grid {
   display: flex !important;
   flex-direction: column !important;
   gap: 8px !important;
@@ -4443,8 +4680,7 @@ body.is-game-active #view-game {
   box-sizing: border-box !important;
 }
 
-/* Individual Registered Card Frame */
-.lb-card {
+.has-many-cards-layout .lb-card {
   background: rgba(255, 255, 255, 0.95) !important;
   border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
   border-radius: 10px !important;
@@ -4458,146 +4694,71 @@ body.is-game-active #view-game {
   flex-shrink: 0 !important;
 }
 
-/* Top title for each registered card (Card 31, Card 33) */
-.lb-cartela-title {
+.has-many-cards-layout .lb-cartela-title {
   display: block !important;
   text-align: center !important;
   color: #0284c7 !important;
   font-family: inherit !important;
-  font-size: 11.5px !important;
+  font-size: 11px !important;
   font-weight: 800 !important;
-  margin: 0 0 3px 0 !important;
-  padding: 0 !important;
+  margin: 0 0 2px 0 !important;
   line-height: 1 !important;
 }
 
-/* Card Column Header Row (B I N G O) */
-.lb-card .lb-card-header-row,
-.lb-gold-card-frame .lb-card-header-row {
+.has-many-cards-layout .lb-card-header-row {
   display: grid !important;
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   gap: 2px !important;
-  margin-bottom: 3px !important;
+  margin-bottom: 2px !important;
   width: 100% !important;
-  height: 15px !important;
-  min-height: 15px !important;
-  flex: 0 0 auto !important;
+  height: 14px !important;
 }
 
-.lb-card .lb-card-header-row span,
-.lb-gold-card-frame .lb-card-header-row span {
+.has-many-cards-layout .lb-card-header-row span {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  height: 15px !important;
-  border-radius: 3px !important;
-  color: #ffffff !important;
-  font-family: inherit !important;
-  font-size: 9px !important;
+  height: 14px !important;
+  font-size: 8.5px !important;
   font-weight: 900 !important;
-  line-height: 1 !important;
-  text-align: center !important;
-  box-sizing: border-box !important;
 }
 
-.lb-card-header-row .lb-hdr-b { background: #3b82f6 !important; }
-.lb-card-header-row .lb-hdr-i { background: #ef4444 !important; }
-.lb-card-header-row .lb-hdr-n { background: #8b5cf6 !important; }
-.lb-card-header-row .lb-hdr-g { background: #10b981 !important; }
-.lb-card-header-row .lb-hdr-o { background: #f59e0b !important; }
-
-/* 5x5 Grid of Cells */
-.lb-cells,
-.lb-empty-grid {
+.has-many-cards-layout .lb-cells {
   display: grid !important;
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-  grid-template-rows: repeat(5, 23px) !important;
+  grid-template-rows: repeat(5, 22px) !important;
   gap: 2px !important;
   width: 100% !important;
-  box-sizing: border-box !important;
 }
 
-.lb-cell {
+.has-many-cards-layout .lb-cell {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  aspect-ratio: unset !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
   border-radius: 4px !important;
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
   color: #0f172a !important;
-  font-family: inherit !important;
-  font-size: 11px !important;
+  font-size: 10.5px !important;
   font-weight: 800 !important;
-  line-height: 1 !important;
-  user-select: none !important;
-  box-sizing: border-box !important;
-  cursor: pointer !important;
-  transition: transform 0.08s ease, background 0.12s ease !important;
 }
 
-.lb-cell:active {
-  transform: scale(0.92) !important;
-}
-
-/* Center Free Star Cell */
-.lb-cell.is-free {
+.has-many-cards-layout .lb-cell.is-free {
   background: #bae6fd !important;
   border-color: #7dd3fc !important;
   color: #f59e0b !important;
-  font-size: 13px !important;
-  font-weight: 900 !important;
+  font-size: 12px !important;
 }
 
-/* Marked by Player (Hit) */
-.lb-cell.is-hit:not(.is-free) {
+.has-many-cards-layout .lb-cell.is-hit:not(.is-free) {
   background: #ff7a00 !important;
   border-color: #ea580c !important;
   color: #ffffff !important;
   font-weight: 900 !important;
-  box-shadow: 0 1px 3px rgba(255, 122, 0, 0.4) !important;
 }
 
-/* Brief Blink on newly called number */
-.lb-cell.is-hint-blink {
-  animation: lb-cell-call-blink 0.5s ease-in-out 4 !important;
-  z-index: 5 !important;
-  position: relative !important;
-}
-
-@keyframes lb-cell-call-blink {
-  0%, 100% {
-    background: #f8fafc;
-    transform: scale(1);
-    box-shadow: none;
-  }
-  50% {
-    background: #ffedd5;
-    transform: scale(1.08);
-    box-shadow: 0 0 10px rgba(255, 122, 0, 0.85);
-    border: 1.5px solid #ff7a00;
-  }
-}
-
-.lb-cell.is-win {
-  background: #16a34a !important;
-  border-color: #15803d !important;
-  color: #ffffff !important;
-  font-weight: 900 !important;
-  box-shadow: 0 0 8px rgba(22, 163, 74, 0.8) !important;
-  animation: lb-win-pulse 0.8s infinite alternate !important;
-}
-
-.lb-cell.is-callable {
-  cursor: pointer !important;
-}
-
-/* RIGHT COLUMN: VERTICAL 1-75 MASTER BOARD (MATCHING IMAGE) */
-.lb-game-right-col {
+/* RIGHT COLUMN: VERTICAL 1-75 MASTER BOARD (ACTIVE ONLY WHEN > 4 CARDS) */
+.has-many-cards-layout .lb-game-right-col {
   display: flex !important;
   flex-direction: column !important;
   height: 100% !important;
@@ -4635,14 +4796,14 @@ body.is-game-active #view-game {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  height: 19px !important;
-  min-height: 19px !important;
-  flex: 0 0 19px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  flex: 0 0 18px !important;
 }
 
 .lb-v-letter {
   font-family: Arial, -apple-system, sans-serif !important;
-  font-size: 13px !important;
+  font-size: 12px !important;
   font-weight: 900 !important;
   color: #0f172a !important;
   line-height: 1 !important;
@@ -4650,9 +4811,9 @@ body.is-game-active #view-game {
 
 .lb-v-bar {
   width: 100% !important;
-  height: 2.5px !important;
+  height: 2px !important;
   background: #0f172a !important;
-  margin-top: 2px !important;
+  margin-top: 1.5px !important;
   border-radius: 1px !important;
 }
 
@@ -4676,24 +4837,23 @@ body.is-game-active #view-game {
   padding: 0 !important;
   background: #ffffff !important;
   border: 1px solid #d1d5db !important;
-  border-radius: 4px !important;
+  border-radius: 3px !important;
   color: #1e293b !important;
-  font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 10.5px !important;
+  font-family: Arial, -apple-system, sans-serif !important;
+  font-size: 10px !important;
   font-weight: 700 !important;
   line-height: 1 !important;
   text-align: center !important;
   cursor: pointer !important;
   user-select: none !important;
   box-sizing: border-box !important;
-  transition: transform 0.08s ease, background-color 0.1s ease, border-color 0.1s ease !important;
+  transition: transform 0.08s ease, background-color 0.1s ease !important;
 }
 
 .lb-v-dot:active {
   transform: scale(0.9) !important;
 }
 
-/* Called and waiting to be marked: soft amber highlight */
 .lb-v-dot.is-called {
   background: #fef3c7 !important;
   border-color: #f59e0b !important;
@@ -4701,7 +4861,6 @@ body.is-game-active #view-game {
   font-weight: 800 !important;
 }
 
-/* Latest called number: blinking highlight */
 .lb-v-dot.is-current-call {
   background: #fde047 !important;
   border-color: #ca8a04 !important;
@@ -4716,7 +4875,6 @@ body.is-game-active #view-game {
   100% { transform: scale(1.1); box-shadow: 0 0 8px rgba(234, 179, 8, 0.9); }
 }
 
-/* Marked by player (Hit): vibrant green with white text */
 .lb-v-dot.is-hit {
   background: #10b981 !important;
   border-color: #059669 !important;

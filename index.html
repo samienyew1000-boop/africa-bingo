@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#bfa2d0" />
     <title>Africa Bingo</title>
-    <link rel="stylesheet" href="style.css?v=20261006_02" />
+    <link rel="stylesheet" href="style.css?v=20261006_04" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="players-data.js?v=20261006_02"></script>
+    <script src="players-data.js?v=20261006_04"></script>
   </head>
   <body class="is-lobby-active">
 
@@ -216,6 +216,11 @@
     <div id="round-result" hidden></div>
   </div>
 
+  <!-- 2. Full-Width Horizontal 75-Number Master Board (Image 1 - ALWAYS PRESENT) -->
+  <section class="lb-h-board-section" aria-label="Master bingo board">
+    <div class="lb-h-board" id="h-board"></div>
+  </section>
+
   <!-- Ball Call Bar & Action Controls -->
   <div class="lb-call-bar">
     <button type="button" class="lb-call-bar-btn lb-back-btn" id="game-back-btn" aria-label="Back to lobby" title="Back">
@@ -249,9 +254,9 @@
     </button>
   </div>
 
-  <!-- 3. MAIN GAME ARENA (Left: Scrollable Registered Cartelas, Right: 1-75 Master Board) -->
+  <!-- 3. MAIN GAME ARENA (Left: Registered Cartelas, Right: Vertical Board if > 4 cards) -->
   <div class="lb-game-arena" id="game-arena">
-    <!-- Left Pane: Registered Cartelas (Scrollable vertically) -->
+    <!-- Left Pane: Registered Cartelas -->
     <div class="lb-game-left-col" id="game-left-col">
       <div class="lb-mine-cards-grid" id="mine-cards"></div>
 
@@ -282,9 +287,9 @@
       </div>
     </div>
 
-    <!-- Right Pane: 1-75 Vertical Master Board (Matching uploaded image) -->
+    <!-- Right Pane: 1-75 Vertical Master Board (Shown ONLY when > 4 cards) -->
     <div class="lb-game-right-col" id="game-right-col">
-      <div class="lb-v-master-board" id="board" aria-label="Master bingo board"></div>
+      <div class="lb-v-master-board" id="v-board" aria-label="Master bingo board"></div>
     </div>
   </div>
 
@@ -578,10 +583,10 @@
         <div class="lb-toast" id="toast" hidden></div>
       </div>
     </div>
-    <script src="card-data.js?v=20261006_02"></script>
-    <script src="app-config.js?v=20261006_02"></script>
-    <script src="api-client.js?v=20261006_02"></script>
-    <script src="../shared-balance.js?v=20261006_02"></script>
-    <script src="game.js?v=20261006_02"></script>
+    <script src="card-data.js?v=20261006_04"></script>
+    <script src="app-config.js?v=20261006_04"></script>
+    <script src="api-client.js?v=20261006_04"></script>
+    <script src="../shared-balance.js?v=20261006_04"></script>
+    <script src="game.js?v=20261006_04"></script>
   </body>
 </html>
