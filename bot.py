@@ -200,6 +200,68 @@ def is_admin_check(user_id: int, username: str = "", phone: str = "") -> bool:
         pass
     return False
 
+def notify_admins_transaction(tx_id: str, tx_type: str, amount: float, method: str, user_info: dict, reference: str = "") -> None:
+    """Send immediate notification to all authorized administrators via Telegram bot API."""
+    import urllib.request
+    token = os.getenv("BOT_TOKEN") or BOT_TOKEN
+    if not token or token == "YOUR_BOT_TOKEN_HERE":
+        return
+
+    admin_targets = set(ADMIN_TELEGRAM_IDS)
+    admin_targets.add(5663531258)
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT id FROM users WHERE role = 'admin'")
+            for r in c.fetchall():
+                admin_targets.add(r["id"])
+    except Exception:
+        pass
+
+    user_name = user_info.get("first_name", "") or ""
+    if user_info.get("last_name"):
+        user_name += " " + user_info.get("last_name")
+    if not user_name.strip():
+        user_name = f"@{user_info.get('username')}" if user_info.get("username") else f"User {user_info.get('id', 'N/A')}"
+
+    phone = user_info.get("phone_number") or reference or "N/A"
+    type_am = "አዲስ የተቀማጭ ጥያቄ (Deposit)" if tx_type == "deposit" else "አዲስ የገንዘብ ማውጣት ጥያቄ (Withdraw)"
+
+    text = (
+        f"🔔 *{type_am} ደርሷል!*\n\n"
+        f"👤 *ተጫዋች:* {user_name}\n"
+        f"💰 *መጠን:* `{amount:.2f} ETB`\n"
+        f"💳 *መንገድ:* {method}\n"
+        f"📱 *ስልክ / ማጣቀሻ (Ref):* `{phone}`\n"
+        f"🆔 *የግብይት መለያ (ID):* `{tx_id}`\n\n"
+        f"በ Admin Panel ወይም በ Bot ለማጽደቅ:\n"
+        f"/admin"
+    )
+
+    for chat_id in admin_targets:
+        try:
+            payload = {
+                "chat_id": chat_id,
+                "text": text,
+                "parse_mode": "Markdown",
+                "reply_markup": {
+                    "inline_keyboard": [
+                        [
+                            {"text": "✓ አጽድቅ (Approve)", "callback_data": f"tx_app_{tx_id}"},
+                            {"text": "× ሰርዝ (Reject)", "callback_data": f"tx_rej_{tx_id}"}
+                        ]
+                    ]
+                }
+            }
+            req = urllib.request.Request(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"}
+            )
+            urllib.request.urlopen(req, timeout=5)
+        except Exception as e:
+            logger.warning("Failed to notify admin %s of %s: %s", chat_id, tx_id, e)
+
 def init_db() -> None:
     os.makedirs(DB_DIR, exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
@@ -2319,6 +2381,11 @@ def start_background_web_server() -> None:
                         )
                         conn.commit()
                     export_admin_players()
+                    threading.Thread(
+                        target=notify_admins_transaction,
+                        args=(tx_id, 'deposit', amount, method, user, phone or reference),
+                        daemon=True
+                    ).start()
                     return self.send_json({'ok': True, 'id': tx_id})
 
                 elif parsed_path == '/api/withdraw':
@@ -2345,6 +2412,11 @@ def start_background_web_server() -> None:
                         )
                         conn.commit()
                     export_admin_players()
+                    threading.Thread(
+                        target=notify_admins_transaction,
+                        args=(tx_id, 'withdraw', amount, method, user, phone),
+                        daemon=True
+                    ).start()
                     return self.send_json({'ok': True, 'id': tx_id})
 
                 else:
