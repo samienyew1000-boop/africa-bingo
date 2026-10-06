@@ -106,7 +106,7 @@
 
             <!-- 2. SUB-HEADER BAR: Boards counter, Stake & Room #, Deselect All -->
             <div class="lb-pick-subheader">
-              <span class="lb-pick-boards" id="pick-boards-counter">Boards: 0/4</span>
+              <span class="lb-pick-boards" id="pick-boards-counter">Boards: 0/50</span>
               <span class="lb-pick-room-num" id="pick-room-num">10 № 1</span>
               <button type="button" class="lb-pick-deselect-btn" id="pick-deselect-all">Deselect All</button>
             </div>
@@ -167,7 +167,7 @@
               <span id="pick-players">—</span>
               <span id="pick-available">—</span>
               <span id="pick-room-title">10 birr Game Lobby</span>
-              <span id="pick-count">0</span><span id="pick-limit">4</span>
+              <span id="pick-count">0</span><span id="pick-limit">50</span>
               <span id="pick-banner-secs">00:00</span><span id="pick-secs">01:00</span>
               <span id="pick-pool">0</span><span id="pick-cost">10</span>
               <div id="pick-timer"></div>
@@ -207,12 +207,16 @@
     <span id="game-stake" hidden style="display:none;">10 ETB</span>
   </div>
 
-  <!-- 3. Full-Width Horizontal 75-Number Master Board (Image 2) -->
-  <section class="lb-h-board-section" aria-label="Master bingo board">
-    <div class="lb-h-board" id="board"></div>
-  </section>
+  <!-- Hidden compatibility select/toggle -->
+  <div style="display:none;" aria-hidden="true">
+    <select id="game-voice-select"><option value="amharic">አማርኛ</option><option value="oromgna">Oromoo</option><option value="tigregna">ትግርኛ</option></select>
+    <input type="checkbox" id="auto-mark-toggle" />
+    <button type="button" id="leave-game"></button>
+    <div id="game-status"></div>
+    <div id="round-result" hidden></div>
+  </div>
 
-  <!-- 4. Ball Call Bar & Action Controls (Image 2) -->
+  <!-- Ball Call Bar & Action Controls -->
   <div class="lb-call-bar">
     <button type="button" class="lb-call-bar-btn lb-back-btn" id="game-back-btn" aria-label="Back to lobby" title="Back">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -229,13 +233,13 @@
     </div>
 
     <button type="button" class="lb-call-bar-btn lb-audio-btn is-active" id="voice-toggle" aria-label="Toggle caller audio" title="Voice on/off">
-      <svg class="lb-mic-icon-on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="lb-mic-icon-on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
         <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
         <line x1="12" y1="19" x2="12" y2="23"></line>
         <line x1="8" y1="23" x2="16" y2="23"></line>
       </svg>
-      <svg class="lb-mic-icon-off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="lb-mic-icon-off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <line x1="1" y1="1" x2="23" y2="23" stroke="#ef4444" stroke-width="2.5"></line>
         <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
         <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
@@ -245,46 +249,44 @@
     </button>
   </div>
 
-  <!-- Hidden compatibility select/toggle -->
-  <div style="display:none;" aria-hidden="true">
-    <select id="game-voice-select"><option value="amharic">አማርኛ</option><option value="oromgna">Oromoo</option><option value="tigregna">ትግርኛ</option></select>
-    <input type="checkbox" id="auto-mark-toggle" checked />
-    <button type="button" id="leave-game"></button>
-    <div id="game-status"></div>
-    <div id="round-result" hidden></div>
-  </div>
+  <!-- 3. MAIN GAME ARENA (Left: Scrollable Registered Cartelas, Right: 1-75 Master Board) -->
+  <div class="lb-game-arena" id="game-arena">
+    <!-- Left Pane: Registered Cartelas (Scrollable vertically) -->
+    <div class="lb-game-left-col" id="game-left-col">
+      <div class="lb-mine-cards-grid" id="mine-cards"></div>
 
-  <!-- 5. Bingo Card Section with Gold Border -->
-  <section class="lb-mobile-card-section" aria-label="Bingo Card">
-    <!-- Active Registered Cards (appears smaller, shows all registered cards side by side) -->
-    <div class="lb-mine-cards-grid" id="mine-cards"></div>
-
-    <!-- Empty state container (shown when 0 cards selected, matching Image 2) -->
-    <div class="lb-gold-card-frame" id="empty-cartela-frame">
-      <div class="lb-card-header-row" aria-hidden="true">
-        <span class="lb-hdr-b">B</span>
-        <span class="lb-hdr-i">I</span>
-        <span class="lb-hdr-n">N</span>
-        <span class="lb-hdr-g">G</span>
-        <span class="lb-hdr-o">O</span>
-      </div>
-
-      <div class="lb-card-grid-container" id="empty-cartela-grid-wrap">
-        <div class="lb-empty-grid" id="empty-grid-cells">
-          <div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div>
-          <div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div>
-          <div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell is-free">★</div><div class="lb-cell"></div><div class="lb-cell"></div>
-          <div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div>
-          <div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div>
+      <!-- Empty state container (shown when 0 cards selected) -->
+      <div class="lb-gold-card-frame" id="empty-cartela-frame" style="display:none;">
+        <div class="lb-card-header-row" aria-hidden="true">
+          <span class="lb-hdr-b">B</span>
+          <span class="lb-hdr-i">I</span>
+          <span class="lb-hdr-n">N</span>
+          <span class="lb-hdr-g">G</span>
+          <span class="lb-hdr-o">O</span>
         </div>
 
-        <div class="lb-empty-cartela-overlay" id="empty-cartela-notice">
-          <p class="lb-empty-notice-title">ካርቴላ አልመረጡም!</p>
-          <p class="lb-empty-notice-desc">ለቀጣይ ዙር ይምረጡ</p>
+        <div class="lb-card-grid-container" id="empty-cartela-grid-wrap">
+          <div class="lb-empty-grid" id="empty-grid-cells">
+            <div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div>
+            <div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div>
+            <div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell is-free">★</div><div class="lb-cell"></div><div class="lb-cell"></div>
+            <div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div>
+            <div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div><div class="lb-cell"></div>
+          </div>
+
+          <div class="lb-empty-cartela-overlay" id="empty-cartela-notice">
+            <p class="lb-empty-notice-title">ካርቴላ አልመረጡም!</p>
+            <p class="lb-empty-notice-desc">ለቀጣይ ዙር ይምረጡ</p>
+          </div>
         </div>
       </div>
     </div>
-  </section>
+
+    <!-- Right Pane: 1-75 Vertical Master Board (Matching uploaded image) -->
+    <div class="lb-game-right-col" id="game-right-col">
+      <div class="lb-v-master-board" id="board" aria-label="Master bingo board"></div>
+    </div>
+  </div>
 
   <!-- Game Bottom Action Buttons Bar (Image 2: Leave, Refresh, Bingo) -->
   <div class="lb-game-bottom-actions" id="game-bottom-actions">

@@ -11,7 +11,7 @@ const CARD_DATA_URL = "card%20number.json";
 const START_BALANCE = 0;
 const DEFAULT_STARTING_BONUS = 100;
 const CARD_COUNT = 1000;
-const MAX_PICK = 4;
+const MAX_PICK = 50;
 const CALL_MS = 3200;
 const DEFAULT_PICK_SECS = 60;
 const DEFAULT_WINNING_PATTERN = "1";
@@ -2339,37 +2339,84 @@ function buildBoard() {
   const board = $("board");
   if (!board) return;
   board.replaceChildren();
+
   LETTERS.forEach((letter, colIndex) => {
+    const col = document.createElement("div");
+    col.className = "lb-v-col";
+    col.dataset.letter = letter;
+
     const hdr = document.createElement("div");
-    hdr.className = "lb-h-letter";
-    hdr.dataset.letter = letter;
-    hdr.textContent = letter;
-    board.appendChild(hdr);
+    hdr.className = "lb-v-hdr";
+    hdr.innerHTML = `<span class="lb-v-letter">${letter}</span><div class="lb-v-bar"></div>`;
+    col.appendChild(hdr);
+
+    const cellsWrap = document.createElement("div");
+    cellsWrap.className = "lb-v-cells";
 
     const [start, end] = COL_RANGES[colIndex];
     for (let n = start; n <= end; n++) {
-      const d = document.createElement("div");
-      d.className = "lb-dot";
+      const d = document.createElement("button");
+      d.type = "button";
+      d.className = "lb-dot lb-v-dot";
       d.dataset.n = String(n);
       d.dataset.letter = letter;
       d.textContent = String(n);
-      board.appendChild(d);
+      d.addEventListener("click", () => onBoardNumberClick(n));
+      cellsWrap.appendChild(d);
     }
+
+    col.appendChild(cellsWrap);
+    board.appendChild(col);
   });
+}
+
+function onBoardNumberClick(n) {
+  if (claimed || !playing) return;
+
+  if (!called.includes(n)) {
+    playNopeVoice();
+    toast(`WAIT FOR ${letterFor(n)}-${n}`, "lose");
+    return;
+  }
+
+  const wasMarked = manualMarked.has(n);
+  if (wasMarked) {
+    manualMarked.delete(n);
+  } else {
+    manualMarked.add(n);
+  }
+
+  paintBoard();
+  renderMineCards();
+  const ready = updateBingoButton();
+  $("game-status").textContent = ready && !claimed
+    ? "You have BINGO — claim now!"
+    : `${wasMarked ? "Unmarked" : "Marked"} ${letterFor(n)}-${n}`;
+
+  // Automatically declare Bingo if any card completed!
+  if (playerHasBingo() && !claimed && playing) {
+    claimBingo();
+  }
 }
 
 function paintBoard() {
   const board = $("board");
   if (!board) return;
   const set = new Set(called);
+  const hits = activeHitSet();
   const currentCall = called.length ? called[called.length - 1] : null;
-  [...board.children].forEach((el) => {
+
+  board.querySelectorAll(".lb-dot").forEach((el) => {
     if (el.dataset.n) {
       const n = Number(el.dataset.n);
       const isCalled = set.has(n);
+      const isHit = hits.has(n) || (autoMarkingEnabled && isCalled);
       const isCurrent = (n === currentCall);
-      el.classList.toggle("is-on", isCalled && !isCurrent);
-      el.classList.toggle("is-current-call", isCurrent);
+
+      el.classList.toggle("is-called", isCalled && !isHit);
+      el.classList.toggle("is-on", isCalled && !isHit);
+      el.classList.toggle("is-hit", isHit);
+      el.classList.toggle("is-current-call", isCurrent && !isHit);
     }
   });
 }
@@ -2426,16 +2473,10 @@ function renderMineCards() {
     bingoBtn.classList.add("is-visible");
   }
 
-  wrap.style.display = "grid";
+  wrap.style.display = "flex";
   wrap.classList.remove("is-hidden");
   wrap.hidden = false;
   wrap.removeAttribute("hidden");
-  wrap.classList.toggle("has-single-card", cardList.length === 1);
-  wrap.classList.toggle("has-multiple-cards", cardList.length > 1);
-  wrap.classList.toggle("has-many-cards", cardList.length >= 3);
-  wrap.classList.toggle("has-two-cards", cardList.length === 2);
-  wrap.classList.toggle("has-three-cards", cardList.length === 3);
-  wrap.classList.toggle("has-four-cards", cardList.length === 4);
 
   wrap.replaceChildren(
     ...cardList.map((id) => {
@@ -2447,7 +2488,7 @@ function renderMineCards() {
       el.dataset.id = String(id);
 
       el.innerHTML = `
-        <div class="lb-cartela-title">Cartela #${id}</div>
+        <div class="lb-cartela-title">Card ${id}</div>
         <div class="lb-card-header-row" aria-hidden="true">
           <span class="lb-hdr-b">B</span>
           <span class="lb-hdr-i">I</span>
@@ -2492,9 +2533,10 @@ function renderMineCards() {
 }
 
 function toggleManualMark(value) {
-  if (autoMarkingEnabled || claimed || !playing || value === "FREE") return;
+  if (claimed || !playing || value === "FREE") return;
 
   if (!called.includes(value)) {
+    playNopeVoice();
     toast(`WAIT FOR ${letterFor(value)}-${value}`, "lose");
     return;
   }
@@ -2503,11 +2545,17 @@ function toggleManualMark(value) {
   if (wasMarked) manualMarked.delete(value);
   else manualMarked.add(value);
 
+  paintBoard();
   renderMineCards();
   const ready = updateBingoButton();
   $("game-status").textContent = ready && !claimed
     ? "You have BINGO — claim now!"
     : `${wasMarked ? "Unmarked" : "Marked"} ${letterFor(value)}-${value}`;
+
+  // Automatically declare Bingo if any card completed!
+  if (playerHasBingo() && !claimed && playing) {
+    claimBingo();
+  }
 }
 
 function playCallVoice(number, letter) {
@@ -2630,16 +2678,21 @@ function handleSingleCall(n) {
   clearTimeout(lastCallBlinkTimeout);
   lastCallBlinkTimeout = setTimeout(() => {
     lastCalledNumber = null;
+    document.querySelectorAll(".lb-dot.is-current-call").forEach((c) => c.classList.remove("is-current-call"));
     document.querySelectorAll(".lb-cell.is-hint-blink").forEach((c) => c.classList.remove("is-hint-blink"));
   }, 2200);
 
-  if (!autoMarkingEnabled) manualMarked.delete(n);
+  if (autoMarkingEnabled) {
+    manualMarked.add(n);
+  }
   const letter = letterFor(n);
   const ballEl = $("call-ball");
   if (ballEl) {
     ballEl.textContent = String(n);
     ballEl.dataset.letter = letter;
   }
+  const ballNumEl = $("call-ball-num");
+  if (ballNumEl) ballNumEl.textContent = String(n);
   const callLetterEl = $("call-letter");
   if (callLetterEl) callLetterEl.textContent = letter;
   const callCountEl = $("call-count");
@@ -2654,12 +2707,17 @@ function handleSingleCall(n) {
   const gameStatusEl = $("game-status");
   if (gameStatusEl) {
     if (ready && !claimed) {
-      gameStatusEl.textContent = "You have BINGO — claim now!";
+      gameStatusEl.textContent = "BINGO!";
     } else {
       gameStatusEl.textContent = autoMarkingEnabled
         ? "Called " + letter + "-" + n
-        : "Called " + letter + "-" + n + " — tap it on your card";
+        : "Called " + letter + "-" + n + " — tap it on the board";
     }
+  }
+
+  // Automatically declare Bingo if any card completed!
+  if (playerHasBingo() && !claimed && playing) {
+    claimBingo();
   }
 }
 
