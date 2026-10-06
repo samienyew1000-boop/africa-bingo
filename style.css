@@ -4785,6 +4785,25 @@ body.is-game-active #view-game {
   box-shadow: 0 1px 3px rgba(255, 122, 0, 0.3) !important;
 }
 
+.has-many-cards-layout .lb-cell.is-hint-blink:not(.is-hit) {
+  animation: lb-cell-hint-blink 0.55s infinite alternate ease-in-out !important;
+}
+
+@keyframes lb-cell-hint-blink {
+  0% {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    transform: scale(1);
+    box-shadow: none !important;
+  }
+  100% {
+    background: #fde047 !important;
+    border-color: #f59e0b !important;
+    transform: scale(1.08);
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.8) !important;
+  }
+}
+
 /* RIGHT COLUMN: VERTICAL 1-75 MASTER BOARD (ACTIVE ONLY WHEN > 4 CARDS) */
 .has-many-cards-layout .lb-game-right-col,
 .lb-game-arena.has-many-cards-layout .lb-game-right-col {
@@ -4886,27 +4905,47 @@ body.is-game-active #view-game {
   transform: scale(0.92) !important;
 }
 
-.lb-v-dot.is-called {
-  background: #fef08a !important;
-  border-color: #eab308 !important;
-  color: #854d0e !important;
-  font-weight: 800 !important;
+/* Un-hit called numbers remain clean white - NEVER filled with solid yellow */
+.lb-v-dot.is-called:not(.is-hit):not(.is-current-call) {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
 }
 
-.lb-v-dot.is-current-call {
-  background: #fde047 !important;
-  border-color: #ca8a04 !important;
-  color: #713f12 !important;
+/* ONLY the currently called number BLINKS so user can tap it! */
+.lb-v-dot.is-current-call:not(.is-hit) {
+  animation: lb-v-call-blink 0.5s infinite alternate ease-in-out !important;
+  z-index: 5 !important;
   font-weight: 900 !important;
-  box-shadow: 0 0 6px rgba(234, 179, 8, 0.8) !important;
 }
 
+@keyframes lb-v-call-blink {
+  0% {
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    transform: scale(1);
+    box-shadow: none !important;
+  }
+  100% {
+    background: #fde047 !important;
+    border: 1.5px solid #ea580c !important;
+    color: #7c2d12 !important;
+    transform: scale(1.12);
+    box-shadow: 0 0 10px rgba(234, 179, 8, 0.95), inset 0 0 3px rgba(254, 240, 138, 0.9) !important;
+  }
+}
+
+/* When the user taps it (egna nen eminekaw), it turns solid orange (marked) */
 .lb-v-dot.is-hit {
   background: #ff7a00 !important;
-  border-color: #ea580c !important;
+  border: 1px solid #ea580c !important;
   color: #ffffff !important;
   font-weight: 900 !important;
   box-shadow: 0 1px 3px rgba(255, 122, 0, 0.35) !important;
+  animation: none !important;
+  transform: none !important;
 }
 
 /* Empty Cartela Container (0 cards selected, matching Image 2) */
