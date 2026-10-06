@@ -2501,6 +2501,18 @@ function renderMineCards() {
     gameView.classList.toggle("has-many-cards-layout", isMulti);
     gameView.classList.toggle("is-standard-layout", !isMulti);
   }
+  const arena = $("game-arena");
+  if (arena) {
+    arena.classList.toggle("has-many-cards-layout", isMulti);
+    arena.classList.toggle("is-standard-layout", !isMulti);
+  }
+
+  if (isMulti) {
+    const vBoard = $("v-board");
+    if (vBoard && vBoard.children.length === 0) {
+      buildBoard();
+    }
+  }
 
   wrap.style.display = isMulti ? "flex" : "grid";
   wrap.classList.remove("is-hidden");
@@ -2524,8 +2536,9 @@ function renderMineCards() {
       el.className = "lb-card";
       el.dataset.id = String(id);
 
+      const cardTitleText = isMulti ? `Card ${id}` : `Cartela #${id}`;
       el.innerHTML = `
-        <div class="lb-cartela-title">Cartela #${id}</div>
+        <div class="lb-cartela-title">${cardTitleText}</div>
         <div class="lb-card-header-row" aria-hidden="true">
           <span class="lb-hdr-b">B</span>
           <span class="lb-hdr-i">I</span>

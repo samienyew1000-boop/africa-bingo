@@ -4465,10 +4465,10 @@ body.is-game-active #view-game {
 }
 
 /* ========================================================== */
-/* STANDARD LAYOUT: WHEN <= 4 CARDS (MATCHING IMAGE 2 EXACTLY) */
+/* STANDARD LAYOUT: WHEN <= 4 CARDS                           */
 /* ========================================================== */
 .is-standard-layout .lb-game-arena,
-.lb-game-arena:not(.has-many-cards-layout) {
+.lb-game-arena.is-standard-layout {
   display: flex !important;
   flex-direction: column !important;
   width: 100% !important;
@@ -4482,12 +4482,12 @@ body.is-game-active #view-game {
 }
 
 .is-standard-layout .lb-game-right-col,
-.lb-game-arena:not(.has-many-cards-layout) .lb-game-right-col {
+.lb-game-arena.is-standard-layout .lb-game-right-col {
   display: none !important;
 }
 
 .is-standard-layout .lb-game-left-col,
-.lb-game-arena:not(.has-many-cards-layout) .lb-game-left-col {
+.lb-game-arena.is-standard-layout .lb-game-left-col {
   width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;
@@ -4498,7 +4498,7 @@ body.is-game-active #view-game {
 }
 
 .is-standard-layout .lb-mine-cards-grid,
-.lb-game-arena:not(.has-many-cards-layout) .lb-mine-cards-grid {
+.lb-game-arena.is-standard-layout .lb-mine-cards-grid {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
@@ -4635,58 +4635,65 @@ body.is-game-active #view-game {
 }
 
 /* ========================================================== */
-/* MULTI-CARD LAYOUT: WHEN > 4 CARDS (SCROLLABLE ON LEFT + BOARD ON RIGHT) */
+/* MULTI-CARD LAYOUT: WHEN > 4 CARDS (MATCHING IMAGE 2 EXACTLY) */
 /* ========================================================== */
-.has-many-cards-layout .lb-game-arena {
+.has-many-cards-layout .lb-game-arena,
+.lb-game-arena.has-many-cards-layout {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) !important;
-  gap: 5px !important;
+  gap: 6px !important;
   width: 100% !important;
-  max-width: 460px !important;
+  max-width: 480px !important;
   margin: 0 auto !important;
   flex: 1 1 0px !important;
   min-height: 0 !important;
   height: 100% !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
+  padding: 2px 4px !important;
 }
 
-.has-many-cards-layout .lb-game-left-col {
-  display: flex !important;
-  flex-direction: column !important;
+.has-many-cards-layout .lb-game-left-col,
+.lb-game-arena.has-many-cards-layout .lb-game-left-col {
+  display: block !important;
+  width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch !important;
-  padding-right: 2px !important;
+  padding-right: 3px !important;
   box-sizing: border-box !important;
 }
 
-.has-many-cards-layout .lb-game-left-col::-webkit-scrollbar {
+.has-many-cards-layout .lb-game-left-col::-webkit-scrollbar,
+.lb-game-arena.has-many-cards-layout .lb-game-left-col::-webkit-scrollbar {
   width: 3px !important;
 }
-.has-many-cards-layout .lb-game-left-col::-webkit-scrollbar-thumb {
+.has-many-cards-layout .lb-game-left-col::-webkit-scrollbar-thumb,
+.lb-game-arena.has-many-cards-layout .lb-game-left-col::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.5) !important;
   border-radius: 4px !important;
 }
 
-.has-many-cards-layout .lb-mine-cards-grid {
+.has-many-cards-layout .lb-mine-cards-grid,
+.lb-game-arena.has-many-cards-layout .lb-mine-cards-grid {
   display: flex !important;
   flex-direction: column !important;
   gap: 8px !important;
   width: 100% !important;
   margin: 0 !important;
-  padding: 0 0 8px 0 !important;
+  padding: 0 0 16px 0 !important;
   box-sizing: border-box !important;
 }
 
 .has-many-cards-layout .lb-card {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
-  border-radius: 10px !important;
-  padding: 4px 4px 6px !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 5px 5px 6px !important;
   box-sizing: border-box !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: flex-start !important;
@@ -4698,18 +4705,18 @@ body.is-game-active #view-game {
   display: block !important;
   text-align: center !important;
   color: #0284c7 !important;
-  font-family: inherit !important;
-  font-size: 11px !important;
+  font-family: Arial, -apple-system, sans-serif !important;
+  font-size: 11.5px !important;
   font-weight: 800 !important;
-  margin: 0 0 2px 0 !important;
-  line-height: 1 !important;
+  margin: 0 0 4px 0 !important;
+  line-height: 1.2 !important;
 }
 
 .has-many-cards-layout .lb-card-header-row {
   display: grid !important;
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   gap: 2px !important;
-  margin-bottom: 2px !important;
+  margin-bottom: 3px !important;
   width: 100% !important;
   height: 14px !important;
 }
@@ -4718,49 +4725,72 @@ body.is-game-active #view-game {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  height: 14px !important;
-  font-size: 8.5px !important;
-  font-weight: 900 !important;
+  background: transparent !important;
+  color: #0284c7 !important;
+  font-family: Arial, -apple-system, sans-serif !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  border-radius: 0 !important;
+}
+
+.has-many-cards-layout .lb-card-header-row .lb-hdr-b,
+.has-many-cards-layout .lb-card-header-row .lb-hdr-i,
+.has-many-cards-layout .lb-card-header-row .lb-hdr-n,
+.has-many-cards-layout .lb-card-header-row .lb-hdr-g,
+.has-many-cards-layout .lb-card-header-row .lb-hdr-o {
+  background: transparent !important;
+  color: #0284c7 !important;
 }
 
 .has-many-cards-layout .lb-cells {
   display: grid !important;
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-  grid-template-rows: repeat(5, 22px) !important;
   gap: 2px !important;
   width: 100% !important;
 }
 
 .has-many-cards-layout .lb-cell {
+  aspect-ratio: 1 / 1 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border-radius: 4px !important;
-  background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
-  color: #0f172a !important;
-  font-size: 10.5px !important;
-  font-weight: 800 !important;
+  border-radius: 3px !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #1e293b !important;
+  font-family: Arial, -apple-system, sans-serif !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  user-select: none !important;
+  cursor: pointer !important;
+  padding: 0 !important;
 }
 
 .has-many-cards-layout .lb-cell.is-free {
   background: #bae6fd !important;
   border-color: #7dd3fc !important;
   color: #f59e0b !important;
-  font-size: 12px !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
 }
 
 .has-many-cards-layout .lb-cell.is-hit:not(.is-free) {
   background: #ff7a00 !important;
   border-color: #ea580c !important;
   color: #ffffff !important;
-  font-weight: 900 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 1px 3px rgba(255, 122, 0, 0.3) !important;
 }
 
 /* RIGHT COLUMN: VERTICAL 1-75 MASTER BOARD (ACTIVE ONLY WHEN > 4 CARDS) */
-.has-many-cards-layout .lb-game-right-col {
+.has-many-cards-layout .lb-game-right-col,
+.lb-game-arena.has-many-cards-layout .lb-game-right-col {
   display: flex !important;
   flex-direction: column !important;
+  width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;
   overflow: hidden !important;
@@ -4769,13 +4799,13 @@ body.is-game-active #view-game {
 
 .lb-v-master-board {
   background: #ffffff !important;
-  border-radius: 12px !important;
-  padding: 4px 5px 6px !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 10px !important;
+  padding: 6px 4px 6px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid #cbd5e1 !important;
   display: grid !important;
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-  gap: 2.5px !important;
+  gap: 3px !important;
   width: 100% !important;
   height: 100% !important;
   max-height: 100% !important;
@@ -4788,7 +4818,7 @@ body.is-game-active #view-game {
   height: 100% !important;
   min-height: 0 !important;
   align-items: stretch !important;
-  gap: 2px !important;
+  gap: 0 !important;
 }
 
 .lb-v-hdr {
@@ -4796,24 +4826,26 @@ body.is-game-active #view-game {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  height: 18px !important;
-  min-height: 18px !important;
-  flex: 0 0 18px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  flex: 0 0 20px !important;
+  padding-bottom: 2px !important;
+  box-sizing: border-box !important;
 }
 
 .lb-v-letter {
   font-family: Arial, -apple-system, sans-serif !important;
   font-size: 12px !important;
   font-weight: 900 !important;
-  color: #0f172a !important;
+  color: #000000 !important;
   line-height: 1 !important;
 }
 
 .lb-v-bar {
   width: 100% !important;
   height: 2px !important;
-  background: #0f172a !important;
-  margin-top: 1.5px !important;
+  background: #000000 !important;
+  margin-top: 2px !important;
   border-radius: 1px !important;
 }
 
@@ -4823,7 +4855,7 @@ body.is-game-active #view-game {
   gap: 1.5px !important;
   flex: 1 1 0px !important;
   min-height: 0 !important;
-  height: 100% !important;
+  height: calc(100% - 22px) !important;
 }
 
 .lb-v-dot {
@@ -4836,11 +4868,11 @@ body.is-game-active #view-game {
   min-height: 0 !important;
   padding: 0 !important;
   background: #ffffff !important;
-  border: 1px solid #d1d5db !important;
+  border: 1px solid #cbd5e1 !important;
   border-radius: 3px !important;
-  color: #1e293b !important;
+  color: #0f172a !important;
   font-family: Arial, -apple-system, sans-serif !important;
-  font-size: 10px !important;
+  font-size: 9.5px !important;
   font-weight: 700 !important;
   line-height: 1 !important;
   text-align: center !important;
@@ -4851,13 +4883,13 @@ body.is-game-active #view-game {
 }
 
 .lb-v-dot:active {
-  transform: scale(0.9) !important;
+  transform: scale(0.92) !important;
 }
 
 .lb-v-dot.is-called {
-  background: #fef3c7 !important;
-  border-color: #f59e0b !important;
-  color: #92400e !important;
+  background: #fef08a !important;
+  border-color: #eab308 !important;
+  color: #854d0e !important;
   font-weight: 800 !important;
 }
 
@@ -4866,21 +4898,15 @@ body.is-game-active #view-game {
   border-color: #ca8a04 !important;
   color: #713f12 !important;
   font-weight: 900 !important;
-  animation: lb-v-call-blink 0.6s infinite alternate !important;
-  z-index: 5 !important;
-}
-
-@keyframes lb-v-call-blink {
-  0% { transform: scale(1); box-shadow: 0 0 2px rgba(234, 179, 8, 0.5); }
-  100% { transform: scale(1.1); box-shadow: 0 0 8px rgba(234, 179, 8, 0.9); }
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.8) !important;
 }
 
 .lb-v-dot.is-hit {
-  background: #10b981 !important;
-  border-color: #059669 !important;
+  background: #ff7a00 !important;
+  border-color: #ea580c !important;
   color: #ffffff !important;
   font-weight: 900 !important;
-  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 1px 3px rgba(255, 122, 0, 0.35) !important;
 }
 
 /* Empty Cartela Container (0 cards selected, matching Image 2) */
