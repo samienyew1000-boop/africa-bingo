@@ -782,7 +782,7 @@ function renderPlayers() {
 function playerRow(player) {
   const isBlocked = player.status === "blocked";
   const statusLabel = player.status.charAt(0).toUpperCase() + player.status.slice(1);
-  return `<tr><td><div class="admin-player-cell"><span class="admin-player-avatar avatar-${escapeHTML(player.avatar)}">${initials(player.name)}</span><span><strong>${escapeHTML(player.name)}</strong><small>${escapeHTML(player.id)}</small></span></div></td><td><div class="admin-contact-cell"><span>${escapeHTML(player.email)}</span><small>${escapeHTML(player.phone)}</small></div></td><td><strong class="admin-table-amount">${money(player.balance)}</strong></td><td>${fmt(player.games)}</td><td>${escapeHTML(player.lastActive)}</td><td><span class="admin-status-pill is-${escapeHTML(player.status)}">${escapeHTML(statusLabel)}</span></td><td><div class="admin-action-menu"><button type="button" class="admin-action-menu-button" data-player-menu="${escapeHTML(player.id)}" aria-label="Actions for ${escapeHTML(player.name)}">•••</button><div class="admin-action-menu-list"><button type="button" data-player-action="edit" data-id="${escapeHTML(player.id)}">Edit player</button><button type="button" data-player-action="password" data-id="${escapeHTML(player.id)}">Change password</button><button type="button" class="${isBlocked ? "" : "is-danger"}" data-player-action="${isBlocked ? "unblock" : "block"}" data-id="${escapeHTML(player.id)}">${isBlocked ? "Unblock account" : "Block account"}</button></div></div></td></tr>`;
+  return `<tr><td><div class="admin-player-cell"><span class="admin-player-avatar avatar-${escapeHTML(player.avatar || "blue")}">${initials(player.name)}</span><span><strong>${escapeHTML(player.name)}</strong><small>${escapeHTML(player.id)}</small></span></div></td><td><div class="admin-contact-cell"><span>${escapeHTML(player.email || player.username || "—")}</span><small>${escapeHTML(player.phone || "—")}</small></div></td><td><strong class="admin-table-amount">${money(player.balance)}</strong></td><td>${fmt(player.games || 0)}</td><td>${escapeHTML(player.lastActive || "Recently")}</td><td><span class="admin-status-pill is-${escapeHTML(player.status)}">${escapeHTML(statusLabel)}</span></td><td><div class="admin-action-menu"><button type="button" class="admin-action-menu-button" data-player-menu="${escapeHTML(player.id)}" aria-label="Actions for ${escapeHTML(player.name)}">•••</button><div class="admin-action-menu-list"><button type="button" data-player-action="balance" data-id="${escapeHTML(player.id)}">Deposit / Withdraw</button><button type="button" data-player-action="edit" data-id="${escapeHTML(player.id)}">Edit player</button><button type="button" data-player-action="password" data-id="${escapeHTML(player.id)}">Change password</button><button type="button" class="${isBlocked ? "" : "is-danger"}" data-player-action="${isBlocked ? "unblock" : "block"}" data-id="${escapeHTML(player.id)}">${isBlocked ? "Unblock account" : "Block account"}</button></div></div></td></tr>`;
 }
 
 function renderAdminProfile() {
@@ -865,8 +865,9 @@ function savePlayerFromForm(event) {
     if (previousStatus !== "blocked" && nextStatus === "blocked") state.metrics.blockedPlayers += 1;
     if (previousStatus === "blocked" && nextStatus !== "blocked") state.metrics.blockedPlayers = Math.max(0, state.metrics.blockedPlayers - 1);
     addActivity(`Updated the profile for ${existing.name}`, "security", "✎");
-    if (existing.userId && typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
-      LuckyBingoAPI.updateAdminUser(existing.userId, {
+    const targetUid = existing.userId || (existing.id && existing.id.startsWith("TG-") ? Number(existing.id.replace("TG-", "")) : null);
+    if (targetUid && typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
+      LuckyBingoAPI.updateAdminUser(targetUid, {
         balance: existing.balance,
         status: existing.status,
       }).catch(() => {});
@@ -902,6 +903,47 @@ function makePlayerId() {
   return `LB-${String(Math.max(10000, ...ids, 0) + 1).padStart(5, "0")}`;
 }
 
+function adjustPlayerBalance(player) {
+  const currentBal = Number(player.balance || 0);
+  const input = prompt(
+    `💰 Adjust balance for ${player.name} (${player.id})\n` +
+    `Current Balance: ${currentBal.toFixed(2)} ETB\n\n` +
+    `Enter deposit amount (e.g. +50), withdrawal amount (e.g. -20), or new total balance:`,
+    currentBal
+  );
+  if (input === null || input.trim() === "") return;
+  const val = input.trim();
+  let nextBal = currentBal;
+  if (val.startsWith("+")) {
+    const addAmt = parseFloat(val.slice(1));
+    if (isNaN(addAmt) || addAmt < 0) { alert("Invalid amount entered"); return; }
+    nextBal = currentBal + addAmt;
+  } else if (val.startsWith("-")) {
+    const subAmt = parseFloat(val.slice(1));
+    if (isNaN(subAmt) || subAmt < 0) { alert("Invalid amount entered"); return; }
+    nextBal = Math.max(0, currentBal - subAmt);
+  } else {
+    const setAmt = parseFloat(val);
+    if (isNaN(setAmt) || setAmt < 0) { alert("Invalid amount entered"); return; }
+    nextBal = setAmt;
+  }
+
+  const diff = nextBal - currentBal;
+  player.balance = nextBal;
+  const act = diff >= 0 ? `Deposited +${diff.toFixed(2)} ETB to` : `Withdrew -${Math.abs(diff).toFixed(2)} ETB from`;
+  addActivity(`${act} ${player.name} (New Balance: ${nextBal.toFixed(2)} ETB)`, "finance", "💰");
+
+  const targetUid = player.userId || (player.id && player.id.startsWith("TG-") ? Number(player.id.replace("TG-", "")) : null);
+  if (targetUid && typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
+    LuckyBingoAPI.updateAdminUser(targetUid, { balance: nextBal }).catch((err) => {
+      console.error("Failed to update user balance:", err);
+    });
+  }
+
+  renderAll();
+  showToast(`Updated balance: ${nextBal.toFixed(2)} ETB for ${player.name}`);
+}
+
 function togglePlayerStatus(id) {
   const player = state.players.find((item) => item.id === id);
   if (!player) return;
@@ -910,8 +952,9 @@ function togglePlayerStatus(id) {
   state.metrics.blockedPlayers += wasBlocked ? -1 : 1;
   state.metrics.blockedPlayers = Math.max(0, state.metrics.blockedPlayers);
   addActivity(`${wasBlocked ? "Unblocked" : "Blocked"} player account ${player.id}`, "security", wasBlocked ? "✓" : "!");
-  if (player.userId && typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
-    LuckyBingoAPI.updateAdminUser(player.userId, { status: player.status }).catch(() => {});
+  const targetUid = player.userId || (player.id && player.id.startsWith("TG-") ? Number(player.id.replace("TG-", "")) : null);
+  if (targetUid && typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
+    LuckyBingoAPI.updateAdminUser(targetUid, { status: player.status }).catch(() => {});
   }
   renderAll();
   showToast(`${player.name} is now ${player.status}.`);
@@ -1097,6 +1140,7 @@ function bindEvents() {
     if (playerAction) {
       const player = state.players.find((item) => item.id === playerAction.dataset.id);
       if (playerAction.dataset.playerAction === "add") openPlayerForm();
+      else if (playerAction.dataset.playerAction === "balance" && player) adjustPlayerBalance(player);
       else if (playerAction.dataset.playerAction === "edit" && player) openPlayerForm(player);
       else if (playerAction.dataset.playerAction === "password" && player) openPasswordForm(player);
       else if ((playerAction.dataset.playerAction === "block" || playerAction.dataset.playerAction === "unblock") && player) togglePlayerStatus(player.id);
@@ -1350,16 +1394,21 @@ function _startAdminDataPoll() {
     // 3. Sync registered users / players from SQLite database
     if (Array.isArray(data.players) && data.players.length > 0) {
       state.players = data.players.map((u) => ({
-        id: `LB-${String(u.id).slice(-5)}`,
+        id: `TG-${u.id}`,
         userId: u.id,
-        name: [u.first_name, u.last_name].filter(Boolean).join(" ") || (u.username ? `@${u.username}` : "Player"),
+        name: [u.first_name, u.last_name].filter(Boolean).join(" ") || (u.username ? `@${u.username}` : `Player ${u.id}`),
+        email: u.username ? `@${u.username}` : `${u.id}@t.me`,
         phone: u.phone_number || "—",
         role: u.role || "player",
         balance: Number(u.balance) || 0,
+        games: u.games || 0,
+        lastActive: u.last_active || "Recently",
         status: u.status || "active",
+        avatar: "blue",
         verified: Boolean(u.is_verified),
         joined: u.registered_at || "Recent",
         activeRoom: u.active_room || "Lobby",
+        note: `Telegram Verified Player (TG ID: ${u.id})`,
       }));
       renderPlayers();
     }

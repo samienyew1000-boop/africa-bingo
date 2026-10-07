@@ -485,6 +485,7 @@ def export_admin_players() -> None:
 
             players_list.append({
                 "id": f"TG-{uid}",
+                "userId": uid,
                 "name": full_name,
                 "username": display_user,
                 "email": f"{uname or uid}@t.me",
@@ -1173,9 +1174,38 @@ def get_main_keyboard(is_admin_user: bool = False, user_id: int = 0) -> InlineKe
     return InlineKeyboardMarkup(keyboard)
 
 def get_contact_request_keyboard() -> ReplyKeyboardMarkup:
-    """One-tap contact share reply keyboard."""
-    button = KeyboardButton(text="📱 ስልክ ቁጥርዎን ያጋሩ (Share Phone Number) 🎁", request_contact=True)
+    """One-tap contact share reply keyboard matching reference UI."""
+    button = KeyboardButton(text="📱 Share Phone Number", request_contact=True)
     return ReplyKeyboardMarkup([[button]], resize_keyboard=True, one_time_keyboard=True)
+
+def get_main_reply_keyboard(is_admin_user: bool = False) -> ReplyKeyboardMarkup:
+    """Main persistent reply keyboard matching the 9-button layout in reference UI."""
+    keyboard = [
+        [
+            KeyboardButton(text="🎮 ቢንጎ ተጫወት", web_app=WebAppInfo(url=get_game_web_url())),
+            KeyboardButton(text="🎁 ፕሮሞ ኮድ"),
+        ],
+        [
+            KeyboardButton(text="💰 ገቢ ለማድረግ"),
+            KeyboardButton(text="💸 ወጪ ለማድረግ"),
+        ],
+        [
+            KeyboardButton(text="🔗 ጋብዝ & አግኝ"),
+            KeyboardButton(text="👤 ፕሮፋይል & ሂሳብ"),
+        ],
+        [
+            KeyboardButton(text="🆘 እርዳታ"),
+            KeyboardButton(text="🌐 ቋንቋ / Language"),
+        ],
+        [
+            KeyboardButton(text="📢 ኤጀንት ፕሮሞተር"),
+        ],
+    ]
+    if is_admin_user:
+        keyboard.append([
+            KeyboardButton(text="🛡️ Admin Controls"),
+        ])
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 def get_deposit_methods_keyboard() -> InlineKeyboardMarkup:
     """Deposit payment methods pulled directly from the system."""
@@ -1204,6 +1234,45 @@ def get_withdraw_methods_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 # ==============================================================================
+# USER DASHBOARD & GREETING
+# ==============================================================================
+async def send_user_dashboard(update: Update, user, profile: dict, is_admin: bool) -> None:
+    """Sends greeting, balance summary, photo banner, and persistent reply keyboard."""
+    msg = update.effective_message
+    if not msg:
+        return
+
+    uname = f"@{user.username}" if user.username else (user.first_name or f"Player {user.id}")
+    bal = float(profile.get("balance", 0.0))
+    bal_str = f"{int(bal)}" if bal.is_integer() else f"{bal:.2f}"
+
+    caption = (
+        f"ሰላም {uname}!\n"
+        f"የጨዋታ ሂሳብ: {bal_str} ETB\n"
+        f"የአሸናፊነት ሂሳብ: 0 ETB"
+    )
+
+    reply_kb = get_main_reply_keyboard(is_admin_user=is_admin)
+    banner_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "welcome_banner.png")
+
+    if os.path.exists(banner_path):
+        try:
+            with open(banner_path, "rb") as photo_file:
+                await msg.reply_photo(
+                    photo=photo_file,
+                    caption=caption,
+                    reply_markup=reply_kb
+                )
+                return
+        except Exception as e:
+            logger.warning("Could not send banner photo: %s", e)
+
+    await msg.reply_text(
+        text=caption,
+        reply_markup=reply_kb
+    )
+
+# ==============================================================================
 # COMMAND & FLOW HANDLERS
 # ==============================================================================
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1220,48 +1289,25 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     )
 
     is_admin = is_admin_check(user.id, user.username or "", profile.get("phone_number", ""))
-    first_name = user.first_name or "Player"
 
-    # If the user has not verified their phone number and is not admin, prompt them to share contact
+    # If the user has not verified their phone number and is not admin, ask to share phone
     if not profile.get("is_verified") and not is_admin:
-        prompt_text = (
-            f"👋 ሰላም *{first_name}*! ወደ *Africa Bingo* እንኳን በደህና መጡ! 🎲\n\n"
-            f"🎁 *የ 50 ETB የመመዝገቢያ ቦነስ* ለመቀበል እና መለያዎን ለማረጋገጥ ከታች ያለውን "
-            f"**'📱 ስልክ ቁጥርዎን ያጋሩ'** የሚለውን ቁልፍ ይጫኑ።\n\n"
-            f"🔒 _ስልክ ቁጥርዎ ለተቀማጭ እና ገንዘብ ማውጫ ደህንነት ብቻ ያገለግላል።_"
-        )
+        prompt_text = "👋 Welcome! Please share your phone number to register:"
         if update.effective_message:
             await update.effective_message.reply_text(
                 text=prompt_text,
                 reply_markup=get_contact_request_keyboard(),
-                parse_mode="Markdown",
             )
         return
 
-    # If already verified or admin, show main menu
-    phone = profile.get("phone_number", "N/A")
-    bal = profile.get("balance", 0.0)
-    role_badge = " [🛡️ Super Admin]" if is_admin else ""
-
-    welcome_text = (
-        f"👋 ሰላም *{first_name}*{role_badge}! ወደ *Africa Bingo* እንኳን በደህና መጡ! 🎲\n\n"
-        f"📱 *የተረጋገጠ ስልክ:* `{phone}`\n"
-        f"💰 *የሂሳብ መጠን:* `{bal:.2f} ETB`\n\n"
-        f"ለመጫወት ከታች *Play Games 🎮* የሚለውን ይጫኑ!"
-    )
-
-    if update.effective_message:
-        await update.effective_message.reply_text(
-            text=welcome_text,
-            reply_markup=get_main_keyboard(is_admin_user=is_admin, user_id=user.id),
-            parse_mode="Markdown",
-        )
+    # If already verified or admin, send dashboard
+    await send_user_dashboard(update, user, profile, is_admin)
 
 # ==============================================================================
 # CONTACT SHARING & ANTI-FRAUD BONUS HANDLER
 # ==============================================================================
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handles phone contact sharing. Regular users become 'player' role (NOT admin)."""
+    """Handles phone contact sharing, grants 10 ETB welcome bonus for new registers."""
     user = update.effective_user
     message = update.effective_message
     if not user or not message or not message.contact:
@@ -1269,7 +1315,7 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     contact = message.contact
 
-    # 1. Anti-Spoofing: Ensure shared contact belongs to the current Telegram user
+    # 1. Anti-Spoofing: Ensure shared contact belongs to current Telegram user
     if contact.user_id != user.id:
         await message.reply_text(
             text="⚠️ *ስህተት:* እባክዎ የራስዎን ስልክ ቁጥር ብቻ ያጋሩ! የሌላ ሰውን ኮንታክት ማጋራት አይፈቀድም።",
@@ -1282,7 +1328,7 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     phone = normalize_phone(raw_phone)
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Check admin privilege: only designated admin gets 'admin' role
+    # Check admin privilege
     is_admin = is_admin_check(user.id, user.username or "", phone)
     assigned_role = "admin" if is_admin else "player"
 
@@ -1309,45 +1355,159 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 WHERE id = ?
             """, (phone, assigned_role, now, user.id))
             conn.commit()
-
-            msg_text = (
-                f"⚠️ *ማስታወቂያ:*\n\n"
-                f"ይህ ስልክ ቁጥር (`{phone}`) ቀደም ሲል የ 50 ETB የመመዝገቢያ ቦነስ ተጠቅሟል!\n"
-                f"ተጨማሪ ቦነስ ማግኘት አይቻልም።\n\n"
-                f"መለያዎ በስልክ ቁጥር `{phone}` ተረጋግጧል ✅"
-            )
+            bonus_granted = False
         else:
-            # Brand new registration: verify phone, NO auto-bonus (admin controls bonuses via settings)
+            # Brand new registration: grant 10 ETB Welcome Bonus
+            bonus_granted = True
             cursor.execute("""
                 UPDATE users
-                SET phone_number = ?, role = ?, bonus_claimed = 0, is_verified = 1, last_active = ?
+                SET phone_number = ?, role = ?, balance = balance + 10.0, bonus_claimed = 1, is_verified = 1, last_active = ?
                 WHERE id = ?
             """, (phone, assigned_role, now, user.id))
+
+            # Record bonus transaction
+            tx_id = f"BONUS-{int(time.time())}-{random.randint(1000, 9999)}"
+            cursor.execute("""
+                INSERT INTO transactions (id, user_id, type, method, amount, phone_number, status, created_at)
+                VALUES (?, ?, 'bonus', 'Welcome Bonus', 10.0, ?, 'completed', ?)
+            """, (tx_id, user.id, phone, now))
             conn.commit()
 
-            msg_text = (
-                f"🎉 *እንኳን ደስ አለዎት! መለያዎ ተረጋግጧል!*\n\n"
-                f"📱 *የተረጋገጠ ስልክ:* `{phone}`\n\n"
-                f"አሁን ተጫዋቾች ጋር ተቀላቅለው ጨዋታ መጫወት ይችላሉ።\n"
-                f"ሂሳብ ለመጨመር Deposit ያድርጉ።"
-            )
+        cursor.execute("SELECT * FROM users WHERE id = ?", (user.id,))
+        updated_profile = cursor.fetchone()
 
-
-    # Export to admin players data immediately
+    # Export to admin players data immediately so admin sees new player
     export_admin_players()
 
-    # Clear reply keyboard
+    uname = f"@{user.username}" if user.username else (user.first_name or f"Player {user.id}")
+
+    # Message 1 (Confirmation)
     await message.reply_text(
-        text="መለያዎ ዝግጁ ነው! ዋናው ማውጫ ተከፍቷል:",
-        reply_markup=ReplyKeyboardRemove(),
+        text=f"እንኳን ደስ አለዎት {uname}! ምዝገባው ተጠናቋል። አሁን መጫወት ይችላሉ።"
     )
 
-    # Send full inline keyboard menu (with Admin Controls if authorized admin)
-    await message.reply_text(
-        text=msg_text,
-        reply_markup=get_main_keyboard(is_admin_user=is_admin, user_id=user.id),
-        parse_mode="Markdown",
+    # Message 2 (Dashboard banner with balances & persistent reply keyboard)
+    bal = float(updated_profile["balance"] or 0.0) if updated_profile else (10.0 if bonus_granted else 0.0)
+    bal_str = f"{int(bal)}" if bal.is_integer() else f"{bal:.2f}"
+
+    caption = (
+        f"ሰላም {uname}!\n"
+        f"የጨዋታ ሂሳብ: {bal_str} ETB\n"
+        f"የአሸናፊነት ሂሳብ: 0 ETB"
     )
+
+    reply_kb = get_main_reply_keyboard(is_admin_user=is_admin)
+    banner_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "welcome_banner.png")
+
+    if os.path.exists(banner_path):
+        try:
+            with open(banner_path, "rb") as photo_file:
+                await message.reply_photo(
+                    photo=photo_file,
+                    caption=caption,
+                    reply_markup=reply_kb
+                )
+                return
+        except Exception as e:
+            logger.warning("Could not send banner photo: %s", e)
+
+    await message.reply_text(
+        text=caption,
+        reply_markup=reply_kb
+    )
+
+# ==============================================================================
+# PERSISTENT REPLY KEYBOARD BUTTON ROUTER
+# ==============================================================================
+async def menu_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handles text messages from the persistent reply keyboard buttons."""
+    message = update.effective_message
+    user = update.effective_user
+    if not message or not message.text or not user:
+        return
+
+    text = message.text.strip()
+    profile = get_or_create_user(user.id, user.username or "", user.first_name or "", user.last_name or "")
+    is_admin = is_admin_check(user.id, user.username or "", profile.get("phone_number", ""))
+
+    if "🎮" in text or "ቢንጎ ተጫወት" in text:
+        web_url = get_game_web_url()
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(text="🎮 ቢንጎ አሁን ተጫወት (Play)", web_app=WebAppInfo(url=web_url))]
+        ])
+        await message.reply_text(
+            text="🎮 *Africa Bingo ጨዋታ ለመጀመር ከታች ያለውን ይጫኑ:*",
+            reply_markup=kb,
+            parse_mode="Markdown"
+        )
+    elif "🎁" in text or "ፕሮሞ ኮድ" in text:
+        await message.reply_text(
+            text="🎁 *የፕሮሞ ኮድ ማስገቢያ*\n\nእባክዎ ያገኙትን የፕሮሞ ኮድ ይላኩልን:",
+            parse_mode="Markdown"
+        )
+    elif "💰" in text or "ገቢ ለማድረግ" in text:
+        await deposit_flow(update, context)
+    elif "💸" in text or "ወጪ ለማድረግ" in text:
+        await withdraw_flow(update, context)
+    elif "🔗" in text or "ጋብዝ & አግኝ" in text:
+        try:
+            bot_info = await context.bot.get_me()
+            bot_username = bot_info.username or "AfricaBingoBot"
+        except Exception:
+            bot_username = "AfricaBingoBot"
+        ref_link = f"https://t.me/{bot_username}?start=ref_{user.id}"
+        await message.reply_text(
+            text=(
+                f"🔗 *የግብዣ ሊንክ (Referral Link)*\n\n"
+                f"ጓደኞችዎ በእርስዎ ሊንክ ተመዝግበው ሲጫወቱ ተጨማሪ የኮሚሽን ቦነስ ያግኙ!\n\n"
+                f"የእርስዎ ሊንክ:\n`{ref_link}`\n\n"
+                f"ሊንኩን ለጓደኞችዎ ያጋሩ!"
+            ),
+            parse_mode="Markdown"
+        )
+    elif "👤" in text or "ፕሮፋይል & ሂሳብ" in text:
+        phone = profile.get("phone_number", "ያልተረጋገጠ")
+        bal = float(profile.get("balance", 0.0))
+        await message.reply_text(
+            text=(
+                f"👤 *የተጠቃሚ መረጃ (Profile)*\n\n"
+                f"🆔 *ID:* `{user.id}`\n"
+                f"📱 *ስልክ ቁጥር:* `{phone}`\n"
+                f"💰 *የጨዋታ ሂሳብ:* `{bal:.2f} ETB`\n"
+                f"🏆 *የአሸናፊነት ሂሳብ:* `0.00 ETB`\n"
+                f"✅ *ሁኔታ:* {'የተረጋገጠ' if profile.get('is_verified') else 'ያልተረጋገጠ'}"
+            ),
+            parse_mode="Markdown"
+        )
+    elif "🆘" in text or "እርዳታ" in text:
+        await message.reply_text(
+            text=(
+                "🆘 *የደንበኞች አገልግሎት እና እርዳታ*\n\n"
+                "ጥያቄ ወይም እርዳታ ሲፈልጉ በTelegram ያነጋግሩን:\n"
+                f"👉 {CONTACT_URL}\n"
+                f"📢 ቻናላችን: {GROUP_URL}"
+            ),
+            parse_mode="Markdown"
+        )
+    elif "🌐" in text or "ቋንቋ" in text:
+        await message.reply_text(
+            text="🌐 ቋንቋ ተመርጧል: *አማርኛ (Amharic)* ✅",
+            parse_mode="Markdown"
+        )
+    elif "📢" in text or "ኤጀንት ፕሮሞተር" in text:
+        await message.reply_text(
+            text=(
+                "📢 *የ Africa Bingo ኤጀንት ፕሮሞተር ፕሮግራም*\n\n"
+                "ተጫዋቾችን በመጋበዝ በሳምንት እስከ 10,000+ ETB ማግኘት ይችላሉ!\n"
+                f"ለበለጠ መረጃ ያነጋግሩን: {CONTACT_URL}"
+            ),
+            parse_mode="Markdown"
+        )
+    elif "🛡️" in text or "Admin Controls" in text:
+        if is_admin:
+            await admin_command(update, context)
+        else:
+            await message.reply_text("⛔ ይህን ለመጠቀም ፈቃድ የለዎትም።")
 
 # ==============================================================================
 # ADMIN CONSOLE & CONTROLS (Only for designated admin)
@@ -1910,6 +2070,25 @@ async def post_init(application: Application) -> None:
         BotCommand("register", "Register new account"),
         BotCommand("transfer", "Send money to friend"),
     ]
+    desc_text = (
+        "ይህ ቦት እየተዝናኑ ተጨማሪ ገቢ የሚያገኙበት መድረክ ነው።\n\n"
+        "✅ ፈጣንና ደህንነቱ የተጠበቀ ገቢ እና ወጪ\n"
+        "🎁 ገቢ ሲያደርጉ 10% ተጨማሪ ስጦታ\n"
+        "💎 በየ እለቱ የጠዋት እና የማታ ሻሞዎች እና ስጦታዎች\n"
+        "🎁 አዲስ ተመዝጋቢዎች የመጀመሪያ 10 ETB ስጦታ\n"
+        "✅ ብዙ ተጫዋቾች ላጋበዙ እና ብዙ ጨዋታዎችን ለተጫወቱ በየሳምንቱ ደስ የሚል ሽልማት\n"
+        "👉 በአጭር ጊዜ ውስጥ በሁሉም ተጫዋቾች ተወዳጅነትን ያተረፈው አፍሪካ ቢንጎ\n\n"
+        "/start በመጫን መጀመር ይችላሉ!"
+    )
+    short_desc_text = "ይህ ቦት እየተዝናኑ ተጨማሪ ገቢ የሚያገኙበት መድረክ ነው። /start በመጫን ይጀምሩ!"
+
+    try:
+        await application.bot.set_my_description(description=desc_text)
+        await application.bot.set_my_short_description(short_description=short_desc_text)
+        logger.info("Bot description and short description updated successfully.")
+    except Exception as e:
+        logger.warning("Could not set bot description: %s", e)
+
     try:
         await application.bot.set_my_commands(commands)
         try:
@@ -2475,6 +2654,9 @@ def main() -> None:
 
     # Contact handler for phone number sharing & anti-fraud bonus verification
     app.add_handler(MessageHandler(filters.CONTACT, contact_handler))
+
+    # Text handler for persistent reply keyboard buttons
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_text_handler))
 
     # Inline button callback router
     app.add_handler(CallbackQueryHandler(button_callback))
