@@ -231,34 +231,44 @@ function startServerLobbySync() {
 
 function handleServerRoomState(sState) {
   if (!sState || sState.error) return;
-  const rid = String(sState.room_id || activeRoomId);
+  const rid = String(sState.room_id || sState.id || activeRoomId);
   serverRoomStates[rid] = { ...serverRoomStates[rid], ...sState };
   if (activeRoomId && rid !== String(activeRoomId)) return;
+
+  const current = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getTelegramUser) ? LuckyBingoAPI.getTelegramUser() : null;
+  const myId = current?.id;
+
+  // 1. Sync cards taken by other players in this room
   if (Array.isArray(sState.players)) {
-    const mine = sState.players.find((player) => {
-      const current = LuckyBingoAPI?.getTelegramUser?.();
-      return current && Number(player.user_id) === Number(current.id);
+    takenByOthers.clear();
+    sState.players.forEach((player) => {
+      const isMine = myId && String(player.user_id) === String(myId);
+      const cids = Array.isArray(player.card_ids) ? player.card_ids : (typeof player.card_ids === "string" ? JSON.parse(player.card_ids || "[]") : []);
+      if (!isMine) {
+        cids.forEach((cid) => takenByOthers.add(Number(cid)));
+      } else if (!playing && !gameWaiting && selected.size === 0) {
+        cids.forEach((cid) => selected.add(Number(cid)));
+      }
     });
-    if (mine && !playing && !gameWaiting) {
-      try { selected = new Set(JSON.parse(mine.card_ids || "[]").map(Number)); } catch (e) {}
+    if (views.pick && views.pick.classList.contains("is-on")) {
+      paintPicks();
+      renderCartelaPreview();
+      updatePickInfo();
     }
   }
 
-  // 1. Status is COUNTDOWN
+  // 2. Status is COUNTDOWN
   if (sState.status === "countdown" && sState.countdown_ends_at > 0) {
     const startsAt = sState.countdown_ends_at * 1000;
-    const remaining = Math.max(0, Math.ceil((startsAt - Date.now()) / 1000));
+    const remaining = sState.countdown_remaining != null ? sState.countdown_remaining : Math.max(0, Math.ceil((startsAt - Date.now()) / 1000));
     pickLeft = remaining;
     pickEndsAt = startsAt;
     updatePickCountdownDisplay();
     updatePickInfo();
     renderPickRoomSummary();
-
-    // The browser clock is display-only. The server status poll is the only
-    // authority allowed to transition a shared room into the live round.
   }
 
-  // 2. Status is LIVE
+  // 3. Status is LIVE
   if (sState.status === "live") {
     if (!playing && selected.size > 0) {
       entryCharged = true;
@@ -273,34 +283,37 @@ function handleServerRoomState(sState) {
     }
   }
 
-  // 3. Status is OPEN
+  // 4. Status is OPEN
   if (sState.status === "open") {
-    if (!pickTimer && !playing) {
+    if (!playing && views.pick && views.pick.classList.contains("is-on")) {
+      pickLeft = null;
+      pickEndsAt = 0;
       updatePickCountdownDisplay();
       renderPickRoomSummary();
     }
   }
-  // 4. Server reports round result (Winner announced!)
+
+  // 5. Server reports round result (Winner announced!)
   if (sState.last_result && !claimed) {
     const res = sState.last_result;
-    if (res.ended_at && (Date.now() / 1000 - res.ended_at) < 8) {
-      const myProfile = typeof LuckyBingoAPI !== "undefined" ? LuckyBingoAPI.getTelegramUser() : null;
-      const isMe = res.winner_id && myProfile && Number(res.winner_id) === Number(myProfile.id);
+    if (res.ended_at && (Date.now() / 1000 - res.ended_at) < 12) {
+      const isMe = res.winner_id && myId && String(res.winner_id) === String(myId);
       claimed = true;
       playing = false;
       clearInterval(callTimer);
+      callTimer = null;
       if (isMe) {
         roundOutcome = "win";
         roundWinnerName = res.winner_name || PLAYER_NAME;
-        showRoundResult("win", roundWinnerName, "LINE", selected.values().next().value);
-        showWinnerOverlay("win", roundWinnerName, res.prize, selected.values().next().value, "LINE");
+        showRoundResult("win", roundWinnerName, "LINE", res.card_id || selected.values().next().value);
+        showWinnerOverlay("win", roundWinnerName, res.prize, res.card_id || selected.values().next().value, "LINE");
         toast("YOU WON!", "win");
       } else {
         roundOutcome = "lose";
         roundWinnerName = res.winner_name || "Opponent";
-        showRoundResult("lose", roundWinnerName, "LINE", null);
+        showRoundResult("lose", roundWinnerName, "LINE", res.card_id);
         markLoserCards();
-        showWinnerOverlay("lose", roundWinnerName, res.prize || stake * 3, null, "LINE");
+        showWinnerOverlay("lose", roundWinnerName, res.prize || stake * 3, res.card_id, "LINE");
         toast((roundWinnerName).toUpperCase() + " WON!", "lose");
       }
       syncProfileWithServer();
@@ -1520,7 +1533,7 @@ function enterRoom(roomId) {
 
   if (typeof LuckyBingoAPI !== "undefined") {
     LuckyBingoAPI.stopLobbyPoll();
-    LuckyBingoAPI.startRoomPoll(activeRoomId, handleServerRoomState, 800);
+    LuckyBingoAPI.startRoomPoll(activeRoomId, handleServerRoomState, 500);
   }
 }
 
@@ -1733,6 +1746,11 @@ function scheduleOpponentJoin() {
     clearTimeout(opponentJoinTimeout);
     opponentJoinTimeout = null;
   }
+  // When connected to the multiplayer server, do NOT simulate fake bots or timers!
+  // The server coordinates real players, countdown, and number calling.
+  if (activeRoomId && typeof LuckyBingoAPI !== "undefined") {
+    return;
+  }
   opponentJoinTimeout = setTimeout(() => {
     opponentJoinTimeout = null;
     if (!views.pick || !views.pick.classList.contains("is-on")) return;
@@ -1845,37 +1863,36 @@ function onCardSelectionChanged() {
       });
     }
 
-    // COUNTDOWN TRIGGER:
-    // When 2 cards are picked: Start 1-minute countdown immediately!
-    if (selected.size >= 2) {
-      if (opponentJoinTimeout) {
-        clearTimeout(opponentJoinTimeout);
-        opponentJoinTimeout = null;
-      }
-      if (!pickTimer) {
-        // Add simulated bot cards to fill room
-        if (takenByOthers.size === 0) {
-          const opponentCount = 3 + Math.floor(Math.random() * 3);
-          botPlayers = opponentCount;
-          for (let i = 0; i < opponentCount * 2; i++) {
-            const avail = cardNumbers.filter((id) => !selected.has(id) && !takenByOthers.has(id));
-            if (!avail.length) break;
-            const pickId = avail[Math.floor(Math.random() * avail.length)];
-            takenByOthers.add(pickId);
-          }
-          paintPicks();
-          updatePickInfo();
+    // When playing offline / standalone without active server room:
+    if (!activeRoomId || typeof LuckyBingoAPI === "undefined") {
+      if (selected.size >= 2) {
+        if (opponentJoinTimeout) {
+          clearTimeout(opponentJoinTimeout);
+          opponentJoinTimeout = null;
         }
-        startPickCountdown(Date.now() + 60 * 1000);
-      }
-    } else {
-      // 1 card picked:
-      if (!pickTimer && !opponentJoinTimeout) {
-        const time = $("pick-time");
-        if (time) time.textContent = String(pickLeft || 30);
-        const helper = $("pick-helper");
-        if (helper) helper.textContent = `1 cartela selected! Pick up to ${MAX_PICK} or wait for opponents to join…`;
-        scheduleOpponentJoin();
+        if (!pickTimer) {
+          if (takenByOthers.size === 0) {
+            const opponentCount = 3 + Math.floor(Math.random() * 3);
+            botPlayers = opponentCount;
+            for (let i = 0; i < opponentCount * 2; i++) {
+              const avail = cardNumbers.filter((id) => !selected.has(id) && !takenByOthers.has(id));
+              if (!avail.length) break;
+              const pickId = avail[Math.floor(Math.random() * avail.length)];
+              takenByOthers.add(pickId);
+            }
+            paintPicks();
+            updatePickInfo();
+          }
+          startPickCountdown(Date.now() + 60 * 1000);
+        }
+      } else {
+        if (!pickTimer && !opponentJoinTimeout) {
+          const time = $("pick-time");
+          if (time) time.textContent = String(pickLeft || 30);
+          const helper = $("pick-helper");
+          if (helper) helper.textContent = `1 cartela selected! Pick up to ${MAX_PICK} or wait for opponents to join…`;
+          scheduleOpponentJoin();
+        }
       }
     }
   }
@@ -1914,8 +1931,11 @@ function startPickCountdown(roomStartsAt = null, roomRoundKey = null) {
       clearInterval(pickTimer);
       pickTimer = null;
       pickEndsAt = 0;
-      // Countdown ended! Lock room and start live game
       if (selected.size > 0 && !playing) {
+        if (activeRoomId && typeof LuckyBingoAPI !== "undefined") {
+          setGameWaitingState(true);
+          return;
+        }
         if (!entryCharged) {
           const cost = stake * selected.size;
           if (balance >= cost) {
@@ -2041,7 +2061,11 @@ function beginLiveGame() {
   buildBoard();
   renderMineCards();
   clearInterval(callTimer);
-  callTimer = setInterval(nextCall, CALL_MS);
+  callTimer = null;
+  // In multiplayer rooms, calls are delivered authoritatively by the server via sState.calls
+  if (!activeRoomId || typeof LuckyBingoAPI === "undefined") {
+    callTimer = setInterval(nextCall, CALL_MS);
+  }
 }
 
 function hideRoundResult() {
