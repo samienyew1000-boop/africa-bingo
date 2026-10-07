@@ -355,7 +355,7 @@ class LiveBingoRoom {
 
     setTimeout(() => {
       this.resetRound();
-    }, 6000);
+    }, 10000);
   }
 
   resetRound() {

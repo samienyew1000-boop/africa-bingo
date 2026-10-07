@@ -317,9 +317,6 @@ function handleServerRoomState(sState) {
         toast((roundWinnerName).toUpperCase() + " WON!", "lose");
       }
       syncProfileWithServer();
-      setTimeout(() => {
-        returnToCardSelection();
-      }, 5000);
     }
   }
 }
@@ -2295,18 +2292,38 @@ function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kin
   renderWinnerConfetti();
   renderWinnerCard(finalCardId, new Set(called), kind);
 
-  overlay.onclick = () => returnToCardSelection();
+  let remaining = 7;
+  const hint = $("winner-overlay-hint");
+  const updateCountdownDisplay = () => {
+    if (seconds) seconds.textContent = String(Math.max(0, remaining));
+    if (hint) {
+      if (remaining > 2) {
+        hint.innerHTML = `<span>Returning to selection in <b id="winner-overlay-seconds">${Math.max(0, remaining)}</b>s</span>`;
+      } else {
+        hint.innerHTML = `<span>Returning to selection in <b id="winner-overlay-seconds">${Math.max(0, remaining)}</b>s · Tap to return</span>`;
+      }
+    }
+  };
 
-  let remaining = 6;
-  if (seconds) seconds.textContent = String(remaining);
+  updateCountdownDisplay();
   overlay.removeAttribute("hidden");
   overlay.hidden = false;
 
+  overlay.onclick = () => {
+    // Only allow manual dismissal when countdown is almost done (<= 2s) to prevent accidental immediate clicks
+    if (remaining <= 2) {
+      clearInterval(winnerTimer);
+      winnerTimer = null;
+      returnToCardSelection();
+    }
+  };
+
   winnerTimer = setInterval(() => {
     remaining -= 1;
-    if (seconds) seconds.textContent = String(Math.max(0, remaining));
+    updateCountdownDisplay();
     if (remaining <= 0) {
       clearInterval(winnerTimer);
+      winnerTimer = null;
       returnToCardSelection();
     }
   }, 1000);
@@ -2919,10 +2936,6 @@ function claimBingo() {
       syncProfileWithServer();
     }).catch(() => {});
   }
-
-  setTimeout(() => {
-    returnToCardSelection();
-  }, 5000);
 }
 
 function botWins() {
@@ -2950,9 +2963,6 @@ function botWins() {
   renderMineCards();
   toast(`${winnerName} CLAIMED BINGO!`, "lose");
   showWinnerOverlay("lose", winnerName, botPrize, botCardId, "LINE");
-  setTimeout(() => {
-    returnToCardSelection();
-  }, 5000);
 }
 
 function leaveGame() {
