@@ -2264,7 +2264,8 @@ function renderWinnerCard(cardId, hit = null, kind = "LINE") {
   if (!grid) return;
   grid.replaceChildren();
 
-  const cardObj = ensureCard(cardId) || {
+  const rawCard = ensureCard(cardId);
+  const cardObj = rawCard ? { id: rawCard.id, cells: [...rawCard.cells] } : {
     id: cardId,
     cells: [5, 16, 35, 58, 71, 9, 30, 41, 52, 66, 12, 21, "FREE", 59, 72, 11, 23, 33, 49, 73, 7, 25, 31, 53, 70]
   };
@@ -2286,17 +2287,24 @@ function renderWinnerCard(cardId, hit = null, kind = "LINE") {
     [0, 6, 12, 18, 24].forEach((idx) => winIndexes.add(idx));
   }
 
-  const lastCalledVal = called.length ? called[called.length - 1] : null;
+  // Find index of the ball on this winning card that completed the bingo (or was called latest)
+  let lastCallIndex = -1;
+  let maxCallOrder = -1;
+  winIndexes.forEach((idx) => {
+    if (idx === 12) return;
+    const val = Number(cardObj.cells[idx]);
+    const order = called.lastIndexOf(val);
+    if (order > maxCallOrder) {
+      maxCallOrder = order;
+      lastCallIndex = idx;
+    }
+  });
 
-  // Find index of the last called ball on this winning card
-  let lastCallIndex = cardObj.cells.findIndex((c) => c === lastCalledVal || Number(c) === lastCalledVal);
-  if (lastCallIndex === -1 && lastCalledVal !== null) {
-    // If lastCalledVal was not in the definition, place it on the winning line so it blinks as the winning ball
+  // Fallback: if no winning line cells found in called history, pick last winning line cell
+  if (lastCallIndex === -1) {
     const winArr = [...winIndexes].filter((i) => i !== 12);
     if (winArr.length > 0) {
-      const targetIdx = winArr[winArr.length - 1];
-      cardObj.cells[targetIdx] = lastCalledVal;
-      lastCallIndex = targetIdx;
+      lastCallIndex = winArr[winArr.length - 1];
     }
   }
 
@@ -2306,12 +2314,12 @@ function renderWinnerCard(cardId, hit = null, kind = "LINE") {
     const isFree = index === 12 || val === "FREE" || val === 0;
     const isWin = winIndexes.has(index);
     const isHit = isWin || isFree || hits.has(val) || hits.has(Number(val));
-    const isLastCalled = (index === lastCallIndex || val === lastCalledVal || Number(val) === lastCalledVal);
+    const isLastCalled = (index === lastCallIndex);
 
     if (isWin) cell.classList.add("is-win");
     else if (isHit) cell.classList.add("is-hit");
 
-    // The last called winning number blinks!
+    // The winning number blinks!
     if (isLastCalled && !isFree) {
       cell.classList.add("is-last-call-blink");
     }
@@ -2448,14 +2456,32 @@ function highlightWinningCard(cardId, kind) {
   const hit = new Set(called);
   const definition = ensureCard(cardId);
   const indexes = definition ? winningCellIndexes(definition, hit, kind) : [];
-  const lastCalledVal = called.length ? called[called.length - 1] : null;
+
+  let lastCallIndex = -1;
+  let maxCallOrder = -1;
+  if (definition) {
+    indexes.forEach((idx) => {
+      if (idx === 12) return;
+      const val = Number(definition.cells[idx]);
+      const order = called.lastIndexOf(val);
+      if (order > maxCallOrder) {
+        maxCallOrder = order;
+        lastCallIndex = idx;
+      }
+    });
+    if (lastCallIndex === -1) {
+      const winArr = indexes.filter((i) => i !== 12);
+      if (winArr.length > 0) lastCallIndex = winArr[winArr.length - 1];
+    }
+  }
 
   [...card.querySelectorAll(".lb-cell")].forEach((cell, index) => {
     const isWin = indexes.includes(index);
     cell.classList.toggle("is-win", isWin);
-    const val = definition ? definition.cells[index] : null;
-    if (val !== null && (val === lastCalledVal || Number(val) === lastCalledVal)) {
+    if (index === lastCallIndex) {
       cell.classList.add("is-last-call-blink");
+    } else {
+      cell.classList.remove("is-last-call-blink");
     }
   });
 }
