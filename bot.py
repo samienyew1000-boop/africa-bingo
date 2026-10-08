@@ -762,9 +762,15 @@ class GameEngine:
         with self.lock:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute('SELECT status FROM game_rooms WHERE id = ?', (room_id,))
+                cursor.execute('SELECT status, round_id FROM game_rooms WHERE id = ?', (room_id,))
                 room = cursor.fetchone()
                 if not room or room['status'] != 'countdown':
+                    return
+                cursor.execute('SELECT COUNT(*) as cnt FROM room_players WHERE room_id = ? AND round_id = ?', (room_id, room['round_id']))
+                player_cnt = cursor.fetchone()['cnt']
+                if player_cnt == 0:
+                    cursor.execute('UPDATE game_rooms SET status = ?, countdown_ends_at = 0 WHERE id = ?', ('open', room_id))
+                    conn.commit()
                     return
                 now = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
                 cursor.execute('UPDATE game_rooms SET status = ?, updated_at = ? WHERE id = ?', ('live', now, room_id))

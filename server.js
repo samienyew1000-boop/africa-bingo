@@ -278,6 +278,15 @@ class LiveBingoRoom {
   }
 
   startLiveGame() {
+    const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
+    if (this.players.length === 0 || totalCards === 0) {
+      this.status = "open";
+      this.countdownEndsAt = 0;
+      this.calls = [];
+      if (this.callTimer) clearInterval(this.callTimer);
+      this.callTimer = null;
+      return;
+    }
     this.status = "live";
     this.countdownEndsAt = 0;
     this.calls = [];

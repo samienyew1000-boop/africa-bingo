@@ -560,6 +560,14 @@ function startRoomCountdown(room, now = Date.now(), seconds = null) {
 function roomDisplayState(room, now = Date.now()) {
   const roomKey = String(room.id);
   const server = serverRoomStates[roomKey];
+  if (server?.status === "open") {
+    return {
+      type: "open",
+      label: "Open",
+      ariaLabel: "Open for players",
+      roundKey: `open:${server.round_id || 0}:server`,
+    };
+  }
   if (server?.status === "countdown") {
     const startsAt = Number(server.countdown_ends_at || 0) * 1000;
     const safeLeft = Math.max(0, Math.ceil((startsAt - now) / 1000));
@@ -572,6 +580,15 @@ function roomDisplayState(room, now = Date.now()) {
     };
   }
   if (server?.status === "live") {
+    const hasActivePlayers = Number(server.player_count || 0) > 0 || Number(server.total_cards || 0) > 0;
+    if (!hasActivePlayers) {
+      return {
+        type: "open",
+        label: "Open",
+        ariaLabel: "Open for players",
+        roundKey: `open:${server.round_id || 0}:server`,
+      };
+    }
     return {
       type: "live",
       label: "In Play",
@@ -1220,8 +1237,14 @@ function renderPickRoomSummary() {
   if (pickBalance) pickBalance.textContent = String(Math.floor(availableBal));
   if (bannerSeconds) bannerSeconds.textContent = isCounting ? formatCountdown(pickLeft) : "Open";
 
+  const serverCards = server ? Number(server.total_cards || 0) : 0;
+  const totalCards = Math.max(serverCards, selected.size + takenByOthers.size);
+  const liveDerash = (server && Number(server.derash) > 0)
+    ? Math.round(Number(server.derash))
+    : calculateDerash(Math.max(1, totalCards), roomStake);
+
   if ($("pick-boards-counter")) {
-    $("pick-boards-counter").textContent = `Boards: ${selected.size}/${MAX_PICK}`;
+    $("pick-boards-counter").textContent = `Boards: ${selected.size}/${MAX_PICK} · Derash: ${fmt(liveDerash)} ETB`;
   }
   const rNum = room?.id || activeRoomId || 1;
   if ($("pick-room-num")) {
@@ -1274,9 +1297,14 @@ function setCallBall(letter, num) {
 function updateGameSummary() {
   const room = activeRoomId ? getLobbyRoom(activeRoomId) : null;
   const server = activeRoomId ? serverRoomStates[String(activeRoomId)] : null;
-  const players = server ? Number(server.player_count) || 0 : (botPlayers ? botPlayers + selected.size : 16);
   const roomStake = room?.stake || stake;
-  const derash = calculateDerash(players, roomStake);
+  const serverPlayers = server ? Number(server.player_count) || 0 : 0;
+  const serverCards = server ? Number(server.total_cards) || 0 : 0;
+  const players = serverPlayers > 0 ? serverPlayers : (botPlayers ? botPlayers + selected.size : Math.max(1, selected.size));
+  const activeCards = Math.max(serverCards, players);
+  const derash = (server && Number(server.derash) > 0)
+    ? Math.round(Number(server.derash))
+    : calculateDerash(Math.max(1, activeCards), roomStake);
   const roundId = room?.roundId || server?.round_id || "720";
   const derashEl = $("game-derash");
   const playersEl = $("game-players");
@@ -1442,22 +1470,34 @@ function renderRooms() {
       const roomOpen = canPlay && (state.type === "open" || state.type === "countdown");
       const roomClosed = state.type === "live" || state.type === "paused";
       const serverPlayers = server ? Number(server.player_count) || 0 : 0;
-      const derash = calculateDerash(serverPlayers, room.stake);
-      const displayRoom = { ...room, players: serverPlayers };
+      const serverCards = server ? Number(server.total_cards) || 0 : 0;
+      const activeCards = Math.max(serverCards, serverPlayers);
+
+      const derash = (server && Number(server.derash) > 0)
+        ? Math.round(Number(server.derash))
+        : (activeCards > 0
+            ? calculateDerash(activeCards, room.stake)
+            : Math.round(room.stake * 2 * (1 - COMMISSION_RATE)));
+
+      const displayPlayers = serverPlayers > 0
+        ? serverPlayers
+        : (state.type === "live" ? 2 : (state.type === "countdown" ? 1 : 0));
+
+      const displayRoom = { ...room, players: displayPlayers };
       const balanceMessage = roomBalanceMessage(displayRoom, canPlay, state);
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "lb-room" + (canPlay ? "" : " is-locked") + (roomClosed ? " is-closed" : "");
       btn.disabled = roomClosed;
       btn.setAttribute("aria-disabled", String(roomClosed));
-      btn.setAttribute("aria-label", `${roomOpen ? "Play" : balanceMessage} ${room.stake} ETB room with ${serverPlayers} players and ${derash} ETB derash. ${state.ariaLabel}.`);
+      btn.setAttribute("aria-label", `${roomOpen ? "Play" : balanceMessage} ${room.stake} ETB room with ${displayPlayers} players and ${derash} ETB derash. ${state.ariaLabel}.`);
       btn.innerHTML = `
         <span class="lb-room-stake">${room.stake} ETB</span>
         <span class="lb-room-active is-${state.type}" aria-live="polite">
           ${roomStatusMarkup(state)}
           <span class="lb-room-active-copy">${balanceMessage}</span>
         </span>
-        <span class="lb-room-players">${fmt(serverPlayers)}</span>
+        <span class="lb-room-players">${fmt(displayPlayers)}</span>
         <span class="lb-room-prize">${fmt(derash)} ETB</span>
         <span class="lb-room-play${roomOpen ? " is-enabled" : " is-disabled"}">${roomOpen ? "Play" : roomClosed ? (state.type === "live" ? "In Play" : "Closed") : "Play"}</span>
       `;
@@ -1863,6 +1903,16 @@ function onCardSelectionChanged() {
         if (typeof res.balance === "number") {
           balance = Number(res.balance);
           renderBalance();
+        }
+        if (res && res.ok && activeRoomId) {
+          serverRoomStates[String(activeRoomId)] = {
+            ...(serverRoomStates[String(activeRoomId)] || {}),
+            ...res,
+          };
+          renderPickRoomSummary();
+          if (views.lobby && views.lobby.classList.contains("is-on")) {
+            renderRooms();
+          }
         }
         syncProfileWithServer();
       }).catch((e) => {
