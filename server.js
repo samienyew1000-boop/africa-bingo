@@ -30,7 +30,7 @@ const MIME_TYPES = {
   ".ttf": "font/ttf",
 };
 
-// Initial state with 100 ETB default starting bonus
+// Initial state with 10 ETB default starting bonus
 const DEFAULT_STATE = {
   rooms: [
     { id: "10", stake: 10, players: 0, status: "waiting", roundId: "#AB-101", prizePool: 0, called: [] },
@@ -42,7 +42,7 @@ const DEFAULT_STATE = {
     minDeposit: 50,
     depositBonus: 20,
     bonusThreshold: 100,
-    startingBonus: 100,
+    startingBonus: 10,
     startingBonusEnabled: true,
     depositTelebirrPhone: "0999909474",
     depositTelebirrName: "Africa Bingo",
@@ -52,8 +52,8 @@ const DEFAULT_STATE = {
     depositMpesaName: "Africa Bingo M-Pesa",
   },
   metrics: {
-    totalPlayers: 1,
-    verifiedPlayers: 1,
+    totalPlayers: 0,
+    verifiedPlayers: 0,
     processedToday: 0,
   },
   users: {},
@@ -190,7 +190,7 @@ class LiveBingoRoom {
     }
 
     if (!gameState.users[user.id]) {
-      const bonus = Number(gameState.settings?.startingBonus != null ? gameState.settings.startingBonus : 100);
+      const bonus = Number(gameState.settings?.startingBonus != null ? gameState.settings.startingBonus : 10);
       gameState.users[user.id] = {
         id: user.id,
         username: user.username,
@@ -463,12 +463,13 @@ const server = http.createServer(async (req, res) => {
     // 1. Get or create current user profile (with 100 ETB starting bonus!)
     if (pathname === "/api/me") {
       if (!gameState.users[user.id]) {
+        const bonus = Number(gameState.settings?.startingBonus != null ? gameState.settings.startingBonus : 10);
         gameState.users[user.id] = {
           id: user.id,
           username: user.username,
           first_name: user.name,
-          balance: 100.0, // 100 ETB STARTING BONUS FOR NEW USERS!
-          bonus_balance: 100.0,
+          balance: bonus, // 10 ETB STARTING BONUS FOR NEW USERS!
+          bonus_balance: bonus,
           bonus_claimed: 1,
           role: "player",
           is_verified: 1,
@@ -814,13 +815,13 @@ async function startTelegramBot() {
             if (text.startsWith("/start") || text.toLowerCase() === "play") {
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `👋 ሰላም *${firstName}*! ወደ *Africa Bingo* እንኳን በደህና መጡ! 🎲\n\n🎁 *የ 100 ETB የመመዝገቢያ ቦነስ ተሰጥቷችኋል!*\n\nለመጫወት ከታች ያለውን **Play Africa Bingo 🎮** የሚለውን ቁልፍ ይጫኑ!`,
+                text: `👋 ሰላም *${firstName}*! ወደ *Africa Bingo* እንኳን በደህና መጡ! 🎲\n\n🎁 *የ 10 ETB የመመዝገቢያ ቦነስ ተሰጥቷችኋል!*\n\nለመጫወት ከታች ያለውን **Play Africa Bingo 🎮** የሚለውን ቁልፍ ይጫኑ!`,
                 parse_mode: "Markdown",
                 reply_markup: {
                   inline_keyboard: [
                     [
                       {
-                        text: "Play Africa Bingo 🎮 (100 ETB Bonus)",
+                        text: "Play Africa Bingo 🎮 (10 ETB Bonus)",
                         web_app: { url: WEB_APP_URL },
                       },
                     ],

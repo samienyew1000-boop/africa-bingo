@@ -1,0 +1,28 @@
+{
+  "rooms": [
+    { "id": "10", "stake": 10, "players": 0, "status": "open", "roundId": 1, "prizePool": 0, "called": [] },
+    { "id": "20", "stake": 20, "players": 0, "status": "open", "roundId": 1, "prizePool": 0, "called": [] },
+    { "id": "50", "stake": 50, "players": 0, "status": "open", "roundId": 1, "prizePool": 0, "called": [] }
+  ],
+  "settings": {
+    "commissionRate": 20,
+    "minDeposit": 50,
+    "depositBonus": 20,
+    "bonusThreshold": 100,
+    "startingBonus": 10,
+    "startingBonusEnabled": true,
+    "depositTelebirrPhone": "0999909474",
+    "depositTelebirrName": "Africa Bingo",
+    "depositCbeBirrPhone": "1000 000 000",
+    "depositCbeBirrName": "Africa Bingo CBE Birr",
+    "depositMpesaPhone": "0700 000 000",
+    "depositMpesaName": "Africa Bingo M-Pesa"
+  },
+  "metrics": {
+    "totalPlayers": 0,
+    "verifiedPlayers": 0,
+    "processedToday": 0
+  },
+  "users": {},
+  "transactions": []
+}

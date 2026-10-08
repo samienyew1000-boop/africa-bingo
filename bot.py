@@ -2005,7 +2005,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         profile = get_or_create_user(user.id, user.username or "", user.first_name or "", user.last_name or "")
         phone = profile.get("phone_number") or "ያልተረጋገጠ ⚠️"
         bal = float(profile.get("balance", 0.0))
-        bonus_status = "የተወሰደ (50 ETB) ✅" if profile.get("bonus_claimed") else "ያልተወሰደ 🎁"
+        bonus_status = "የተወሰደ (10 ETB) ✅" if profile.get("bonus_claimed") else "ያልተወሰደ 🎁"
         is_admin = is_admin_check(user.id, user.username or "", phone)
         status_label = "Super Administrator 🛡️" if is_admin else ("የተረጋገጠ (Verified) ✅" if profile.get("is_verified") else "ያልተረጋገጠ ⚠️")
 
