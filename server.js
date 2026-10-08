@@ -173,8 +173,8 @@ class LiveBingoRoom {
       return { error: "Game in progress, please wait" };
     }
     const cleanCardIds = Array.from(new Set(cardIds.map(Number))).filter(id => id >= 1 && id <= 1000);
-    if (!cleanCardIds.length || cleanCardIds.length > 2) {
-      return { error: "Choose 1 or 2 valid cartelas" };
+    if (!cleanCardIds.length || cleanCardIds.length > 50) {
+      return { error: "Choose up to 50 valid cartelas" };
     }
 
     const otherTaken = new Set();
@@ -187,6 +187,22 @@ class LiveBingoRoom {
       if (otherTaken.has(cid)) {
         return { error: `Card #${cid} is already taken by another player` };
       }
+    }
+
+    if (!gameState.users[user.id]) {
+      const bonus = Number(gameState.settings?.startingBonus != null ? gameState.settings.startingBonus : 100);
+      gameState.users[user.id] = {
+        id: user.id,
+        username: user.username,
+        first_name: user.name,
+        phone: "",
+        contactShared: false,
+        balance: bonus,
+        role: ADMIN_IDS.includes(String(user.id)) ? "admin" : "player",
+        status: "active",
+        createdAt: new Date().toISOString(),
+      };
+      saveGameState();
     }
 
     const existingPlayer = this.players.find(p => String(p.user_id) === String(user.id));
@@ -399,9 +415,9 @@ function parseJsonBody(req) {
   });
 }
 
-function getUserFromHeaders(req) {
-  const uid = req.headers["x-telegram-user-id"] || "LB-PLAYER";
-  const uname = req.headers["x-telegram-user-name"] || "";
+function getUserFromHeaders(req, body = null) {
+  const uid = (body && body.user_id) || req.headers["x-telegram-user-id"] || "LB-PLAYER";
+  const uname = (body && body.username) || req.headers["x-telegram-user-name"] || "";
   const name = uname ? `@${uname}` : (uid !== "LB-PLAYER" ? `Player ${String(uid).slice(-4)}` : "Africa Player");
   return { id: uid, username: uname, name };
 }
@@ -585,29 +601,32 @@ const server = http.createServer(async (req, res) => {
     // 8. Join Room (Deducts balance, adds cards, starts shared countdown)
     if (pathname === "/api/join-room" || pathname === "/api/room/join") {
       const body = await parseJsonBody(req);
+      const activeUser = body.user_id ? getUserFromHeaders(req, body) : user;
       const roomId = String(body.room_id || "10");
       const room = activeRooms[roomId];
       if (!room) return sendJson(res, { error: "Room not found" }, 404);
-      const result = room.join(user, body.card_ids || []);
+      const result = room.join(activeUser, body.card_ids || []);
       return sendJson(res, result, result.error ? 400 : 200);
     }
 
     // 9. Leave Room
     if (pathname === "/api/leave-room" || pathname === "/api/room/leave") {
       const body = await parseJsonBody(req);
+      const activeUser = body.user_id ? getUserFromHeaders(req, body) : user;
       const roomId = String(body.room_id || "10");
       const room = activeRooms[roomId];
-      const result = room ? room.leave(user.id) : { ok: true };
+      const result = room ? room.leave(activeUser.id) : { ok: true };
       return sendJson(res, result);
     }
 
     // 10. Claim Bingo
     if (pathname === "/api/claim-bingo" || pathname === "/api/room/claim") {
       const body = await parseJsonBody(req);
+      const activeUser = body.user_id ? getUserFromHeaders(req, body) : user;
       const roomId = String(body.room_id || "10");
       const room = activeRooms[roomId];
       if (!room) return sendJson(res, { error: "Room not found" }, 404);
-      const result = room.claimBingo(user.id, body.card_id);
+      const result = room.claimBingo(activeUser.id, body.card_id);
       return sendJson(res, result, result.error ? 400 : 200);
     }
 

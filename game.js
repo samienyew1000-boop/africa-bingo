@@ -1806,7 +1806,12 @@ function onCardSelectionChanged() {
           }
 
           if (res?.error === "Insufficient balance") {
-            selected = new Set();
+            if (selectedPreviewId && selected.has(selectedPreviewId)) {
+              selected.delete(selectedPreviewId);
+              selectedPreviewId = selected.size ? [...selected][selected.size - 1] : null;
+            } else {
+              selected = new Set();
+            }
             paintPicks();
             renderCartelaPreview();
             updatePickInfo();
@@ -1842,7 +1847,12 @@ function onCardSelectionChanged() {
             return;
           }
 
-          selected = new Set();
+          if (selectedPreviewId && selected.has(selectedPreviewId)) {
+            selected.delete(selectedPreviewId);
+            selectedPreviewId = selected.size ? [...selected][selected.size - 1] : null;
+          } else {
+            selected = new Set();
+          }
           paintPicks();
           renderCartelaPreview();
           updatePickInfo();

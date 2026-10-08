@@ -180,23 +180,40 @@ const LuckyBingoAPI = (() => {
   }
 
   async function joinRoom(roomId, cardIds) {
+    const user = getTelegramUser();
     return apiRequest("/api/join-room", {
       method: "POST",
-      body: JSON.stringify({ room_id: String(roomId), card_ids: cardIds }),
+      body: JSON.stringify({
+        room_id: String(roomId),
+        card_ids: cardIds,
+        user_id: user?.id,
+        username: user?.username,
+      }),
     });
   }
 
   async function leaveRoom(roomId) {
+    const user = getTelegramUser();
     return apiRequest("/api/leave-room", {
       method: "POST",
-      body: JSON.stringify({ room_id: String(roomId) }),
+      body: JSON.stringify({
+        room_id: String(roomId),
+        user_id: user?.id,
+        username: user?.username,
+      }),
     });
   }
 
   async function claimBingo(roomId, cardId) {
+    const user = getTelegramUser();
     return apiRequest("/api/claim-bingo", {
       method: "POST",
-      body: JSON.stringify({ room_id: String(roomId), card_id: cardId }),
+      body: JSON.stringify({
+        room_id: String(roomId),
+        card_id: cardId,
+        user_id: user?.id,
+        username: user?.username,
+      }),
     });
   }
 

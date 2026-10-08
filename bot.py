@@ -624,11 +624,11 @@ class GameEngine:
                     return {'error': 'Game in progress, please wait'}
 
                 card_ids = list(dict.fromkeys(card_ids or []))
-                if not card_ids or len(card_ids) > 2 or any(
+                if not card_ids or len(card_ids) > 50 or any(
                     not isinstance(card_id, int) or card_id < 1 or card_id > 1000
                     for card_id in card_ids
                 ):
-                    return {'error': 'Choose one or two valid cards'}
+                    return {'error': 'Choose up to 50 valid cards'}
 
                 stake = int(room_id)
                 round_id = room['round_id']
