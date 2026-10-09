@@ -108,13 +108,13 @@ def get_game_web_url(subpath: str = "", extra_query: str = "", is_admin_user: bo
     return base
 
 # Authorized Administrators (comma-separated in .env or set here)
-raw_usernames = os.getenv("ADMIN_USERNAMES", "0999909474,su121316,samTesfa19,samienyew1000")
+raw_usernames = os.getenv("ADMIN_USERNAMES", "0999909474,su121316,samTesfa19,samienyew1000,Africabingooo")
 ADMIN_USERNAMES = [u.strip().lstrip("@").lower() for u in raw_usernames.split(",") if u.strip()]
 raw_phones = os.getenv("ADMIN_PHONES", "0999909474,+251999909474,+251939292694")
 ADMIN_PHONES = [p.strip() for p in raw_phones.split(",") if p.strip()]
 raw_ids = os.getenv("ADMIN_TELEGRAM_IDS", "5663531258")
 ADMIN_TELEGRAM_IDS = [int(i.strip()) for i in raw_ids.split(",") if i.strip().isdigit()]
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Sj$0332#89")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "AF7694")
 
 DB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 DB_PATH = os.path.join(DB_DIR, "africa_bingo.db")

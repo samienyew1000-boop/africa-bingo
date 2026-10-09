@@ -7,8 +7,8 @@ const ROOM_LIFECYCLE_KEY = "lucky-bingo-room-lifecycle-v1";
 const WINNING_PATTERN_OPTIONS = Object.freeze(["1", "2", "3", "4", "full-house"]);
 
 const ADMIN_AUTH_CONFIG = {
-  validUsers: ["0999909474", "+251999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "admin"],
-  password: "Sj$0332#89",
+  validUsers: ["0999909474", "+251999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "admin"],
+  password: "AF7694",
 };
 
 function checkAdminAuth() {
