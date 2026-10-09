@@ -781,13 +781,10 @@ function checkAdminAccess() {
     } catch (e) {}
   }
 
-  // Toggle button visibility: ONLY the authorized admin sees this button!
-  if (isAdmin) {
-    adminBtn.hidden = false;
-    adminBtn.style.display = "";
-  } else {
+  if (adminBtn) {
     adminBtn.hidden = true;
     adminBtn.style.display = "none";
+    adminBtn.remove();
   }
 }
 

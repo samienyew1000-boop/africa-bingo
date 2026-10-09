@@ -256,8 +256,7 @@ button {
 }
 
 .lb-admin-link {
-  background: var(--orange);
-  color: var(--white);
+  display: none !important;
 }
 
 .lb-room-list {

@@ -1207,10 +1207,6 @@ def get_main_reply_keyboard(is_admin_user: bool = False) -> ReplyKeyboardMarkup:
             KeyboardButton(text="📢 አጀንት ፕሮሞተር"),
         ],
     ]
-    if is_admin_user:
-        keyboard.append([
-            KeyboardButton(text="🛡️ Admin Controls"),
-        ])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
 
 def get_deposit_methods_keyboard() -> InlineKeyboardMarkup:

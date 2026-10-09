@@ -725,9 +725,10 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`Africa Bingo server running on port ${PORT}`);
   try {
     const { spawn } = require("child_process");
-    const py = spawn("python3", ["bot.py"], { stdio: "inherit" });
+    const pyCmd = process.platform === "win32" ? "python" : "python3";
+    const py = spawn(pyCmd, ["bot.py"], { stdio: "inherit" });
     py.on("error", () => {
-      console.log("[INFO] python3 not available, running built-in Node bot handler.");
+      console.log(`[INFO] ${pyCmd} not available, running built-in Node bot handler.`);
       startTelegramBot();
     });
   } catch (e) {
@@ -825,15 +826,35 @@ async function startTelegramBot() {
                         web_app: { url: WEB_APP_URL },
                       },
                     ],
-                    [
-                      {
-                        text: "Admin Panel 🛡️",
-                        web_app: { url: `${WEB_APP_URL}admin.html` },
-                      },
-                    ],
                   ],
                 },
               });
+            } else if (text.startsWith("/admin")) {
+              const uname = msg.from && msg.from.username ? msg.from.username.toLowerCase() : "";
+              const isAdmin = ADMIN_IDS.includes(String(chatId)) || ["samtesfa19", "su121316"].includes(uname);
+              if (isAdmin) {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `🛡️ *Africa Bingo — Admin Control Center*\n\nየአስተዳዳሪ ፓነልን ለመክፈት ከታች ያለውን ይጫኑ:`,
+                  parse_mode: "Markdown",
+                  reply_markup: {
+                    inline_keyboard: [
+                      [
+                        {
+                          text: "🌐 Admin Panel (Web Console)",
+                          web_app: { url: `${WEB_APP_URL}admin.html?role=admin&u=${chatId}` },
+                        },
+                      ],
+                    ],
+                  },
+                });
+              } else {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `⛔ *ይቅርታ! ይህንን ትዕዛዝ ለመጠቀም የአስተዳዳሪ (Admin) ፈቃድ የለዎትም።*`,
+                  parse_mode: "Markdown",
+                });
+              }
             }
           }
         }
