@@ -8,7 +8,10 @@ const PUBLIC_DIR = __dirname;
 const STATE_FILE = path.join(__dirname, "game-state.json");
 const BOT_TOKEN = process.env.BOT_TOKEN || "8882887936:AAEXtkABLYGWPSC-r4tXRMAOzET9Jp21NUQ";
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://africa-bingo.ethiodeploy.com/").replace(/\/+$/, "") + "/";
-const ADMIN_IDS = ["5663531258", "0999909474"];
+const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0999909474,su121316,samtesfa19,samienyew1000";
+const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
+const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "5663531258,0999909474";
+const ADMIN_IDS = rawAdminIds.split(",").map((id) => id.trim()).filter(Boolean);
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -831,7 +834,7 @@ async function startTelegramBot() {
               });
             } else if (text.startsWith("/admin")) {
               const uname = msg.from && msg.from.username ? msg.from.username.toLowerCase() : "";
-              const isAdmin = ADMIN_IDS.includes(String(chatId)) || ["samtesfa19", "su121316"].includes(uname);
+              const isAdmin = ADMIN_IDS.includes(String(chatId)) || (uname && ADMIN_USERNAMES.includes(uname));
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
