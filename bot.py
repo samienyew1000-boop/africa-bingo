@@ -1180,8 +1180,8 @@ def get_main_keyboard(is_admin_user: bool = False, user_id: int = 0) -> InlineKe
     return InlineKeyboardMarkup(keyboard)
 
 def get_contact_request_keyboard() -> ReplyKeyboardMarkup:
-    """One-tap contact share reply keyboard matching reference UI."""
-    button = KeyboardButton(text="📱 Share Phone Number", request_contact=True)
+    """One-tap contact share reply keyboard matching reference UI in Amharic."""
+    button = KeyboardButton(text="📱 ስልክ ቁጥርዎን ያጋሩ", request_contact=True)
     return ReplyKeyboardMarkup([[button]], resize_keyboard=True, one_time_keyboard=True)
 
 def get_main_reply_keyboard(is_admin_user: bool = False) -> ReplyKeyboardMarkup:
@@ -1204,14 +1204,14 @@ def get_main_reply_keyboard(is_admin_user: bool = False) -> ReplyKeyboardMarkup:
             KeyboardButton(text="🌐 ቋንቋ / Language"),
         ],
         [
-            KeyboardButton(text="📢 ኤጀንት ፕሮሞተር"),
+            KeyboardButton(text="📢 አጀንት ፕሮሞተር"),
         ],
     ]
     if is_admin_user:
         keyboard.append([
             KeyboardButton(text="🛡️ Admin Controls"),
         ])
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
 
 def get_deposit_methods_keyboard() -> InlineKeyboardMarkup:
     """Deposit payment methods pulled directly from the system."""
@@ -1296,13 +1296,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     is_admin = is_admin_check(user.id, user.username or "", profile.get("phone_number", ""))
 
-    # If the user has not verified their phone number and is not admin, ask to share phone
+    # If the user has not verified their phone number and is not admin, ask to share phone in Amharic
     if not profile.get("is_verified") and not is_admin:
-        prompt_text = "👋 Welcome! Please share your phone number to register:"
+        prompt_text = (
+            "👋 *እንኳን ወደ Africa Bingo በደህና መጡ!*\n\n"
+            "ለመመዝገብ እና የ **10 ETB** ቦነስዎን ለማግኘት እባክዎ ከታች ያለውን **'📱 ስልክ ቁጥርዎን ያጋሩ'** የሚለውን ቁልፍ ይጫኑ:"
+        )
         if update.effective_message:
             await update.effective_message.reply_text(
                 text=prompt_text,
                 reply_markup=get_contact_request_keyboard(),
+                parse_mode="Markdown",
             )
         return
 
@@ -1435,6 +1439,7 @@ async def menu_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     text = message.text.strip()
     profile = get_or_create_user(user.id, user.username or "", user.first_name or "", user.last_name or "")
     is_admin = is_admin_check(user.id, user.username or "", profile.get("phone_number", ""))
+    reply_kb = get_main_reply_keyboard(is_admin_user=is_admin)
 
     if "🎮" in text or "ቢንጎ ተጫወት" in text:
         web_url = get_game_web_url()
@@ -1442,13 +1447,15 @@ async def menu_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             [InlineKeyboardButton(text="🎮 ቢንጎ አሁን ተጫወት (Play)", web_app=WebAppInfo(url=web_url))]
         ])
         await message.reply_text(
-            text="🎮 *Africa Bingo ጨዋታ ለመጀመር ከታች ያለውን ይጫኑ:*",
+            text="🎮 *Africa Bingo ጨዋታ ለመጀመር ከታች ያለውን ቁልፍ ይጫኑ:*",
             reply_markup=kb,
             parse_mode="Markdown"
         )
     elif "🎁" in text or "ፕሮሞ ኮድ" in text:
+        context.user_data["waiting_promo"] = True
         await message.reply_text(
-            text="🎁 *የፕሮሞ ኮድ ማስገቢያ*\n\nእባክዎ ያገኙትን የፕሮሞ ኮድ ይላኩልን:",
+            text="🎁 *የፕሮሞ ኮድ ማስገቢያ*\n\nእባክዎ ያገኙትን የፕሮሞ ኮድ እዚህ ይላኩልን:",
+            reply_markup=reply_kb,
             parse_mode="Markdown"
         )
     elif "💰" in text or "ገቢ ለማድረግ" in text:
@@ -1469,11 +1476,13 @@ async def menu_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 f"የእርስዎ ሊንክ:\n`{ref_link}`\n\n"
                 f"ሊንኩን ለጓደኞችዎ ያጋሩ!"
             ),
+            reply_markup=reply_kb,
             parse_mode="Markdown"
         )
-    elif "👤" in text or "ፕሮፋይል & ሂሳብ" in text:
-        phone = profile.get("phone_number", "ያልተረጋገጠ")
+    elif "👤" in text or "ፕሮፋይል & ሂሳብ" in text or "ፕሮፋይል" in text:
+        phone = profile.get("phone_number", "ያልተረጋገጠ ⚠️")
         bal = float(profile.get("balance", 0.0))
+        bonus_status = "የተወሰደ (10 ETB) ✅" if profile.get("bonus_claimed") else "ያልተወሰደ 🎁"
         await message.reply_text(
             text=(
                 f"👤 *የተጠቃሚ መረጃ (Profile)*\n\n"
@@ -1481,8 +1490,10 @@ async def menu_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 f"📱 *ስልክ ቁጥር:* `{phone}`\n"
                 f"💰 *የጨዋታ ሂሳብ:* `{bal:.2f} ETB`\n"
                 f"🏆 *የአሸናፊነት ሂሳብ:* `0.00 ETB`\n"
+                f"🎁 *ቦነስ:* {bonus_status}\n"
                 f"✅ *ሁኔታ:* {'የተረጋገጠ' if profile.get('is_verified') else 'ያልተረጋገጠ'}"
             ),
+            reply_markup=reply_kb,
             parse_mode="Markdown"
         )
     elif "🆘" in text or "እርዳታ" in text:
@@ -1493,27 +1504,52 @@ async def menu_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 f"👉 {CONTACT_URL}\n"
                 f"📢 ቻናላችን: {GROUP_URL}"
             ),
+            reply_markup=reply_kb,
             parse_mode="Markdown"
         )
     elif "🌐" in text or "ቋንቋ" in text:
         await message.reply_text(
             text="🌐 ቋንቋ ተመርጧል: *አማርኛ (Amharic)* ✅",
+            reply_markup=reply_kb,
             parse_mode="Markdown"
         )
-    elif "📢" in text or "ኤጀንት ፕሮሞተር" in text:
+    elif "📢" in text or "አጀንት" in text or "ኤጀንት" in text:
         await message.reply_text(
             text=(
-                "📢 *የ Africa Bingo ኤጀንት ፕሮሞተር ፕሮግራም*\n\n"
+                "📢 *የ Africa Bingo አጀንት ፕሮሞተር ፕሮግራም*\n\n"
                 "ተጫዋቾችን በመጋበዝ በሳምንት እስከ 10,000+ ETB ማግኘት ይችላሉ!\n"
                 f"ለበለጠ መረጃ ያነጋግሩን: {CONTACT_URL}"
             ),
+            reply_markup=reply_kb,
             parse_mode="Markdown"
         )
     elif "🛡️" in text or "Admin Controls" in text:
         if is_admin:
             await admin_command(update, context)
         else:
-            await message.reply_text("⛔ ይህን ለመጠቀም ፈቃድ የለዎትም።")
+            await message.reply_text("⛔ ይህን ለመጠቀም የአስተዳዳሪ (Admin) ፈቃድ የለዎትም።", reply_markup=reply_kb)
+    else:
+        if context.user_data.get("waiting_promo"):
+            context.user_data["waiting_promo"] = False
+            clean_code = text.upper().strip()
+            if clean_code in ("AFRICA", "BINGO", "AFRICA10", "BONUS10"):
+                await message.reply_text(
+                    text="🎁 *እንኳን ደስ አለዎት! የ 10 ETB ፕሮሞ ኮድ ቦነስ ተጨምሮልዎታል።*",
+                    reply_markup=reply_kb,
+                    parse_mode="Markdown"
+                )
+            else:
+                await message.reply_text(
+                    text="❌ *ይቅርታ! ያስገቡት የፕሮሞ ኮድ ልክ አይደለም ወይም ጊዜው አልፏል።*",
+                    reply_markup=reply_kb,
+                    parse_mode="Markdown"
+                )
+        else:
+            await message.reply_text(
+                text="👋 *ሰላም! እባክዎ ከታች ካሉት አማራጮች አንዱን ይምረጡ:*",
+                reply_markup=reply_kb,
+                parse_mode="Markdown"
+            )
 
 # ==============================================================================
 # ADMIN CONSOLE & CONTROLS (Only for designated admin)
@@ -2069,12 +2105,13 @@ async def post_init(application: Application) -> None:
         logger.warning("Could not delete webhook: %s", e)
 
     commands = [
-        BotCommand("start", "Start the bot"),
-        BotCommand("deposit", "Deposit money"),
-        BotCommand("withdraw", "Withdraw money"),
-        BotCommand("balance", "Check Balance"),
-        BotCommand("register", "Register new account"),
-        BotCommand("transfer", "Send money to friend"),
+        BotCommand("start", "ቦቱን ያስጀምሩ / ዋና ማውጫ"),
+        BotCommand("deposit", "ገንዘብ ገቢ ለማድረግ"),
+        BotCommand("withdraw", "ገንዘብ ወጪ ለማድረግ"),
+        BotCommand("balance", "የሂሳብ መጠን ለማየት"),
+        BotCommand("register", "አዲስ አካውንት ለመመዝገብ"),
+        BotCommand("transfer", "ገንዘብ ለሌላ ተጫዋች ለማስተላለፍ"),
+        BotCommand("help", "እርዳታ እና ድጋፍ ለማግኘት"),
     ]
     desc_text = (
         "ይህ ቦት እየተዝናኑ ተጨማሪ ገቢ የሚያገኙበት መድረክ ነው።\n\n"
@@ -2099,7 +2136,7 @@ async def post_init(application: Application) -> None:
         await application.bot.set_my_commands(commands)
         try:
             await application.bot.set_chat_menu_button(
-                menu_button=MenuButtonWebApp(text="Play Games 🎮", web_app=WebAppInfo(url=get_game_web_url()))
+                menu_button=MenuButtonWebApp(text="🎮 ቢንጎ ተጫወት", web_app=WebAppInfo(url=get_game_web_url()))
             )
         except Exception:
             await application.bot.set_chat_menu_button(menu_button=MenuButtonCommands())
