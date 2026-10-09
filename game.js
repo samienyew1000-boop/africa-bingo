@@ -24,8 +24,8 @@ const MIN_WALLET_AMOUNT = 50;
 const PLAYER_ID = "LB-PLAYER";
 const PLAYER_NAME = "Africa Bingo Player";
 const PAYMENT_METHODS = Object.freeze({
-  Telebirr: { accountName: "Africa Bingo", accountNumber: "0911 000 000" },
-  "CBE Birr": { accountName: "Africa Bingo CBE Birr", accountNumber: "1000 000 000" },
+  Telebirr: { accountName: "Africa Bingo", accountNumber: "0981247219" },
+  "CBE Birr": { accountName: "Africa Bingo CBE Birr", accountNumber: "0981247219" },
   "M-Pesa": { accountName: "Africa Bingo M-Pesa", accountNumber: "0700 000 000" },
 });
 
@@ -3133,16 +3133,16 @@ function showWalletFeedback(action, message, isError = false) {
 function getDepositPaymentAccount(method) {
   try {
     const adminSettings = JSON.parse(localStorage.getItem(ADMIN_SETTINGS_KEY) || "{}");
-    if (method === "Telebirr" && adminSettings.depositTelebirrPhone) {
+    if (method === "Telebirr") {
       return {
         accountName: adminSettings.depositTelebirrName || "Africa Bingo",
-        accountNumber: adminSettings.depositTelebirrPhone || "0911 000 000",
+        accountNumber: adminSettings.depositTelebirrPhone || "0981247219",
       };
     }
-    if (method === "CBE Birr" && adminSettings.depositCbeBirrPhone) {
+    if (method === "CBE Birr") {
       return {
         accountName: adminSettings.depositCbeBirrName || "Africa Bingo CBE Birr",
-        accountNumber: adminSettings.depositCbeBirrPhone || "1000 000 000",
+        accountNumber: adminSettings.depositCbeBirrPhone || "0981247219",
       };
     }
     if (method === "M-Pesa" && adminSettings.depositMpesaPhone) {

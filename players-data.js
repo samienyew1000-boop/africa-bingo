@@ -10,21 +10,14 @@ window.LUCKY_BINGO_PAYMENT_METHODS = {
   "Telebirr": {
     "name": "Telebirr",
     "account_name": "Africa Bingo",
-    "account_number": "0999909474",
+    "account_number": "0981247219",
     "min_amount": 50,
     "bonus": "ከ 100 ETB በላይ 20% ተጨማሪ ቦነስ"
   },
   "CBE Birr": {
     "name": "CBE Birr",
     "account_name": "Africa Bingo CBE Birr",
-    "account_number": "1000 000 000",
-    "min_amount": 50,
-    "bonus": "ከ 100 ETB በላይ 20% ተጨማሪ ቦነስ"
-  },
-  "M-Pesa": {
-    "name": "M-Pesa",
-    "account_name": "Africa Bingo M-Pesa",
-    "account_number": "0700 000 000",
+    "account_number": "0981247219",
     "min_amount": 50,
     "bonus": "ከ 100 ETB በላይ 20% ተጨማሪ ቦነስ"
   }

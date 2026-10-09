@@ -1090,16 +1090,18 @@ PAYMENT_METHODS: Dict[str, Dict[str, Any]] = {
     "Telebirr": {
         "name": "Telebirr",
         "account_name": "Africa Bingo",
-        "account_number": "0999909474",
+        "account_number": "0981247219",
         "min_amount": 50,
         "bonus": "ከ 100 ETB በላይ 20% ተጨማሪ ቦነስ",
+        "enabled": True,
     },
     "CBE Birr": {
         "name": "CBE Birr",
         "account_name": "Africa Bingo CBE Birr",
-        "account_number": "1000 000 000",
+        "account_number": "0981247219",
         "min_amount": 50,
         "bonus": "ከ 100 ETB በላይ 20% ተጨማሪ ቦነስ",
+        "enabled": True,
     },
     "M-Pesa": {
         "name": "M-Pesa",
@@ -1107,24 +1109,25 @@ PAYMENT_METHODS: Dict[str, Dict[str, Any]] = {
         "account_number": "0700 000 000",
         "min_amount": 50,
         "bonus": "ከ 100 ETB በላይ 20% ተጨማሪ ቦነስ",
+        "enabled": False,  # Temporarily off as requested
     },
 }
 
 def get_payment_methods() -> Dict[str, Dict[str, Any]]:
     """Retrieves payment methods, merging custom receiving numbers if configured."""
     custom_pm_file = os.path.join(DB_DIR, "payment_settings.json")
+    methods = {k: dict(v) for k, v in PAYMENT_METHODS.items()}
     if os.path.exists(custom_pm_file):
         try:
             with open(custom_pm_file, "r", encoding="utf-8") as pf:
                 custom_pm = json.load(pf)
-                merged = {k: dict(v) for k, v in PAYMENT_METHODS.items()}
                 for k, v in custom_pm.items():
-                    if k in merged and isinstance(v, dict):
-                        merged[k].update(v)
-                return merged
+                    if k in methods and isinstance(v, dict):
+                        methods[k].update(v)
         except Exception:
             pass
-    return PAYMENT_METHODS
+    # Safaricom (M-Pesa) temporarily off: only return enabled payment methods
+    return {k: v for k, v in methods.items() if v.get("enabled", True)}
 
 # ==============================================================================
 # KEYBOARD BUILDERS
