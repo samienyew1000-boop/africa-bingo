@@ -915,6 +915,14 @@ function nextDemoPattern() {
 }
 
 function showView(name) {
+  const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+  if (!mUser && !isTg && name !== "landing") {
+    name = "landing";
+    setAuthMode("register");
+    showMobileAuthModal(true);
+  }
+
   Object.entries(views).forEach(([key, el]) => {
     if (el) el.classList.toggle("is-on", key === name);
   });
@@ -1917,9 +1925,6 @@ function setupSideDrawerEvents() {
   $("btn-landing-cta-start")?.addEventListener("click", () => {
     setAuthMode("register");
     showMobileAuthModal(true);
-  });
-  $("btn-landing-enter-lobby")?.addEventListener("click", () => {
-    showView("lobby");
   });
   $("demo-diagonal-btn")?.addEventListener("click", () => {
     nextDemoPattern();
