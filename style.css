@@ -6017,3 +6017,320 @@ body.is-game-active #view-game {
   padding: 18px 0 10px 0 !important;
   flex: 0 0 auto !important;
 }
+
+/* ============================================================
+   MOBILE STANDALONE APP STYLES & MODALS
+   ============================================================ */
+
+/* Top Mobile Navigation Bar (Lobby) */
+.lb-mobile-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: calc(100% - 16px);
+  margin: 8px auto 6px auto;
+  padding: 6px 12px;
+  background: rgba(21, 52, 95, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+.lb-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  max-width: 60%;
+  overflow: hidden;
+}
+
+.lb-user-chip:hover,
+.lb-user-chip:active {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.lb-chip-icon {
+  font-size: 14px;
+}
+
+.lb-chip-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-app-install-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #f45b0a, #dd4d05);
+  color: #ffffff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(244, 91, 10, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.lb-app-install-btn:active {
+  transform: scale(0.96);
+}
+
+/* Standalone Auth Overlay & Modal */
+.lb-auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(10, 20, 38, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.lb-auth-overlay[hidden] {
+  display: none !important;
+}
+
+.lb-auth-card {
+  width: min(100%, 420px);
+  background: linear-gradient(180deg, #1b3d6f 0%, #122849 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  padding: 26px 22px 22px 22px;
+  box-sizing: border-box;
+  text-align: center;
+  animation: lbAuthPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes lbAuthPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.lb-auth-icon img {
+  display: block;
+  margin: 0 auto 12px auto;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.lb-auth-header h2 {
+  font-size: 24px;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.3px;
+}
+
+.lb-auth-subtitle {
+  font-size: 13.5px;
+  color: #b7c3d7;
+  margin: 0 0 12px 0;
+  font-weight: 600;
+}
+
+.lb-auth-bonus-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 242, 41, 0.12);
+  border: 1px solid rgba(255, 242, 41, 0.35);
+  color: #fff229;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.lb-auth-bonus-badge strong {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.lb-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.lb-auth-input-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #cbd5e1;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lb-auth-phone-field {
+  display: flex;
+  align-items: center;
+  background: #0d1e37;
+  border: 1.5px solid #294b79;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.lb-auth-phone-field:focus-within {
+  border-color: #f45b0a;
+  box-shadow: 0 0 0 3px rgba(244, 91, 10, 0.25);
+}
+
+.lb-phone-flag {
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.04);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  height: 46px;
+}
+
+.lb-auth-phone-field input,
+.lb-auth-input-group input[type="text"] {
+  width: 100%;
+  height: 46px;
+  background: transparent;
+  border: none;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.lb-auth-input-group input[type="text"] {
+  background: #0d1e37;
+  border: 1.5px solid #294b79;
+  border-radius: 12px;
+}
+
+.lb-auth-input-group input[type="text"]:focus {
+  border-color: #f45b0a;
+  box-shadow: 0 0 0 3px rgba(244, 91, 10, 0.25);
+}
+
+.lb-auth-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 48px;
+  background: linear-gradient(135deg, #f45b0a 0%, #dd4d05 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 6px;
+  box-shadow: 0 4px 14px rgba(244, 91, 10, 0.45);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.lb-auth-submit-btn:active {
+  transform: scale(0.98);
+  filter: brightness(0.95);
+}
+
+.lb-auth-mode-switch {
+  text-align: center;
+  margin-top: 6px;
+}
+
+.lb-auth-switch-link {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s ease;
+}
+
+.lb-auth-switch-link strong {
+  color: #38bdf8;
+  text-decoration: underline;
+}
+
+.lb-auth-switch-link:hover {
+  color: #ffffff;
+}
+
+.lb-auth-status {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.lb-auth-status.is-error {
+  background: rgba(243, 66, 79, 0.16);
+  border: 1px solid rgba(243, 66, 79, 0.4);
+  color: #fca5a5;
+}
+
+.lb-auth-status.is-success {
+  background: rgba(87, 199, 124, 0.16);
+  border: 1px solid rgba(87, 199, 124, 0.4);
+  color: #86efac;
+}
+
+/* Standalone Profile Enhancements */
+.lb-mobile-logout-btn {
+  background: rgba(243, 66, 79, 0.15) !important;
+  border: 1px solid rgba(243, 66, 79, 0.35) !important;
+  color: #fca5a5 !important;
+}
+
+.lb-mobile-logout-btn:hover {
+  background: rgba(243, 66, 79, 0.25) !important;
+  color: #ffffff !important;
+}
+
+/* Safe area insets for mobile standalone navigation */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .lb-frame {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+

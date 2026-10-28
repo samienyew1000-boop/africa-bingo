@@ -960,23 +960,34 @@ function renderMobilePanelContent(tab) {
   }
 
   if (tab === "profile") {
+    const user = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser)
+      ? LuckyBingoAPI.getMobileUser()
+      : ((typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getTelegramUser) ? LuckyBingoAPI.getTelegramUser() : null);
+
+    const displayName = user?.first_name || user?.name || user?.username || "Africa Player";
+    const phoneDisplay = user?.phone || user?.username || PLAYER_ID;
+
     content.innerHTML = `
       <div class="lb-mobile-profile-card">
-        <div class="lb-mobile-avatar">LB</div>
+        <div class="lb-mobile-avatar">👤</div>
         <div>
-          <strong>${escapeHTML(PLAYER_NAME)}</strong>
-          <span>${PLAYER_ID}</span>
+          <strong>${escapeHTML(displayName)}</strong>
+          <span>${escapeHTML(phoneDisplay)}</span>
         </div>
       </div>
       <div class="lb-mobile-info-list">
         <div><span>Available Balance</span><b class="is-positive">${Number(balance).toFixed(2)} ETB</b></div>
         <div><span>Current Stake</span><b>${stake} ETB</b></div>
         <div><span>Cards per round</span><b>Up to ${MAX_PICK} cards</b></div>
-        <div><span>Account Status</span><b class="is-positive">Active</b></div>
+        <div><span>App Version</span><b>v2.0 (Standalone Mobile)</b></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
         <button type="button" class="lb-mobile-action-button" id="profile-deposit-btn">Deposit Funds</button>
         <button type="button" class="lb-mobile-action-button" style="background:#2a2638;color:#ddd;" id="profile-withdraw-btn">Withdraw</button>
+      </div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+        <button type="button" class="lb-mobile-action-button" style="background:#0284c7;color:#fff;" id="profile-install-btn">📲 Install Mobile App</button>
+        <button type="button" class="lb-mobile-action-button lb-mobile-logout-btn" id="profile-logout-btn">🚪 Switch Account / መለያ ቀይር</button>
       </div>
     `;
     $("profile-deposit-btn")?.addEventListener("click", () => {
@@ -986,6 +997,16 @@ function renderMobilePanelContent(tab) {
     $("profile-withdraw-btn")?.addEventListener("click", () => {
       closeMobilePanel();
       openWallet("withdraw");
+    });
+    $("profile-install-btn")?.addEventListener("click", () => {
+      handleInstallClick();
+    });
+    $("profile-logout-btn")?.addEventListener("click", () => {
+      closeMobilePanel();
+      if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.logoutMobile) {
+        LuckyBingoAPI.logoutMobile();
+      }
+      showMobileAuthModal(true);
     });
     return;
   }
@@ -1108,16 +1129,181 @@ function toast(text, kind) {
 }
 
 function updateGameUserInfo() {
+  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser)
+    ? LuckyBingoAPI.getMobileUser()
+    : null;
   const tgUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getTelegramUser)
     ? LuckyBingoAPI.getTelegramUser()
     : null;
+
+  const user = mUser || tgUser;
+  const displayName = user?.first_name || user?.name || user?.username || (user?.phone ? `09...${user.phone.slice(-4)}` : "Africa Player");
+
+  const lobbyUserName = $("lobby-user-name");
+  if (lobbyUserName) {
+    lobbyUserName.textContent = displayName;
+  }
+
   const usernameEl = $("game-username");
   const avatarImg = $("game-avatar-img");
   if (usernameEl) {
-    usernameEl.textContent = tgUser?.first_name || tgUser?.username || "sam";
+    usernameEl.textContent = displayName;
   }
-  if (avatarImg && tgUser?.photo_url) {
-    avatarImg.src = tgUser.photo_url;
+  if (avatarImg && user?.photo_url) {
+    avatarImg.src = user.photo_url;
+  }
+}
+
+let authMode = "register"; // "register" or "login"
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const title = $("auth-modal-title");
+  const nickGroup = $("auth-nickname-group");
+  const submitText = $("auth-submit-text");
+  const toggleBtn = $("auth-mode-toggle");
+  const statusMsg = $("auth-status-msg");
+
+  if (statusMsg) statusMsg.hidden = true;
+
+  if (mode === "login") {
+    if (title) title.textContent = "ይግቡ (Login)";
+    if (nickGroup) nickGroup.style.display = "none";
+    if (submitText) submitText.textContent = "ይግቡ (Login)";
+    if (toggleBtn) toggleBtn.innerHTML = `አዲስ ተጫዋች ነዎት? <strong>ይመዝገቡ (Register)</strong>`;
+  } else {
+    if (title) title.textContent = "Africa Bingo";
+    if (nickGroup) nickGroup.style.display = "block";
+    if (submitText) submitText.textContent = "በ 10 ብር ቦነስ ጀምር (Start)";
+    if (toggleBtn) toggleBtn.innerHTML = `ቀድመው ተመዝግበዋል? <strong>ይግቡ (Login)</strong>`;
+  }
+}
+
+function showMobileAuthModal(force = false) {
+  const modal = $("mobile-auth-modal");
+  if (!modal) return;
+  const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+  if (!force && (mUser || isTg)) {
+    modal.hidden = true;
+    return;
+  }
+  modal.hidden = false;
+  setAuthMode("register");
+}
+
+function setupMobileAuthEvents() {
+  const form = $("mobile-auth-form");
+  const toggleBtn = $("auth-mode-toggle");
+  const phoneInput = $("auth-phone-input");
+  const nickInput = $("auth-nickname-input");
+  const statusMsg = $("auth-status-msg");
+
+  toggleBtn?.addEventListener("click", () => {
+    setAuthMode(authMode === "register" ? "login" : "register");
+  });
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!phoneInput) return;
+
+    let phone = phoneInput.value.trim().replace(/[\s\-()]+/g, "");
+    if (!phone) {
+      if (statusMsg) {
+        statusMsg.textContent = "እባክዎ ስልክ ቁጥር ያስገቡ";
+        statusMsg.className = "lb-auth-status is-error";
+        statusMsg.hidden = false;
+      }
+      return;
+    }
+
+    if (phone.startsWith("+251")) phone = "0" + phone.slice(4);
+    else if (phone.startsWith("251")) phone = "0" + phone.slice(3);
+
+    if (phone.length < 9) {
+      if (statusMsg) {
+        statusMsg.textContent = "ትክክለኛ ባለ 10 ዲጂት ስልክ ቁጥር ያስገቡ (ለምሳሌ 0911000000)";
+        statusMsg.className = "lb-auth-status is-error";
+        statusMsg.hidden = false;
+      }
+      return;
+    }
+
+    const nickname = nickInput ? nickInput.value.trim() : "";
+    const submitBtn = $("auth-submit-btn");
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      let res;
+      if (authMode === "register") {
+        res = await LuckyBingoAPI.mobileRegister(phone, nickname);
+      } else {
+        res = await LuckyBingoAPI.mobileLogin(phone);
+      }
+
+      if (res && res.ok && res.user) {
+        const modal = $("mobile-auth-modal");
+        if (modal) modal.hidden = true;
+
+        if (typeof res.user.balance === "number") {
+          balance = Number(res.user.balance);
+          localStorage.setItem(BALANCE_KEY, String(balance));
+        }
+
+        updateGameUserInfo();
+        renderBalance();
+        syncProfileWithServer();
+
+        if (res.isNew || res.bonusGranted) {
+          toast("🎁 እንኳን ደህና መጡ! 10 ብር ቦነስ ተሰጥቶዎታል!", "win");
+        } else {
+          toast(`👋 እንኳን ደህና መጡ ${res.user.first_name || ""}!`, "win");
+        }
+      } else {
+        if (statusMsg) {
+          statusMsg.textContent = res?.message || res?.error || "ስህተት ተከስቷል፣ እባክዎ እንደገና ይሞክሩ።";
+          statusMsg.className = "lb-auth-status is-error";
+          statusMsg.hidden = false;
+        }
+      }
+    } catch (err) {
+      if (statusMsg) {
+        statusMsg.textContent = "ከሰርቨሩ ጋር መገናኘት አልተቻለም። እባክዎ ኢንተርኔትዎን ይፈትሹ።";
+        statusMsg.className = "lb-auth-status is-error";
+        statusMsg.hidden = false;
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+}
+
+let deferredInstallPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = $("install-app-btn");
+  if (btn) btn.style.display = "inline-flex";
+});
+
+function handleInstallClick() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === "accepted") {
+        toast("አፑ በተሳካ ሁኔታ ተጭኗል!", "win");
+        const btn = $("install-app-btn");
+        if (btn) btn.style.display = "none";
+      }
+      deferredInstallPrompt = null;
+    });
+  } else {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      alert("አፑን ወደ ስልክዎ ለመጫን:\nከስር ያለውን የ Share ምልክት [⎋] ተጭነው 'Add to Home Screen' የሚለውን ይምረጡ።");
+    } else {
+      toast("አፑን ከ Browser Menu 'Add to Home screen' በማለት መጫን ይችላሉ", "win");
+    }
   }
 }
 
@@ -3475,6 +3661,9 @@ function bind() {
   });
   $("game-wallet-trigger")?.addEventListener("click", () => openWallet("deposit"));
   $("game-user-trigger")?.addEventListener("click", () => openMobilePanel("profile"));
+  $("lobby-user-chip")?.addEventListener("click", () => openMobilePanel("profile"));
+  $("install-app-btn")?.addEventListener("click", handleInstallClick);
+  setupMobileAuthEvents();
   updateDepositAccount();
   updateProviderButtons("deposit");
   updateProviderButtons("withdraw");
@@ -3500,6 +3689,7 @@ document.addEventListener("visibilitychange", () => {
 });
 bind();
 updateGameUserInfo();
+showMobileAuthModal();
 if (startingBonusAwarded > 0) toast(`STARTING BONUS +${fmt(startingBonusAwarded)} ETB`, "win");
 if (window.location.hash === "#game" || window.location.search.includes("view=game")) {
   showView("game");

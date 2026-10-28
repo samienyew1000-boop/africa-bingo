@@ -1,0 +1,26 @@
+{
+  "name": "Africa Bingo - አፍሪካ ቢንጎ",
+  "short_name": "AfricaBingo",
+  "description": "የኢትዮጵያ ምርጡ የቢንጎ ጨዋታ በስልክዎ ይጫወቱ!",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#122849",
+  "theme_color": "#193866",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

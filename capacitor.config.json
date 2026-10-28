@@ -1,0 +1,13 @@
+{
+  "appId": "com.africabingo.app",
+  "appName": "Africa Bingo",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

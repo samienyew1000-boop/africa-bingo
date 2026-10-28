@@ -44,8 +44,54 @@ const LuckyBingoAPI = (() => {
     }
   }
 
+  function getMobileUser() {
+    try {
+      const raw = localStorage.getItem("lb_mobile_user");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.id || parsed.phone)) return parsed;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function logoutMobile() {
+    localStorage.removeItem("lb_mobile_user");
+    localStorage.removeItem("lb_tg_user");
+    localStorage.removeItem("lb_device_player_id");
+  }
+
+  async function mobileRegister(phone, nickname = "") {
+    const res = await apiRequest("/api/auth/register-mobile", {
+      method: "POST",
+      body: JSON.stringify({ phone, nickname }),
+    });
+    if (res && res.ok && res.user) {
+      localStorage.setItem("lb_mobile_user", JSON.stringify(res.user));
+      localStorage.setItem("lb_tg_user", JSON.stringify(res.user));
+    }
+    return res;
+  }
+
+  async function mobileLogin(phone) {
+    const res = await apiRequest("/api/auth/login-mobile", {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    });
+    if (res && res.ok && res.user) {
+      localStorage.setItem("lb_mobile_user", JSON.stringify(res.user));
+      localStorage.setItem("lb_tg_user", JSON.stringify(res.user));
+    }
+    return res;
+  }
+
   function getTelegramUser() {
     try {
+      const mobileUser = getMobileUser();
+      if (mobileUser && mobileUser.id) {
+        return mobileUser;
+      }
+
       const webAppUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
       if (webAppUser?.id) {
         localStorage.setItem("lb_tg_user", JSON.stringify(webAppUser));
@@ -106,8 +152,10 @@ const LuckyBingoAPI = (() => {
     const user = getTelegramUser();
     if (user?.id) {
       headers["X-Telegram-User-Id"] = String(user.id);
-      if (user.username) {
-        headers["X-Telegram-User-Name"] = String(user.username);
+      headers["X-Mobile-User-Id"] = String(user.id);
+      if (user.username || user.phone) {
+        headers["X-Telegram-User-Name"] = String(user.username || user.phone);
+        headers["X-Mobile-Phone"] = String(user.phone || user.username);
       }
     }
 
@@ -416,5 +464,9 @@ const LuckyBingoAPI = (() => {
     updateAdminSettings,
     startAdminPoll,
     stopAdminPoll,
+    mobileRegister,
+    mobileLogin,
+    getMobileUser,
+    logoutMobile,
   };
 })();

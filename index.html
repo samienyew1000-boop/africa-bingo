@@ -3,11 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#bfa2d0" />
+    <meta name="theme-color" content="#193866" />
     <title>Africa Bingo</title>
-    <link rel="stylesheet" href="style.css?v=20261006_09" />
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="players-data.js?v=20261006_09"></script>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Africa Bingo" />
+    <link rel="apple-touch-icon" href="assets/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+    <link rel="stylesheet" href="style.css?v=20261009_03" />
+    <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+    <script src="players-data.js?v=20261009_03"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("sw.js").catch(() => {});
+        });
+      }
+    </script>
   </head>
   <body class="is-lobby-active">
 
@@ -16,6 +30,17 @@
         <main class="lb-main">
           <!-- LOBBY: stake rooms -->
           <section class="lb-view lb-lobby is-on" id="view-lobby">
+            <!-- Mobile App Top Bar: User Chip + Install App Button -->
+            <div class="lb-mobile-bar" id="mobile-lobby-bar">
+              <button type="button" class="lb-user-chip" id="lobby-user-chip" aria-label="Player profile">
+                <span class="lb-chip-icon">👤</span>
+                <span class="lb-chip-name" id="lobby-user-name">Africa Player</span>
+              </button>
+              <button type="button" class="lb-app-install-btn" id="install-app-btn">
+                <span>📲 አፑን ይጫኑ</span>
+              </button>
+            </div>
+
             <div class="lb-lobby-toolbar">
               <button
                 type="button"
@@ -576,6 +601,65 @@
               <p class="lb-wallet-note"><span aria-hidden="true">ⓘ</span> Withdrawals are sent to your registered number after the admin approves the request.</p>
             </div>
           </section>
+        </div>
+
+        <!-- MOBILE AUTH MODAL: Register / Login for Standalone App -->
+        <div class="lb-overlay lb-auth-overlay" id="mobile-auth-modal" hidden>
+          <div class="lb-auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+            <div class="lb-auth-header">
+              <div class="lb-auth-icon">
+                <img src="assets/icon-192.png" alt="Africa Bingo" width="72" height="72" />
+              </div>
+              <h2 id="auth-modal-title">Africa Bingo</h2>
+              <p class="lb-auth-subtitle">🇪🇹 እንኳን ወደ አፍሪካ ቢንጎ በደህና መጡ!</p>
+              <div class="lb-auth-bonus-badge">
+                <span class="lb-badge-icon">🎁</span>
+                <span>ይመዝገቡና <strong>10 ብር ነፃ ቦነስ</strong> ወዲያውኑ ያግኙ!</span>
+              </div>
+            </div>
+
+            <form class="lb-auth-form" id="mobile-auth-form" novalidate>
+              <div class="lb-auth-input-group">
+                <label for="auth-phone-input">የስልክ ቁጥር (Phone Number)</label>
+                <div class="lb-auth-phone-field">
+                  <span class="lb-phone-flag">🇪🇹 +251</span>
+                  <input
+                    type="tel"
+                    id="auth-phone-input"
+                    name="phone"
+                    placeholder="09... ወይም 07..."
+                    inputmode="tel"
+                    autocomplete="tel"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="lb-auth-input-group" id="auth-nickname-group">
+                <label for="auth-nickname-input">ስም / ቅጽል ስም (Nickname - አማራጭ)</label>
+                <input
+                  type="text"
+                  id="auth-nickname-input"
+                  name="nickname"
+                  placeholder="ለምሳሌ: ዳዊት, Abebe..."
+                  maxlength="20"
+                />
+              </div>
+
+              <div class="lb-auth-status" id="auth-status-msg" hidden></div>
+
+              <button type="submit" class="lb-auth-submit-btn" id="auth-submit-btn">
+                <span id="auth-submit-text">በ 10 ብር ቦነስ ጀምር (Start)</span>
+                <span class="lb-btn-arrow">→</span>
+              </button>
+
+              <div class="lb-auth-mode-switch">
+                <button type="button" class="lb-auth-switch-link" id="auth-mode-toggle">
+                  ቀድመው ተመዝግበዋል? <strong>ይግቡ (Login)</strong>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
         <div class="lb-toast" id="toast" hidden></div>

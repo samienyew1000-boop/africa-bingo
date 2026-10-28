@@ -428,9 +428,9 @@ function parseJsonBody(req) {
 }
 
 function getUserFromHeaders(req, body = null) {
-  const uid = (body && body.user_id) || req.headers["x-telegram-user-id"] || "LB-PLAYER";
-  const uname = (body && body.username) || req.headers["x-telegram-user-name"] || "";
-  const name = uname ? `@${uname}` : (uid !== "LB-PLAYER" ? `Player ${String(uid).slice(-4)}` : "Africa Player");
+  const uid = (body && body.user_id) || req.headers["x-mobile-user-id"] || req.headers["x-telegram-user-id"] || "LB-PLAYER";
+  const uname = (body && body.username) || req.headers["x-mobile-phone"] || req.headers["x-telegram-user-name"] || "";
+  const name = uname ? (uname.startsWith("09") || uname.startsWith("+") || uname.startsWith("07") ? uname : `@${uname}`) : (uid !== "LB-PLAYER" ? `Player ${String(uid).slice(-4)}` : "Africa Player");
   return { id: uid, username: uname, name };
 }
 
@@ -440,7 +440,7 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE, HEAD",
-      "Access-Control-Allow-Headers": "Content-Type, X-Telegram-Init-Data, X-Telegram-User-Id, X-Telegram-User-Name, X-Admin-Token, X-Admin-Password, Authorization",
+      "Access-Control-Allow-Headers": "Content-Type, X-Mobile-Phone, X-Mobile-User-Id, X-Telegram-Init-Data, X-Telegram-User-Id, X-Telegram-User-Name, X-Admin-Token, X-Admin-Password, Authorization",
     });
     res.end();
     return;
@@ -463,7 +463,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith("/api/")) {
     const user = getUserFromHeaders(req);
 
-    // 1. Get or create current user profile (with 100 ETB starting bonus!)
+    // 1. Get or create current user profile
     if (pathname === "/api/me") {
       if (!gameState.users[user.id]) {
         const bonus = Number(gameState.settings?.startingBonus != null ? gameState.settings.startingBonus : 10);
@@ -481,6 +481,86 @@ const server = http.createServer(async (req, res) => {
         saveGameState();
       }
       return sendJson(res, gameState.users[user.id]);
+    }
+
+    // 1b. Mobile App Registration
+    if (pathname === "/api/auth/register-mobile" && req.method === "POST") {
+      const body = await parseJsonBody(req);
+      let phone = String(body.phone || "").trim().replace(/[\s\-()]+/g, "");
+      const nickname = String(body.nickname || "").trim();
+
+      if (!phone || phone.length < 9) {
+        return sendJson(res, { ok: false, error: "invalid_phone", message: "ትክክለኛ ስልክ ቁጥር ያስገቡ" }, 400);
+      }
+
+      // Check if user with this phone already exists in gameState.users
+      let existingUser = Object.values(gameState.users).find(
+        (u) => (u.phone && u.phone === phone) || (u.username && u.username === phone)
+      );
+
+      if (existingUser) {
+        return sendJson(res, { ok: true, user: existingUser, isNew: false, message: "እንኳን ደህና ተመለሱ!" });
+      }
+
+      // Generate unique user id
+      const userId = String(Math.floor(9000000000 + Math.random() * 999999999));
+      const bonus = Number(gameState.settings?.startingBonus != null ? gameState.settings.startingBonus : 10);
+      const newUser = {
+        id: userId,
+        phone: phone,
+        username: phone,
+        first_name: nickname || `Player ${phone.slice(-4)}`,
+        name: nickname || `Player ${phone.slice(-4)}`,
+        balance: bonus,
+        bonus_balance: bonus,
+        bonus_claimed: 1,
+        role: "player",
+        is_verified: 1,
+        created_at: new Date().toISOString(),
+      };
+
+      gameState.users[userId] = newUser;
+      saveGameState();
+
+      // Record bonus transaction
+      const txId = `BONUS-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
+      gameState.transactions.unshift({
+        id: txId,
+        playerId: `LB-${userId.slice(-5)}`,
+        user_id: userId,
+        player: newUser.first_name,
+        phone: phone,
+        type: "bonus",
+        method: "Welcome Bonus",
+        amount: bonus,
+        status: "approved",
+        reference: "New Mobile App Registration",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        createdAt: new Date().toISOString(),
+      });
+      saveGameState();
+
+      return sendJson(res, { ok: true, user: newUser, isNew: true, bonusGranted: true });
+    }
+
+    // 1c. Mobile App Login
+    if (pathname === "/api/auth/login-mobile" && req.method === "POST") {
+      const body = await parseJsonBody(req);
+      let phone = String(body.phone || "").trim().replace(/[\s\-()]+/g, "");
+
+      if (!phone) {
+        return sendJson(res, { ok: false, error: "invalid_phone", message: "ስልክ ቁጥር ያስገቡ" }, 400);
+      }
+
+      let existingUser = Object.values(gameState.users).find(
+        (u) => (u.phone && u.phone === phone) || (u.username && u.username === phone)
+      );
+
+      if (existingUser) {
+        return sendJson(res, { ok: true, user: existingUser });
+      }
+
+      return sendJson(res, { ok: false, error: "not_found", message: "ይህ ስልክ ቁጥር አልተመዘገበም፤ እባክዎ መጀመሪያ ይመዝገቡ።" }, 404);
     }
 
     // 2. Submit Deposit Request (immediately visible in Admin Console!)
