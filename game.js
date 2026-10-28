@@ -1674,10 +1674,221 @@ function closeSideDrawer() {
   if (backdrop) backdrop.hidden = true;
 }
 
+// --- Multi-language (Amharic default & English choice) & Night Mode System ---
+const TRANSLATIONS = {
+  am: {
+    langLabel: "AM",
+    themeLight: "☀ ቀን ገጽታ (Light mode)",
+    themeDark: "🌙 ማታ ገጽታ (Night mode)",
+    guestBadge: "የእንግዳ ሁኔታ",
+    login: "ግባ",
+    register: "ተመዝገብ",
+    logout: "ውጣ",
+    landingH2: "ቀጥታ የወጡ ቁጥሮችን ተመልከት፤ ለቀጣይ ዙር ተቀላቀል",
+    landingP: "ቁጥሮች በቅርበት ሲወጡ ተመልከት፤ ከዚያም ቀጣይ ተራ ጨዋታ ከመጀመሩ በፊት ካርቴላዎችን ለመያዝ ግባ ወይም መለያ ፍጠር።",
+    landingKicker: "ፈጣን ምዝገባ:: የቀጣይ ዙር መደለል:: የቀጥታ ቢንጎ ኃይል::",
+    landingStartCta: "🎁 በ 10 ብር ነፃ ቦነስ ጀምር (Start)",
+    landingLobbyCta: "ወደ ጨዋታ ክፍሎች ግባ (Lobby)",
+    welcomeCardTitle: "ለመጫወት እና ካርቴላ ለመመዝገብ ግባ",
+    welcomeCardDesc: "ካርቴላ ለመመዝገብ እና ቦርሳህን ለማስተዳደር መለያ ፍጠር።",
+    notifications: "Notifications",
+    sounds: "ድምፆች",
+    bigGame: "Big Game",
+    history: "ታሪክ",
+    txHistory: "የግብይት ታሪክ",
+    gameHistory: "የጨዋታ ታሪክ",
+    appVersion: "የመተግበሪያ ስሪት",
+    contactUs: "Contact us",
+    welcomeBack: "እንኳን ተመለስክ",
+    phone: "ስልክ ቁጥር",
+    password: "የይለፍ ቃል",
+    confirmPassword: "የይለፍ ቃል አረጋግጥ",
+    forgotPassword: "የይለፍ ቃል ረሳህ?",
+    createNewAccount: "አዲስ መለያ ፍጠር",
+    alreadyHaveAccount: "ቀድመው መለያ አለዎት? ግባ",
+    fullName: "ሙሉ ስም",
+    chooseAvatar: "Choose avatar",
+    optionalAvatar: "Optional for your profile",
+    continueBtn: "ቀጥል",
+  },
+  en: {
+    langLabel: "EN",
+    themeLight: "☀ Light mode",
+    themeDark: "🌙 Night mode",
+    guestBadge: "Guest Mode",
+    login: "Login",
+    register: "Register",
+    logout: "Logout",
+    landingH2: "Watch Live Numbers; Join the Next Round",
+    landingP: "Watch live called numbers; login or create an account to select your bingo cards before the next round begins.",
+    landingKicker: "Quick registration :: Instant matchmaking :: Live bingo power.",
+    landingStartCta: "🎁 Start with 10 ETB Free Bonus",
+    landingLobbyCta: "Enter Game Rooms (Lobby)",
+    welcomeCardTitle: "Login to play & select cards",
+    welcomeCardDesc: "Create an account to pick cards and manage your wallet balance.",
+    notifications: "Notifications",
+    sounds: "Sounds",
+    bigGame: "Big Game",
+    history: "History",
+    txHistory: "Transaction History",
+    gameHistory: "Game History",
+    appVersion: "App Version",
+    contactUs: "Contact us",
+    welcomeBack: "Welcome back",
+    phone: "Phone Number",
+    password: "Password",
+    confirmPassword: "Confirm Password",
+    forgotPassword: "Forgot password?",
+    createNewAccount: "Create New Account",
+    alreadyHaveAccount: "Already have an account? Login",
+    fullName: "Full Name",
+    chooseAvatar: "Choose avatar",
+    optionalAvatar: "Optional for your profile",
+    continueBtn: "Continue",
+  }
+};
+
+let currentLang = localStorage.getItem("lb_language") || "am";
+let currentTheme = localStorage.getItem("lb_theme") || "light";
+
+function applyTheme(theme) {
+  currentTheme = theme === "dark" ? "dark" : "light";
+  localStorage.setItem("lb_theme", currentTheme);
+  const isDark = currentTheme === "dark";
+  document.body.classList.toggle("is-dark-theme", isDark);
+  document.documentElement.classList.toggle("is-dark-theme", isDark);
+
+  const iconEl = $("theme-toggle-icon");
+  if (iconEl) {
+    iconEl.textContent = isDark ? "🌙" : "☀";
+  }
+  const btnEl = $("drawer-theme-toggle");
+  if (btnEl) {
+    btnEl.setAttribute("title", isDark ? "ቀን ገጽታ (Light mode)" : "ማታ ገጽታ (Night mode)");
+  }
+}
+
+function toggleTheme() {
+  const nextTheme = currentTheme === "dark" ? "light" : "dark";
+  applyTheme(nextTheme);
+  toast(nextTheme === "dark" ? "🌙 ማታ ገጽታ በርቷል (Night mode ON)" : "☀ ቀን ገጽታ በርቷል (Light mode ON)", "win");
+}
+
+function setLanguage(lang) {
+  currentLang = lang === "en" ? "en" : "am";
+  localStorage.setItem("lb_language", currentLang);
+  const t = TRANSLATIONS[currentLang];
+
+  const langText = document.querySelector("#drawer-lang-toggle .lb-dc-text");
+  if (langText) langText.textContent = t.langLabel;
+
+  const elGuestPill = document.querySelector(".lb-guest-pill");
+  if (elGuestPill) elGuestPill.textContent = t.guestBadge;
+
+  const elLandingLogin = $("landing-login-btn");
+  if (elLandingLogin) elLandingLogin.textContent = t.login;
+
+  const elLandingReg = $("landing-register-btn");
+  if (elLandingReg) elLandingReg.textContent = t.register;
+
+  const elLandingH2 = document.querySelector(".lb-landing-copy h2");
+  if (elLandingH2) elLandingH2.textContent = t.landingH2;
+
+  const elLandingP = document.querySelector(".lb-landing-copy p");
+  if (elLandingP) elLandingP.textContent = t.landingP;
+
+  const elLandingKicker = document.querySelector(".lb-landing-kicker span");
+  if (elLandingKicker) elLandingKicker.textContent = t.landingKicker;
+
+  const elLandingStartCta = document.querySelector("#btn-landing-cta-start span");
+  if (elLandingStartCta) elLandingStartCta.textContent = t.landingStartCta;
+
+  const elLandingLobbyCta = document.querySelector("#btn-landing-enter-lobby span");
+  if (elLandingLobbyCta) elLandingLobbyCta.textContent = t.landingLobbyCta;
+
+  const elWelcomeTitle = document.querySelector("#drawer-welcome-card strong");
+  if (elWelcomeTitle) elWelcomeTitle.textContent = t.welcomeCardTitle;
+
+  const elWelcomeDesc = document.querySelector("#drawer-welcome-card p");
+  if (elWelcomeDesc) elWelcomeDesc.textContent = t.welcomeCardDesc;
+
+  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+  const elDrawerLogin = $("drawer-login-btn");
+  if (elDrawerLogin) elDrawerLogin.textContent = t.login;
+
+  const elDrawerReg = $("drawer-register-btn");
+  if (elDrawerReg) elDrawerReg.textContent = mUser ? t.logout : t.register;
+
+  const elSoundsLabel = document.querySelector("#drawer-sound-toggle")?.closest(".lb-menu-row")?.querySelector(".lb-menu-row-label span:last-child");
+  if (elSoundsLabel) elSoundsLabel.textContent = t.sounds;
+
+  const elHistTitle = document.querySelector(".lb-mg-title span:last-child");
+  if (elHistTitle) elHistTitle.textContent = t.history;
+
+  const elTxHist = document.querySelector("#drawer-tx-history-btn span:nth-child(2)");
+  if (elTxHist) elTxHist.textContent = t.txHistory;
+
+  const elGameHist = document.querySelector("#drawer-game-history-btn span:nth-child(2)");
+  if (elGameHist) elGameHist.textContent = t.gameHistory;
+
+  const elAppVer = document.querySelector("#drawer-install-app-btn strong");
+  if (elAppVer) elAppVer.textContent = t.appVersion;
+
+  const elAuthHeading = document.querySelector(".lb-auth-heading");
+  if (elAuthHeading) elAuthHeading.textContent = t.welcomeBack;
+
+  const elLoginSubmit = document.querySelector("#login-submit-btn span");
+  if (elLoginSubmit) elLoginSubmit.textContent = t.login;
+
+  const elToRegister = $("to-register-btn");
+  if (elToRegister) elToRegister.textContent = t.createNewAccount;
+
+  const elToLogin = $("to-login-btn");
+  if (elToLogin) elToLogin.textContent = t.alreadyHaveAccount;
+
+  const elRegSubmit = document.querySelector("#reg-submit-btn span");
+  if (elRegSubmit) elRegSubmit.textContent = t.continueBtn;
+
+  const elForgotLink = $("auth-forgot-link");
+  if (elForgotLink) elForgotLink.textContent = t.forgotPassword;
+
+  const elHeaderLogin = $("btn-header-login");
+  if (elHeaderLogin) elHeaderLogin.textContent = t.login;
+
+  const elHeaderReg = $("btn-header-register");
+  if (elHeaderReg) elHeaderReg.textContent = t.register;
+
+  const labelPhone = document.querySelector('label[for="login-phone-input"]');
+  if (labelPhone) labelPhone.textContent = t.phone;
+
+  const labelPwd = document.querySelector('label[for="login-password-input"]');
+  if (labelPwd) labelPwd.textContent = t.password;
+
+  const labelRegName = document.querySelector('label[for="reg-name-input"]');
+  if (labelRegName) labelRegName.textContent = t.fullName;
+
+  const labelRegPhone = document.querySelector('label[for="reg-phone-input"]');
+  if (labelRegPhone) labelRegPhone.textContent = t.phone;
+
+  const labelRegPwd = document.querySelector('label[for="reg-password-input"]');
+  if (labelRegPwd) labelRegPwd.textContent = t.password;
+
+  const labelRegConfPwd = document.querySelector('label[for="reg-confirm-password-input"]');
+  if (labelRegConfPwd) labelRegConfPwd.textContent = t.confirmPassword;
+}
+
+function toggleLanguage() {
+  const nextLang = currentLang === "am" ? "en" : "am";
+  setLanguage(nextLang);
+  toast(nextLang === "en" ? "🇬🇧 English selected" : "🇪🇹 አማርኛ ተመርጧል", "win");
+}
+
 function setupSideDrawerEvents() {
   $("btn-open-drawer")?.addEventListener("click", openSideDrawer);
   $("btn-close-drawer")?.addEventListener("click", closeSideDrawer);
   $("drawer-backdrop")?.addEventListener("click", closeSideDrawer);
+  $("drawer-theme-toggle")?.addEventListener("click", toggleTheme);
+  $("drawer-lang-toggle")?.addEventListener("click", toggleLanguage);
 
   // Top header actions
   $("btn-header-login")?.addEventListener("click", () => {
@@ -4196,7 +4407,13 @@ if (window.location.hash === "#game" || window.location.search.includes("view=ga
 }
 
 checkAdminAccess();
-window.addEventListener("DOMContentLoaded", checkAdminAccess);
+applyTheme(currentTheme);
+setLanguage(currentLang);
+window.addEventListener("DOMContentLoaded", () => {
+  checkAdminAccess();
+  applyTheme(currentTheme);
+  setLanguage(currentLang);
+});
 window.addEventListener("load", checkAdminAccess);
 window.addEventListener("beforeunload", () => {
   // Do not mutate server membership during unload. A refresh or second device
