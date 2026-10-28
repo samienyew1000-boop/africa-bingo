@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="Africa Bingo" />
     <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=20261028_04" />
+    <link rel="stylesheet" href="style.css?v=20261028_05" />
     <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
     <script src="players-data.js?v=20261009_03"></script>
     <script>
@@ -52,6 +52,40 @@
         <main class="lb-main">
           <!-- 0. LANDING / GUEST DEMONSTRATION VIEW (Exact Screenshot 1 Match) -->
           <section class="lb-view lb-landing-view is-on" id="view-landing">
+            <!-- Top Live Tracker Card (Matches Screenshot 1 & 2) -->
+            <div class="lb-landing-live-tracker" id="landing-live-tracker" style="display: none;">
+              <div class="lb-llt-top-row">
+                <h3 class="lb-llt-title" id="llt-card-title">ለመጫወት ተመዝገብ</h3>
+                <button type="button" class="lb-llt-info-btn" id="llt-info-btn">
+                  <span>info</span>
+                  <svg viewBox="0 0 20 20" width="13" height="13" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Collapsible info explanation -->
+              <div class="lb-llt-info-box" id="llt-info-box" style="display: none;">
+                <p>ቀጥታ የወጡ ቁጥሮችን ይመልከቱ፤ በጨዋታው ለመሳተፍ እና ለማሸነፍ በስልክ ቁጥርዎ ይመዝገቡ (የ 10 ብር ነፃ ቦነስ ያገኛሉ)!</p>
+              </div>
+
+              <div class="lb-llt-inner-card" id="llt-click-target" title="ለመመዝገብ ይጫኑ">
+                <div class="lb-llt-meta-row">
+                  <span class="lb-llt-pattern" id="llt-pattern">4 ስክሪ የማያገናኙ (የቀጥታ ጨዋታ)</span>
+                  <span class="lb-llt-badge is-live" id="llt-badge"><i class="lb-llt-pulse"></i> ቀጥታ</span>
+                </div>
+
+                <!-- Horizontal scroll balls stream -->
+                <div class="lb-llt-balls-row" id="llt-balls-row" aria-label="Called balls stream">
+                  <!-- Dynamically populated from live game -->
+                </div>
+
+                <div class="lb-llt-footer" id="llt-footer">
+                  የቀሩ 33 ኳሶች
+                </div>
+              </div>
+            </div>
+
             <div class="lb-landing-container">
               <div class="lb-landing-top-bar">
                 <span class="lb-guest-pill">የእንግዳ ሁኔታ</span>
@@ -1111,6 +1145,6 @@
     <script src="app-config.js?v=20261009_02"></script>
     <script src="api-client.js?v=20261028_03"></script>
     <script src="../shared-balance.js?v=20261009_02"></script>
-    <script src="game.js?v=20261028_06"></script>
+    <script src="game.js?v=20261028_07"></script>
   </body>
 </html>

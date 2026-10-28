@@ -219,6 +219,84 @@ async function syncProfileWithServer() {
   }
 }
 
+function updateLandingLiveTracker(rooms) {
+  const tracker = $("landing-live-tracker");
+  if (!tracker) return;
+
+  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+  const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+  if (mUser || isTg) {
+    tracker.style.display = "none";
+    return;
+  }
+
+  const roomList = Array.isArray(rooms) ? rooms : Object.values(serverRoomStates || {});
+  const liveRoom = roomList.find((r) => r.status === "live" && Array.isArray(r.calls) && r.calls.length > 0);
+  const cdRoom = !liveRoom ? roomList.find((r) => r.status === "countdown") : null;
+  const endedRoom = !liveRoom && !cdRoom ? roomList.find((r) => r.status === "ended" && Array.isArray(r.calls) && r.calls.length > 0) : null;
+  const activeTrackerRoom = liveRoom || cdRoom || endedRoom;
+
+  if (!activeTrackerRoom) {
+    // If no game has started, keep landing view clean as user requested
+    tracker.style.display = "none";
+    return;
+  }
+
+  tracker.style.display = "flex";
+  const isLive = activeTrackerRoom.status === "live";
+  const isCd = activeTrackerRoom.status === "countdown";
+  const calls = activeTrackerRoom.calls || [];
+  const latestBall = calls.length ? calls[calls.length - 1] : null;
+  const remBalls = Math.max(0, 75 - calls.length);
+
+  const elPattern = $("llt-pattern");
+  if (elPattern) {
+    if (isLive) {
+      elPattern.textContent = currentLang === "en" ? "4 Corners (Live Game)" : "4 ስክሪ የማያገናኙ (የቀጥታ ጨዋታ)";
+    } else if (isCd) {
+      const cdSec = activeTrackerRoom.countdown_remaining || 15;
+      elPattern.textContent = currentLang === "en" ? `Game starts in ${cdSec}s` : `ጨዋታ በ ${cdSec} ሰከንድ ውስጥ ይጀምራል`;
+    } else {
+      elPattern.textContent = currentLang === "en" ? "4 Corners (Last Game)" : "4 ስክሪ የማያገናኙ (ያለፈ ጨዋታ)";
+    }
+  }
+
+  const elBadge = $("llt-badge");
+  if (elBadge) {
+    const dotColor = isLive ? "#10b981" : isCd ? "#3b82f6" : "#f59e0b";
+    const badgeText = currentLang === "en" ? (isLive ? "LIVE" : isCd ? "STARTING" : "ENDED") : "ቀጥታ";
+    elBadge.innerHTML = `<i class="lb-llt-pulse" style="background:${dotColor};box-shadow:0 0 6px ${dotColor};"></i> ${badgeText}`;
+  }
+
+  const elFooter = $("llt-footer");
+  if (elFooter) {
+    if (isLive) {
+      elFooter.textContent = currentLang === "en" ? `${remBalls} balls remaining` : `የቀሩ ${remBalls} ኳሶች`;
+    } else if (isCd) {
+      elFooter.textContent = currentLang === "en" ? "Get ready to play!" : "ካርቴላዎችን ለመምረጥ ይመዝገቡ!";
+    } else {
+      elFooter.textContent = currentLang === "en" ? `Last game remaining ${remBalls} balls` : `ያለፈውን ጨዋታ የቀሩ ${remBalls} ኳሶች`;
+    }
+  }
+
+  const ballsRow = $("llt-balls-row");
+  if (ballsRow) {
+    if (calls.length) {
+      const latestLetter = letterFor(latestBall);
+      const prevCalls = calls.slice(0, -1).reverse();
+
+      let html = `<div class="lb-llt-ball-latest">${latestLetter}-${latestBall}</div>`;
+      for (const n of prevCalls) {
+        const letCode = letterFor(n);
+        html += `<div class="lb-llt-ball is-${letCode.toLowerCase()}">${letCode}-${n}</div>`;
+      }
+      ballsRow.innerHTML = html;
+    } else if (isCd) {
+      ballsRow.innerHTML = `<div style="padding: 10px 14px; font-size: 13px; font-weight: 700; color: #4338ca; width: 100%; text-align: center;">🎲 ${currentLang === "en" ? "Next round is about to start..." : "ቀጣዩ ዙር ሊጀመር ነው..."}</div>`;
+    }
+  }
+}
+
 function startServerLobbySync() {
   if (typeof LuckyBingoAPI === "undefined") return;
   LuckyBingoAPI.startLobbyPoll((data) => {
@@ -235,6 +313,7 @@ function startServerLobbySync() {
         lifecycleKey: `${sRoom.status}:${sRoom.round_id}:server`,
       };
     }
+    updateLandingLiveTracker(data.rooms);
     if (views.lobby && views.lobby.classList.contains("is-on")) renderRooms();
   }, 1500);
 }
@@ -1940,6 +2019,16 @@ function setupSideDrawerEvents() {
   $("landing-register-btn")?.addEventListener("click", () => {
     setAuthMode("register");
     showMobileAuthModal(true);
+  });
+  $("llt-info-btn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const box = $("llt-info-box");
+    if (box) box.style.display = box.style.display === "none" ? "block" : "none";
+  });
+  $("landing-live-tracker")?.addEventListener("click", () => {
+    setAuthMode("register");
+    showMobileAuthModal(true);
+    toast("ለመጫወት እና ካርቴላ ለመምረጥ ይመዝገቡ (Register to play & get 10 ETB free)", "win");
   });
   $("btn-landing-cta-start")?.addEventListener("click", () => {
     setAuthMode("register");

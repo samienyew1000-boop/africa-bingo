@@ -802,6 +802,23 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, { error: "Missing user_id" }, 400);
     }
 
+    // 13. Test / Demo Game Starter (Allows running live round for testing)
+    if (pathname === "/api/admin/start-demo-game" || pathname === "/api/start-demo-game") {
+      const rId = new URL(req.url, "http://localhost").searchParams.get("room_id") || "10";
+      const room = activeRooms[rId];
+      if (room) {
+        room.status = "open";
+        room.players = [
+          { user_id: "bot_101", username: "Almaz_B", first_name: "Almaz", card_ids: [12, 14] },
+          { user_id: "bot_102", username: "Dawit_K", first_name: "Dawit", card_ids: [45, 88] },
+          { user_id: "bot_103", username: "Selam_T", first_name: "Selam", card_ids: [102, 115] },
+        ];
+        room.startCountdown();
+        return sendJson(res, { ok: true, message: `Started demo countdown for room ${rId}`, room: room.getState() });
+      }
+      return sendJson(res, { error: "Room not found" }, 404);
+    }
+
     return sendJson(res, { ok: true });
   }
 
