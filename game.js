@@ -55,6 +55,7 @@ const COL_RANGES = [
 
 const $ = (id) => document.getElementById(id);
 const views = {
+  landing: $("view-landing"),
   lobby: $("view-lobby"),
   pick: $("view-pick"),
   game: $("view-game"),
@@ -789,7 +790,10 @@ function checkAdminAccess() {
 }
 
 function showView(name) {
-  Object.entries(views).forEach(([key, el]) => el.classList.toggle("is-on", key === name));
+  Object.entries(views).forEach(([key, el]) => {
+    if (el) el.classList.toggle("is-on", key === name);
+  });
+  document.body.classList.toggle("is-landing-active", name === "landing");
   document.body.classList.toggle("is-selection-active", name === "pick");
   document.body.classList.toggle("is-game-active", name === "game");
   document.body.classList.toggle("is-lobby-active", name === "lobby");
@@ -797,6 +801,7 @@ function showView(name) {
     checkAdminAccess();
     startRoomUpdates();
     startRoomStatusUpdates();
+    renderRooms();
   } else {
     stopRoomUpdates();
     stopRoomStatusUpdates();
@@ -1137,7 +1142,9 @@ function updateGameUserInfo() {
     : null;
 
   const user = mUser || tgUser;
+  const isLoggedIn = Boolean(mUser || (tgUser && !String(tgUser.id).startsWith("8")));
   const displayName = user?.first_name || user?.name || user?.username || (user?.phone ? `09...${user.phone.slice(-4)}` : "Africa Player");
+  const phoneDisplay = user?.phone || user?.username || (user?.id ? `ID: ${user.id}` : "");
 
   const lobbyUserName = $("lobby-user-name");
   if (lobbyUserName) {
@@ -1151,6 +1158,61 @@ function updateGameUserInfo() {
   }
   if (avatarImg && user?.photo_url) {
     avatarImg.src = user.photo_url;
+  }
+
+  // Update Global Header Actions
+  const ghActions = $("global-header-actions");
+  if (ghActions) {
+    if (isLoggedIn) {
+      ghActions.innerHTML = `
+        <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-profile" style="background:#2e1065;color:#fff;">
+          👤 ${escapeHTML(displayName.length > 10 ? displayName.slice(0, 8) + '..' : displayName)}
+        </button>
+      `;
+      $("btn-header-profile")?.addEventListener("click", () => openSideDrawer());
+    } else {
+      ghActions.innerHTML = `
+        <button type="button" class="lb-gh-btn lb-gh-login" id="btn-header-login">ግባ</button>
+        <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-register">ተመዝገብ</button>
+      `;
+      $("btn-header-login")?.addEventListener("click", () => {
+        setAuthMode("login");
+        showMobileAuthModal(true);
+      });
+      $("btn-header-register")?.addEventListener("click", () => {
+        setAuthMode("register");
+        showMobileAuthModal(true);
+      });
+    }
+  }
+
+  // Update Drawer Welcome Card
+  const welcomeCard = $("drawer-welcome-card");
+  if (welcomeCard) {
+    if (isLoggedIn) {
+      welcomeCard.innerHTML = `
+        <strong>👋 እንኳን ደህና መጡ፣ ${escapeHTML(displayName)}!</strong>
+        <p>ስልክ: ${escapeHTML(phoneDisplay)} · ቦርሳ: <b>${Number(balance).toFixed(2)} ETB</b></p>
+      `;
+    } else {
+      welcomeCard.innerHTML = `
+        <strong>ለመጫወት እና ካርቴላ ለመመዝገብ ግባ</strong>
+        <p>ካርቴላ ለመመዝገብ እና ቦርሳህን ለማስተዳደር መለያ ፍጠር።</p>
+      `;
+    }
+  }
+
+  // Update Drawer Bottom Actions
+  const drawerLoginBtn = $("drawer-login-btn");
+  const drawerRegisterBtn = $("drawer-register-btn");
+  if (drawerLoginBtn && drawerRegisterBtn) {
+    if (isLoggedIn) {
+      drawerLoginBtn.textContent = "ወደ ጨዋታ ክፍሎች ግባ";
+      drawerRegisterBtn.textContent = "መለያ ቀይር / ውጣ";
+    } else {
+      drawerLoginBtn.textContent = "ግባ";
+      drawerRegisterBtn.textContent = "ተመዝገብ";
+    }
   }
 }
 
@@ -1305,6 +1367,117 @@ function handleInstallClick() {
       toast("አፑን ከ Browser Menu 'Add to Home screen' በማለት መጫን ይችላሉ", "win");
     }
   }
+}
+
+function openSideDrawer() {
+  const drawer = $("side-drawer");
+  const backdrop = $("drawer-backdrop");
+  if (drawer) {
+    drawer.classList.add("is-open");
+    drawer.setAttribute("aria-hidden", "false");
+  }
+  if (backdrop) backdrop.hidden = false;
+}
+
+function closeSideDrawer() {
+  const drawer = $("side-drawer");
+  const backdrop = $("drawer-backdrop");
+  if (drawer) {
+    drawer.classList.remove("is-open");
+    drawer.setAttribute("aria-hidden", "true");
+  }
+  if (backdrop) backdrop.hidden = true;
+}
+
+function setupSideDrawerEvents() {
+  $("btn-open-drawer")?.addEventListener("click", openSideDrawer);
+  $("btn-close-drawer")?.addEventListener("click", closeSideDrawer);
+  $("drawer-backdrop")?.addEventListener("click", closeSideDrawer);
+
+  // Top header actions
+  $("btn-header-login")?.addEventListener("click", () => {
+    setAuthMode("login");
+    showMobileAuthModal(true);
+  });
+  $("btn-header-register")?.addEventListener("click", () => {
+    setAuthMode("register");
+    showMobileAuthModal(true);
+  });
+  $("header-refresh-btn")?.addEventListener("click", () => {
+    syncProfileWithServer();
+    renderRooms();
+    toast("REFRESHED", "win");
+  });
+
+  // Landing page actions
+  $("landing-login-btn")?.addEventListener("click", () => {
+    setAuthMode("login");
+    showMobileAuthModal(true);
+  });
+  $("landing-register-btn")?.addEventListener("click", () => {
+    setAuthMode("register");
+    showMobileAuthModal(true);
+  });
+  $("btn-landing-cta-start")?.addEventListener("click", () => {
+    setAuthMode("register");
+    showMobileAuthModal(true);
+  });
+  $("btn-landing-enter-lobby")?.addEventListener("click", () => {
+    showView("lobby");
+  });
+  $("demo-diagonal-btn")?.addEventListener("click", () => {
+    toast("🎉 ዲያጎናል መስመር ተዘግቷል! BINGO!", "win");
+  });
+
+  // Drawer buttons
+  $("drawer-login-btn")?.addEventListener("click", () => {
+    closeSideDrawer();
+    const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+    if (mUser) {
+      showView("lobby");
+    } else {
+      setAuthMode("login");
+      showMobileAuthModal(true);
+    }
+  });
+  $("drawer-register-btn")?.addEventListener("click", () => {
+    closeSideDrawer();
+    const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+    if (mUser) {
+      if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.logoutMobile) {
+        LuckyBingoAPI.logoutMobile();
+      }
+      updateGameUserInfo();
+      showView("landing");
+      toast("ተሰናብተዋል (Logged out)", "win");
+    } else {
+      setAuthMode("register");
+      showMobileAuthModal(true);
+    }
+  });
+  $("drawer-big-game-btn")?.addEventListener("click", () => {
+    closeSideDrawer();
+    showView("lobby");
+  });
+  $("drawer-install-app-btn")?.addEventListener("click", () => {
+    closeSideDrawer();
+    handleInstallClick();
+  });
+  $("drawer-tx-history-btn")?.addEventListener("click", () => {
+    closeSideDrawer();
+    openMobilePanel("history");
+  });
+  $("drawer-game-history-btn")?.addEventListener("click", () => {
+    closeSideDrawer();
+    openMobilePanel("history");
+  });
+  $("drawer-contact-btn")?.addEventListener("click", () => {
+    window.open("tel:0981247219");
+  });
+  $("drawer-sound-toggle")?.addEventListener("change", (e) => {
+    soundEnabled = Boolean(e.target.checked);
+    toast(soundEnabled ? "ድምፅ በርቷል" : "ድምፅ ጠፍቷል", "win");
+  });
 }
 
 function renderBalance() {
@@ -3664,11 +3837,13 @@ function bind() {
   $("lobby-user-chip")?.addEventListener("click", () => openMobilePanel("profile"));
   $("install-app-btn")?.addEventListener("click", handleInstallClick);
   setupMobileAuthEvents();
+  setupSideDrawerEvents();
   updateDepositAccount();
   updateProviderButtons("deposit");
   updateProviderButtons("withdraw");
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !$("wallet-panel").hidden) closeWallet();
+    if (event.key === "Escape" && $("side-drawer")?.classList.contains("is-open")) closeSideDrawer();
   });
 }
 
@@ -3689,7 +3864,6 @@ document.addEventListener("visibilitychange", () => {
 });
 bind();
 updateGameUserInfo();
-showMobileAuthModal();
 if (startingBonusAwarded > 0) toast(`STARTING BONUS +${fmt(startingBonusAwarded)} ETB`, "win");
 if (window.location.hash === "#game" || window.location.search.includes("view=game")) {
   showView("game");
@@ -3723,7 +3897,12 @@ if (window.location.hash === "#game" || window.location.search.includes("view=ga
   showView("game");
   showWinnerOverlay("win", "RAS", 3800, 440, "LINE");
 } else {
-  showView("lobby");
+  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+  if (mUser) {
+    showView("lobby");
+  } else {
+    showView("landing");
+  }
 }
 
 checkAdminAccess();

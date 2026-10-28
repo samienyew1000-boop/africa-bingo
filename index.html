@@ -27,9 +27,128 @@
 
     <div class="lb-root">
       <div class="lb-frame">
+        <!-- GLOBAL TOP NAVIGATION BAR (Exact Match to Screenshot 1) -->
+        <header class="lb-global-header" id="global-header">
+          <div class="lb-gh-left">
+            <button type="button" class="lb-hamburger-btn" id="btn-open-drawer" aria-label="Open menu">
+              <span class="lb-bar"></span>
+              <span class="lb-bar"></span>
+              <span class="lb-bar"></span>
+            </button>
+            <div class="lb-brand-title">
+              <span class="lb-brand-short">Africa</span><span class="lb-brand-dot">...</span>
+            </div>
+            <button type="button" class="lb-header-icon-btn" id="header-refresh-btn" title="Refresh">↻</button>
+          </div>
+          <div class="lb-gh-center">
+            <span class="lb-header-status-badge" id="header-status-badge">ቀጥታ</span>
+          </div>
+          <div class="lb-gh-right" id="global-header-actions">
+            <button type="button" class="lb-gh-btn lb-gh-login" id="btn-header-login">ግባ</button>
+            <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-register">ተመዝገብ</button>
+          </div>
+        </header>
+
         <main class="lb-main">
+          <!-- 0. LANDING / GUEST DEMONSTRATION VIEW (Exact Screenshot 1 Match) -->
+          <section class="lb-view lb-landing-view is-on" id="view-landing">
+            <div class="lb-landing-container">
+              <div class="lb-landing-top-bar">
+                <span class="lb-guest-pill">የእንግዳ ሁኔታ</span>
+                <div class="lb-landing-top-actions">
+                  <button type="button" class="lb-pill-btn lb-pill-login" id="landing-login-btn">ግባ</button>
+                  <button type="button" class="lb-pill-btn lb-pill-register" id="landing-register-btn">ተመዝገብ</button>
+                </div>
+              </div>
+
+              <div class="lb-landing-copy">
+                <h2>ቀጥታ የወጡ ቁጥሮችን ተመልከት፤ ለቀጣይ ዙር ተቀላቀል</h2>
+                <p>ቁጥሮች በቅርበት ሲወጡ ተመልከት፤ ከዚያም ቀጣይ ተራ ጨዋታ ከመጀመሩ በፊት ካርቴላዎችን ለመያዝ ግባ ወይም መለያ ፍጠር።</p>
+              </div>
+
+              <!-- Demonstration 5x5 Bingo Card with Intersecting Red Winning Lines -->
+              <div class="lb-demo-card-wrap">
+                <div class="lb-demo-card" id="demo-bingo-card">
+                  <div class="lb-demo-col-headers">
+                    <span class="c-b">B</span>
+                    <span class="c-i">I</span>
+                    <span class="c-n">N</span>
+                    <span class="c-g">G</span>
+                    <span class="c-o">O</span>
+                  </div>
+                  
+                  <div class="lb-demo-grid">
+                    <!-- Row 1 -->
+                    <div class="lb-demo-cell is-called">7</div>
+                    <div class="lb-demo-cell is-called">18</div>
+                    <div class="lb-demo-cell is-called">34</div>
+                    <div class="lb-demo-cell is-called">48</div>
+                    <div class="lb-demo-cell is-called">67</div>
+
+                    <!-- Row 2 -->
+                    <div class="lb-demo-cell">11</div>
+                    <div class="lb-demo-cell is-called">20</div>
+                    <div class="lb-demo-cell is-called">39</div>
+                    <div class="lb-demo-cell is-called">57</div>
+                    <div class="lb-demo-cell">71</div>
+
+                    <!-- Row 3 -->
+                    <div class="lb-demo-cell is-called">13</div>
+                    <div class="lb-demo-cell is-called">23</div>
+                    <div class="lb-demo-cell is-free">★</div>
+                    <div class="lb-demo-cell is-called">66</div>
+                    <div class="lb-demo-cell is-called">73</div>
+
+                    <!-- Row 4 -->
+                    <div class="lb-demo-cell">14</div>
+                    <div class="lb-demo-cell">25</div>
+                    <div class="lb-demo-cell is-called">42</div>
+                    <div class="lb-demo-cell">53</div>
+                    <div class="lb-demo-cell">74</div>
+
+                    <!-- Row 5 -->
+                    <div class="lb-demo-cell is-called">15</div>
+                    <div class="lb-demo-cell is-called">30</div>
+                    <div class="lb-demo-cell is-called">45</div>
+                    <div class="lb-demo-cell">58</div>
+                    <div class="lb-demo-cell">75</div>
+                  </div>
+
+                  <!-- SVG Winning Lines Overlay: Horizontal, Vertical, and Diagonal! -->
+                  <svg class="lb-win-lines-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <!-- Diagonal: top-left (7) to center (FREE) -->
+                    <line x1="10" y1="18" x2="50" y2="52" class="lb-red-win-line" />
+                    <!-- Horizontal: across row 3 -->
+                    <line x1="5" y1="52" x2="95" y2="52" class="lb-red-win-line" />
+                    <!-- Vertical: down column 3 (N) -->
+                    <line x1="50" y1="12" x2="50" y2="92" class="lb-red-win-line" />
+                  </svg>
+
+                  <div class="lb-demo-card-footer">
+                    <span>በመጨረሻ ዲያጎናል ሲሆን ይጠናቀቃል::</span>
+                    <button type="button" class="lb-demo-tag" id="demo-diagonal-btn">ዲያጎናል ቢንጎ</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lb-landing-kicker">
+                <span>ፈጣን ምዝገባ:: የቀጣይ ዙር መደለል:: የቀጥታ ቢንጎ ኃይል::</span>
+              </div>
+
+              <div class="lb-landing-cta-wrap">
+                <button type="button" class="lb-landing-main-cta" id="btn-landing-cta-start">
+                  <span>🎁 በ 10 ብር ነፃ ቦነስ ጀምር (Start)</span>
+                  <span class="lb-cta-arrow">→</span>
+                </button>
+                <button type="button" class="lb-landing-sub-cta" id="btn-landing-enter-lobby">
+                  <span>ወደ ጨዋታ ክፍሎች ግባ (Lobby)</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
           <!-- LOBBY: stake rooms -->
-          <section class="lb-view lb-lobby is-on" id="view-lobby">
+          <section class="lb-view lb-lobby" id="view-lobby">
             <!-- Mobile App Top Bar: User Chip + Install App Button -->
             <div class="lb-mobile-bar" id="mobile-lobby-bar">
               <button type="button" class="lb-user-chip" id="lobby-user-chip" aria-label="Player profile">
@@ -661,6 +780,145 @@
             </form>
           </div>
         </div>
+
+        <!-- SIDE DRAWER OVERLAY (Exact Match to Screenshot 2) -->
+        <div class="lb-drawer-backdrop" id="drawer-backdrop" hidden></div>
+        <aside class="lb-side-drawer" id="side-drawer" aria-hidden="true">
+          <div class="lb-drawer-inner">
+            <!-- 1. Header Banner: AFRICA BINGO-ONLINE (Replaced from FRIENDS) -->
+            <div class="lb-drawer-banner">
+              <div class="lb-db-text">
+                <h3 class="lb-db-title">AFRICA BINGO-ONLINE</h3>
+                <p class="lb-db-subtitle">ቀጥታ ጨዋታ</p>
+              </div>
+              <div class="lb-db-dice" aria-hidden="true">
+                <svg viewBox="0 0 44 44" width="42" height="42">
+                  <rect x="2" y="2" width="40" height="40" rx="10" fill="#ffffff" />
+                  <circle cx="13" cy="13" r="3.5" fill="#2d1463" />
+                  <circle cx="31" cy="13" r="3.5" fill="#2d1463" />
+                  <circle cx="22" cy="22" r="4" fill="#f45b0a" />
+                  <circle cx="13" cy="31" r="3.5" fill="#2d1463" />
+                  <circle cx="31" cy="31" r="3.5" fill="#2d1463" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Dots indicator below banner -->
+            <div class="lb-drawer-dots" aria-hidden="true">
+              <span class="lb-dot is-active"></span>
+              <span class="lb-dot"></span>
+              <span class="lb-dot"></span>
+            </div>
+
+            <!-- 2. Controls: Theme Toggle & Language Toggle -->
+            <div class="lb-drawer-controls">
+              <button type="button" class="lb-dc-btn" id="drawer-theme-toggle" title="ገጽታ ቀይር">
+                <span class="lb-dc-icon" id="theme-toggle-icon">☀</span>
+              </button>
+              <button type="button" class="lb-dc-btn" id="drawer-lang-toggle" title="ቋንቋ">
+                <span class="lb-dc-icon">🌐</span>
+                <span class="lb-dc-text">AM</span>
+              </button>
+              <button type="button" class="lb-dc-close" id="btn-close-drawer" aria-label="Close menu">✕</button>
+            </div>
+
+            <!-- 3. Welcome / Guest Box -->
+            <div class="lb-drawer-card lb-welcome-card" id="drawer-welcome-card">
+              <strong>ለመጫወት እና ካርቴላ ለመመዝገብ ግባ</strong>
+              <p>ካርቴላ ለመመዝገብ እና ቦርሳህን ለማስተዳደር መለያ ፍጠር።</p>
+            </div>
+
+            <!-- 4. Settings & Menu List -->
+            <div class="lb-drawer-menu">
+              <div class="lb-menu-row">
+                <div class="lb-menu-row-label">
+                  <span class="lb-mr-icon">🔔</span>
+                  <span>Notifications</span>
+                </div>
+                <label class="lb-switch">
+                  <input type="checkbox" id="drawer-notif-toggle" checked />
+                  <span class="lb-slider"></span>
+                </label>
+              </div>
+
+              <div class="lb-menu-row">
+                <div class="lb-menu-row-label">
+                  <span class="lb-mr-icon">🔊</span>
+                  <span>ድምፆች</span>
+                </div>
+                <label class="lb-switch">
+                  <input type="checkbox" id="drawer-sound-toggle" checked />
+                  <span class="lb-slider"></span>
+                </label>
+              </div>
+
+              <button type="button" class="lb-menu-item" id="drawer-big-game-btn">
+                <div class="lb-mi-left">
+                  <span class="lb-mi-icon">🏆</span>
+                  <div class="lb-mi-text">
+                    <strong>Big Game</strong>
+                    <small>Big Game</small>
+                  </div>
+                </div>
+                <span class="lb-mi-arrow">›</span>
+              </button>
+
+              <div class="lb-menu-group">
+                <div class="lb-mg-title">
+                  <span class="lb-mg-icon">🕒</span>
+                  <span>ታሪክ</span>
+                </div>
+                <button type="button" class="lb-menu-subitem" id="drawer-tx-history-btn">
+                  <span class="lb-msi-icon">🧾</span>
+                  <span>የግብይት ታሪክ</span>
+                  <span class="lb-mi-arrow">›</span>
+                </button>
+                <button type="button" class="lb-menu-subitem" id="drawer-game-history-btn">
+                  <span class="lb-msi-icon">🎮</span>
+                  <span>የጨዋታ ታሪክ</span>
+                  <span class="lb-mi-arrow">›</span>
+                </button>
+              </div>
+
+              <button type="button" class="lb-menu-item" id="drawer-install-app-btn">
+                <div class="lb-mi-left">
+                  <span class="lb-mi-icon">📥</span>
+                  <div class="lb-mi-text">
+                    <strong>የመተግበሪያ ስሪት</strong>
+                    <small>1.0.4 (5) · ዘምኗል</small>
+                  </div>
+                </div>
+                <span class="lb-mi-arrow">›</span>
+              </button>
+
+              <button type="button" class="lb-menu-item" id="drawer-contact-btn">
+                <div class="lb-mi-left">
+                  <span class="lb-mi-icon">🎧</span>
+                  <div class="lb-mi-text">
+                    <strong>Contact us</strong>
+                    <small>📞 0981247219</small>
+                  </div>
+                </div>
+                <span class="lb-mi-arrow">›</span>
+              </button>
+            </div>
+
+            <!-- 5. Bottom Action Buttons: Login / Register -->
+            <div class="lb-drawer-bottom-actions">
+              <button type="button" class="lb-drawer-btn lb-drawer-login-btn" id="drawer-login-btn">
+                ግባ
+              </button>
+              <button type="button" class="lb-drawer-btn lb-drawer-register-btn" id="drawer-register-btn">
+                ተመዝገብ
+              </button>
+            </div>
+
+            <div class="lb-drawer-footer">
+              <span>© 2ms developers</span>
+              <a href="https://t.me/Africabingooo" target="_blank" rel="noopener">@Africabingooo click here</a>
+            </div>
+          </div>
+        </aside>
 
         <div class="lb-toast" id="toast" hidden></div>
       </div>
