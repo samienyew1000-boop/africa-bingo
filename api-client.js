@@ -27,12 +27,12 @@ const LuckyBingoAPI = (() => {
       return _baseUrl;
     }
 
-    const currentHost = window.location.hostname;
-    if (currentHost === "localhost" || currentHost === "127.0.0.1") {
-      _baseUrl = "";
-    } else {
-      _baseUrl = "";
+    if (window.location.pathname.startsWith("/bingo")) {
+      _baseUrl = window.location.origin + "/bingo";
+      return _baseUrl;
     }
+
+    _baseUrl = "";
     return _baseUrl;
   }
 
