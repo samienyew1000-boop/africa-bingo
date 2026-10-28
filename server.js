@@ -578,6 +578,21 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, { ok: true, user: existingUser });
     }
 
+    // 1d. Get My Transactions (filtered strictly for this player)
+    if (pathname === "/api/my-transactions") {
+      const authUser = getUserFromHeaders(req);
+      const userPhone = authUser.username || req.headers["x-mobile-phone"] || "";
+      const userId = String(authUser.id || "");
+      if (!userId || userId === "LB-PLAYER") {
+        return sendJson(res, { ok: false, error: "unauthorized", transactions: [] }, 401);
+      }
+      const userTxns = (gameState.transactions || []).filter((t) =>
+        (t.user_id && String(t.user_id) === userId) ||
+        (userPhone && t.phone && t.phone === userPhone)
+      );
+      return sendJson(res, { ok: true, transactions: userTxns });
+    }
+
     // 2. Submit Deposit Request (immediately visible in Admin Console!)
     if (pathname === "/api/deposit" && req.method === "POST") {
       const body = await parseJsonBody(req);

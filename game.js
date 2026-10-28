@@ -170,6 +170,15 @@ async function syncProfileWithServer() {
       localStorage.setItem(BALANCE_KEY, String(balance));
     }
 
+    try {
+      const txRes = await LuckyBingoAPI.apiRequest("/api/my-transactions");
+      if (txRes && txRes.ok && Array.isArray(txRes.transactions)) {
+        const saved = JSON.parse(localStorage.getItem(ADMIN_STATE_KEY) || "{}");
+        saved.transactions = txRes.transactions;
+        localStorage.setItem(ADMIN_STATE_KEY, JSON.stringify(saved));
+      }
+    } catch (e) {}
+
     if (user.active_room) {
       const recoveredRoomId = String(user.active_room.room_id);
       if (activeRoomId === null || activeRoomId === recoveredRoomId) {
@@ -971,10 +980,15 @@ function recordPlayerTransaction(data) {
   try {
     const saved = JSON.parse(localStorage.getItem(ADMIN_STATE_KEY) || "{}");
     const transactions = Array.isArray(saved.transactions) ? saved.transactions : [];
+    const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+    const tgUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getTelegramUser) ? LuckyBingoAPI.getTelegramUser() : null;
+    const user = mUser || tgUser;
     const txn = {
       id: makeTransactionId(),
       playerId: PLAYER_ID,
       player: PLAYER_NAME,
+      phone: user ? (user.phone || user.username || "") : "",
+      user_id: user ? (user.id || "") : "",
       type: data.type || "stake",
       method: data.method || "Game Stake",
       amount: Number(data.amount) || 0,
@@ -991,25 +1005,22 @@ function recordPlayerTransaction(data) {
 }
 
 function getStoredTransactions() {
+  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+  const tgUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getTelegramUser) ? LuckyBingoAPI.getTelegramUser() : null;
+  const user = mUser || tgUser;
+  if (!user) return [];
+
+  const userPhone = String(user.phone || user.username || "");
+  const userId = String(user.id || "");
+
   try {
     const saved = JSON.parse(localStorage.getItem(ADMIN_STATE_KEY) || "{}");
     const transactions = Array.isArray(saved.transactions) ? saved.transactions : [];
-    if (!transactions.length) {
-      return [
-        {
-          id: "TX-1001",
-          playerId: PLAYER_ID,
-          player: PLAYER_NAME,
-          type: "bonus",
-          method: "Welcome Bonus",
-          amount: 50,
-          requested: "Today",
-          status: "completed",
-          details: "Starting balance credit",
-        },
-      ];
-    }
-    return transactions;
+    return transactions.filter((t) =>
+      (userPhone && t.phone && t.phone === userPhone) ||
+      (userId && t.user_id && String(t.user_id) === userId) ||
+      (userId && t.playerId && String(t.playerId).includes(userId.slice(-5)))
+    );
   } catch (error) {
     return [];
   }
@@ -1229,6 +1240,14 @@ function renderMobilePanelContent(tab) {
 }
 
 function openMobilePanel(tab) {
+  const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+  if (!mUser && !isTg && (tab === "history" || tab === "wallet" || tab === "deposit" || tab === "profile" || tab === "settings")) {
+    setAuthMode("login");
+    showMobileAuthModal(true);
+    toast("እባክዎ መጀመሪያ ይግቡ (Please login)", "win");
+    return;
+  }
   mobilePanelTab = tab;
   const panel = $("mobile-panel");
   const title = $("mobile-panel-title");
@@ -1963,7 +1982,15 @@ function setupSideDrawerEvents() {
   });
   $("drawer-big-game-btn")?.addEventListener("click", () => {
     closeSideDrawer();
-    showView("lobby");
+    const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+    const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+    if (!mUser && !isTg) {
+      setAuthMode("login");
+      showMobileAuthModal(true);
+      toast("እባክዎ መጀመሪያ ይግቡ (Please login)", "win");
+    } else {
+      showView("lobby");
+    }
   });
   $("drawer-install-app-btn")?.addEventListener("click", () => {
     closeSideDrawer();
@@ -1971,11 +1998,29 @@ function setupSideDrawerEvents() {
   });
   $("drawer-tx-history-btn")?.addEventListener("click", () => {
     closeSideDrawer();
-    openMobilePanel("history");
+    const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+    const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+    if (!mUser && !isTg) {
+      setAuthMode("login");
+      showMobileAuthModal(true);
+      toast("እባክዎ መጀመሪያ ይግቡ (Please login)", "win");
+    } else {
+      historyFilter = "deposit";
+      openMobilePanel("history");
+    }
   });
   $("drawer-game-history-btn")?.addEventListener("click", () => {
     closeSideDrawer();
-    openMobilePanel("history");
+    const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+    const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+    if (!mUser && !isTg) {
+      setAuthMode("login");
+      showMobileAuthModal(true);
+      toast("እባክዎ መጀመሪያ ይግቡ (Please login)", "win");
+    } else {
+      historyFilter = "game";
+      openMobilePanel("history");
+    }
   });
   $("drawer-contact-btn")?.addEventListener("click", () => {
     window.open("tel:0981247219");
@@ -4087,16 +4132,20 @@ function getActivePlayerProfile() {
 
 function saveWalletRequest(request) {
   const profile = getActivePlayerProfile();
+  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+  const tgUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getTelegramUser) ? LuckyBingoAPI.getTelegramUser() : null;
+  const user = mUser || tgUser;
   const transaction = {
     id: makeTransactionId(),
     playerId: profile.id,
     player: profile.name,
+    phone: request.phone || (user ? (user.phone || user.username || "") : ""),
+    user_id: user ? (user.id || "") : "",
     type: request.type,
     method: request.method,
     amount: request.amount,
     requested: "just now",
     status: "pending",
-    phone: request.phone || "",
     reference: request.reference || "",
     accountName: request.accountName || "",
     accountNumber: request.accountNumber || "",
