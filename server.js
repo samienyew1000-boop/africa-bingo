@@ -487,11 +487,16 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/auth/register-mobile" && req.method === "POST") {
       const body = await parseJsonBody(req);
       let phone = String(body.phone || "").trim().replace(/[\s\-()]+/g, "");
-      const nickname = String(body.nickname || "").trim();
+      const fullName = String(body.name || body.fullName || body.nickname || "").trim();
+      const password = String(body.password || "").trim();
+      const avatar = String(body.avatar || "").trim();
 
       if (!phone || phone.length < 9) {
         return sendJson(res, { ok: false, error: "invalid_phone", message: "ትክክለኛ ስልክ ቁጥር ያስገቡ" }, 400);
       }
+
+      if (phone.startsWith("+251")) phone = "0" + phone.slice(4);
+      else if (phone.startsWith("251")) phone = "0" + phone.slice(3);
 
       // Check if user with this phone already exists in gameState.users
       let existingUser = Object.values(gameState.users).find(
@@ -499,7 +504,7 @@ const server = http.createServer(async (req, res) => {
       );
 
       if (existingUser) {
-        return sendJson(res, { ok: true, user: existingUser, isNew: false, message: "እንኳን ደህና ተመለሱ!" });
+        return sendJson(res, { ok: false, error: "already_exists", message: "ይህ ስልክ ቁጥር ቀድሞ ተመዝግቧል፤ እባክዎ ይግቡ (Login)።" });
       }
 
       // Generate unique user id
@@ -509,8 +514,10 @@ const server = http.createServer(async (req, res) => {
         id: userId,
         phone: phone,
         username: phone,
-        first_name: nickname || `Player ${phone.slice(-4)}`,
-        name: nickname || `Player ${phone.slice(-4)}`,
+        first_name: fullName || `Player ${phone.slice(-4)}`,
+        name: fullName || `Player ${phone.slice(-4)}`,
+        password: password,
+        avatar: avatar || "AB",
         balance: bonus,
         bonus_balance: bonus,
         bonus_claimed: 1,
@@ -547,20 +554,28 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/auth/login-mobile" && req.method === "POST") {
       const body = await parseJsonBody(req);
       let phone = String(body.phone || "").trim().replace(/[\s\-()]+/g, "");
+      const password = String(body.password || "").trim();
 
       if (!phone) {
         return sendJson(res, { ok: false, error: "invalid_phone", message: "ስልክ ቁጥር ያስገቡ" }, 400);
       }
 
+      if (phone.startsWith("+251")) phone = "0" + phone.slice(4);
+      else if (phone.startsWith("251")) phone = "0" + phone.slice(3);
+
       let existingUser = Object.values(gameState.users).find(
         (u) => (u.phone && u.phone === phone) || (u.username && u.username === phone)
       );
 
-      if (existingUser) {
-        return sendJson(res, { ok: true, user: existingUser });
+      if (!existingUser) {
+        return sendJson(res, { ok: false, error: "not_found", message: "ይህ ስልክ ቁጥር አልተመዘገበም፤ እባክዎ መጀመሪያ ይመዝገቡ።" }, 404);
       }
 
-      return sendJson(res, { ok: false, error: "not_found", message: "ይህ ስልክ ቁጥር አልተመዘገበም፤ እባክዎ መጀመሪያ ይመዝገቡ።" }, 404);
+      if (existingUser.password && password && existingUser.password !== password) {
+        return sendJson(res, { ok: false, error: "wrong_password", message: "የተሳሳተ የይለፍ ቃል። እባክዎ እንደገና ይሞክሩ።" }, 401);
+      }
+
+      return sendJson(res, { ok: true, user: existingUser });
     }
 
     // 2. Submit Deposit Request (immediately visible in Admin Console!)

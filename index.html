@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="Africa Bingo" />
     <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=20261028_02" />
+    <link rel="stylesheet" href="style.css?v=20261028_03" />
     <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
     <script src="players-data.js?v=20261009_03"></script>
     <script>
@@ -717,62 +717,254 @@
           </section>
         </div>
 
-        <!-- MOBILE AUTH MODAL: Register / Login for Standalone App -->
+        <!-- MOBILE AUTH MODAL: Register / Login Screens (Exact Match to Screenshots) -->
         <div class="lb-overlay lb-auth-overlay" id="mobile-auth-modal" hidden>
-          <div class="lb-auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
-            <div class="lb-auth-header">
-              <div class="lb-auth-icon">
-                <img src="assets/icon-192.png" alt="Africa Bingo" width="72" height="72" />
-              </div>
-              <h2 id="auth-modal-title">Africa Bingo</h2>
-              <p class="lb-auth-subtitle">🇪🇹 እንኳን ወደ አፍሪካ ቢንጎ በደህና መጡ!</p>
-              <div class="lb-auth-bonus-badge">
-                <span class="lb-badge-icon">🎁</span>
-                <span>ይመዝገቡና <strong>10 ብር ነፃ ቦነስ</strong> ወዲያውኑ ያግኙ!</span>
+          <div class="lb-auth-screen-container">
+            <!-- Top Bar with Back Arrow -->
+            <div class="lb-auth-top-bar">
+              <button type="button" class="lb-auth-back-btn" id="auth-back-btn" aria-label="ተመለስ">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Top Banner: AFRICA BINGO-ONLINE with B-I-N-G-O circle chips -->
+            <div class="lb-auth-banner-card">
+              <div class="lb-auth-banner-title">AFRICA BINGO-ONLINE</div>
+              <div class="lb-auth-bingo-chips">
+                <span class="lb-bingo-chip chip-b">B</span>
+                <span class="lb-bingo-chip chip-i">I</span>
+                <span class="lb-bingo-chip chip-n">N</span>
+                <span class="lb-bingo-chip chip-g">G</span>
+                <span class="lb-bingo-chip chip-o">O</span>
               </div>
             </div>
 
-            <form class="lb-auth-form" id="mobile-auth-form" novalidate>
-              <div class="lb-auth-input-group">
-                <label for="auth-phone-input">የስልክ ቁጥር (Phone Number)</label>
-                <div class="lb-auth-phone-field">
-                  <span class="lb-phone-flag">🇪🇹 +251</span>
-                  <input
-                    type="tel"
-                    id="auth-phone-input"
-                    name="phone"
-                    placeholder="09... ወይም 07..."
-                    inputmode="tel"
-                    autocomplete="tel"
-                    required
-                  />
+            <!-- 1. LOGIN VIEW (Exact Match to media_1793216162291.png) -->
+            <div class="lb-auth-view-content" id="auth-login-view">
+              <h2 class="lb-auth-heading">እንኳን ተመለስክ</h2>
+
+              <div class="lb-auth-card-box">
+                <form id="mobile-login-form" novalidate>
+                  <!-- Phone Number -->
+                  <div class="lb-form-field">
+                    <label class="lb-field-label" for="login-phone-input">ስልክ ቁጥር</label>
+                    <div class="lb-input-wrap">
+                      <span class="lb-input-icon">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                          <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.24 1.02l-2.21 2.2z"/>
+                        </svg>
+                      </span>
+                      <input
+                        type="tel"
+                        id="login-phone-input"
+                        name="phone"
+                        placeholder="091*******"
+                        inputmode="tel"
+                        autocomplete="tel"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Password -->
+                  <div class="lb-form-field">
+                    <label class="lb-field-label" for="login-password-input">የይለፍ ቃል</label>
+                    <div class="lb-input-wrap">
+                      <span class="lb-input-icon">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                          <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                        </svg>
+                      </span>
+                      <input
+                        type="password"
+                        id="login-password-input"
+                        name="password"
+                        placeholder="የይለፍ ቃልህን አስገባ"
+                        autocomplete="current-password"
+                        required
+                      />
+                      <button type="button" class="lb-pwd-toggle-btn" id="login-pwd-toggle" aria-label="የይለፍ ቃል አሳይ/ደብቅ">
+                        <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Forgot Password Link -->
+                  <div class="lb-forgot-wrap">
+                    <button type="button" class="lb-forgot-link" id="auth-forgot-link">የይለፍ ቃል ረሳህ?</button>
+                  </div>
+
+                  <div class="lb-auth-status" id="login-status-msg" hidden></div>
+
+                  <!-- Login Button -->
+                  <button type="submit" class="lb-auth-btn-primary" id="login-submit-btn">
+                    <span>ግባ</span>
+                  </button>
+                </form>
+              </div>
+
+              <!-- Switch to Register Link -->
+              <div class="lb-auth-footer-switch">
+                <button type="button" class="lb-switch-view-btn" id="to-register-btn">አዲስ መለያ ፍጠር</button>
+              </div>
+            </div>
+
+            <!-- 2. REGISTER VIEW (Exact Match to media_1793216164575.png) -->
+            <div class="lb-auth-view-content" id="auth-register-view" style="display:none;">
+              <div class="lb-auth-card-box">
+                <!-- Avatar Section -->
+                <div class="lb-reg-avatar-sec">
+                  <div class="lb-reg-avatar-circle" id="reg-avatar-preview">
+                    <span id="reg-avatar-text">AB</span>
+                  </div>
+                  <div class="lb-reg-avatar-title">Choose avatar</div>
+                  <div class="lb-reg-avatar-desc">Optional for your profile</div>
+                  <button type="button" class="lb-choose-avatar-btn" id="reg-choose-avatar-btn">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <span>Choose avatar</span>
+                  </button>
+                  <!-- Avatar Picker Popup Grid -->
+                  <div class="lb-avatar-picker-grid" id="avatar-picker-grid" hidden>
+                    <button type="button" class="lb-av-opt" data-avatar="🦁">🦁</button>
+                    <button type="button" class="lb-av-opt" data-avatar="👑">👑</button>
+                    <button type="button" class="lb-av-opt" data-avatar="🎯">🎯</button>
+                    <button type="button" class="lb-av-opt" data-avatar="⭐">⭐</button>
+                    <button type="button" class="lb-av-opt" data-avatar="🦅">🦅</button>
+                    <button type="button" class="lb-av-opt" data-avatar="💎">💎</button>
+                    <button type="button" class="lb-av-opt" data-avatar="🎲">🎲</button>
+                    <button type="button" class="lb-av-opt" data-avatar="🔥">🔥</button>
+                  </div>
                 </div>
+
+                <form id="mobile-register-form" novalidate>
+                  <!-- Full Name -->
+                  <div class="lb-form-field">
+                    <label class="lb-field-label" for="reg-name-input">ሙሉ ስም</label>
+                    <div class="lb-input-wrap">
+                      <span class="lb-input-icon">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        </svg>
+                      </span>
+                      <input
+                        type="text"
+                        id="reg-name-input"
+                        name="name"
+                        placeholder="ሙሉ ስም"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Phone Number -->
+                  <div class="lb-form-field">
+                    <label class="lb-field-label" for="reg-phone-input">ስልክ ቁጥር</label>
+                    <div class="lb-input-wrap">
+                      <span class="lb-input-icon">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                          <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.24 1.02l-2.21 2.2z"/>
+                        </svg>
+                      </span>
+                      <input
+                        type="tel"
+                        id="reg-phone-input"
+                        name="phone"
+                        placeholder="091*******"
+                        inputmode="tel"
+                        autocomplete="tel"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Password -->
+                  <div class="lb-form-field">
+                    <label class="lb-field-label" for="reg-password-input">የይለፍ ቃል</label>
+                    <div class="lb-input-wrap">
+                      <span class="lb-input-icon">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                          <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                        </svg>
+                      </span>
+                      <input
+                        type="password"
+                        id="reg-password-input"
+                        name="password"
+                        placeholder="ቢያንስ 6 ቁምፊዎች"
+                        autocomplete="new-password"
+                        required
+                      />
+                      <button type="button" class="lb-pwd-toggle-btn" id="reg-pwd-toggle" aria-label="የይለፍ ቃል አሳይ/ደብቅ">
+                        <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Confirm Password -->
+                  <div class="lb-form-field">
+                    <label class="lb-field-label" for="reg-confirm-password-input">የይለፍ ቃል አረጋግጥ</label>
+                    <div class="lb-input-wrap">
+                      <span class="lb-input-icon">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                          <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                        </svg>
+                      </span>
+                      <input
+                        type="password"
+                        id="reg-confirm-password-input"
+                        name="confirm_password"
+                        placeholder="የይለፍ ቃልህን ደግሞ አስገባ"
+                        autocomplete="new-password"
+                        required
+                      />
+                      <button type="button" class="lb-pwd-toggle-btn" id="reg-confirm-pwd-toggle" aria-label="የይለፍ ቃል አሳይ/ደብቅ">
+                        <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="lb-auth-status" id="reg-status-msg" hidden></div>
+
+                  <!-- Register Button -->
+                  <button type="submit" class="lb-auth-btn-primary" id="reg-submit-btn">
+                    <span>ቀጥል</span>
+                  </button>
+                </form>
               </div>
 
-              <div class="lb-auth-input-group" id="auth-nickname-group">
-                <label for="auth-nickname-input">ስም / ቅጽል ስም (Nickname - አማራጭ)</label>
-                <input
-                  type="text"
-                  id="auth-nickname-input"
-                  name="nickname"
-                  placeholder="ለምሳሌ: ዳዊት, Abebe..."
-                  maxlength="20"
-                />
+              <!-- Switch to Login Link -->
+              <div class="lb-auth-footer-switch">
+                <button type="button" class="lb-switch-view-btn" id="to-login-btn">ቀድመው መለያ አለዎት? ግባ</button>
               </div>
-
-              <div class="lb-auth-status" id="auth-status-msg" hidden></div>
-
-              <button type="submit" class="lb-auth-submit-btn" id="auth-submit-btn">
-                <span id="auth-submit-text">በ 10 ብር ቦነስ ጀምር (Start)</span>
-                <span class="lb-btn-arrow">→</span>
-              </button>
-
-              <div class="lb-auth-mode-switch">
-                <button type="button" class="lb-auth-switch-link" id="auth-mode-toggle">
-                  ቀድመው ተመዝግበዋል? <strong>ይግቡ (Login)</strong>
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
 
@@ -920,8 +1112,8 @@
     </div>
     <script src="card-data.js?v=20261009_02"></script>
     <script src="app-config.js?v=20261009_02"></script>
-    <script src="api-client.js?v=20261009_02"></script>
+    <script src="api-client.js?v=20261028_03"></script>
     <script src="../shared-balance.js?v=20261009_02"></script>
-    <script src="game.js?v=20261028_01"></script>
+    <script src="game.js?v=20261028_03"></script>
   </body>
 </html>

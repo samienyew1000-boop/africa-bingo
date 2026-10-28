@@ -1348,26 +1348,24 @@ function updateGameUserInfo() {
 
 let authMode = "register"; // "register" or "login"
 
+let selectedRegAvatar = "AB";
+
 function setAuthMode(mode) {
   authMode = mode;
-  const title = $("auth-modal-title");
-  const nickGroup = $("auth-nickname-group");
-  const submitText = $("auth-submit-text");
-  const toggleBtn = $("auth-mode-toggle");
-  const statusMsg = $("auth-status-msg");
+  const loginView = $("auth-login-view");
+  const regView = $("auth-register-view");
+  const loginStatus = $("login-status-msg");
+  const regStatus = $("reg-status-msg");
 
-  if (statusMsg) statusMsg.hidden = true;
+  if (loginStatus) loginStatus.hidden = true;
+  if (regStatus) regStatus.hidden = true;
 
   if (mode === "login") {
-    if (title) title.textContent = "ይግቡ (Login)";
-    if (nickGroup) nickGroup.style.display = "none";
-    if (submitText) submitText.textContent = "ይግቡ (Login)";
-    if (toggleBtn) toggleBtn.innerHTML = `አዲስ ተጫዋች ነዎት? <strong>ይመዝገቡ (Register)</strong>`;
+    if (loginView) loginView.style.display = "block";
+    if (regView) regView.style.display = "none";
   } else {
-    if (title) title.textContent = "Africa Bingo";
-    if (nickGroup) nickGroup.style.display = "block";
-    if (submitText) submitText.textContent = "በ 10 ብር ቦነስ ጀምር (Start)";
-    if (toggleBtn) toggleBtn.innerHTML = `ቀድመው ተመዝግበዋል? <strong>ይግቡ (Login)</strong>`;
+    if (loginView) loginView.style.display = "none";
+    if (regView) regView.style.display = "block";
   }
 }
 
@@ -1381,25 +1379,87 @@ function showMobileAuthModal(force = false) {
     return;
   }
   modal.hidden = false;
-  setAuthMode("register");
+  setAuthMode(authMode || "register");
+}
+
+function setupPasswordToggle(btnId, inputId) {
+  const btn = $(btnId);
+  const input = $(inputId);
+  if (!btn || !input) return;
+  btn.addEventListener("click", () => {
+    const isPwd = input.type === "password";
+    input.type = isPwd ? "text" : "password";
+    const openEye = btn.querySelector(".eye-open");
+    const closedEye = btn.querySelector(".eye-closed");
+    if (openEye) openEye.style.display = isPwd ? "none" : "block";
+    if (closedEye) closedEye.style.display = isPwd ? "block" : "none";
+  });
 }
 
 function setupMobileAuthEvents() {
-  const form = $("mobile-auth-form");
-  const toggleBtn = $("auth-mode-toggle");
-  const phoneInput = $("auth-phone-input");
-  const nickInput = $("auth-nickname-input");
-  const statusMsg = $("auth-status-msg");
-
-  toggleBtn?.addEventListener("click", () => {
-    setAuthMode(authMode === "register" ? "login" : "register");
+  // Back button
+  $("auth-back-btn")?.addEventListener("click", () => {
+    const modal = $("mobile-auth-modal");
+    if (modal) modal.hidden = true;
   });
 
-  form?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!phoneInput) return;
+  // Switch between Login and Register views
+  $("to-register-btn")?.addEventListener("click", () => {
+    setAuthMode("register");
+  });
+  $("to-login-btn")?.addEventListener("click", () => {
+    setAuthMode("login");
+  });
 
-    let phone = phoneInput.value.trim().replace(/[\s\-()]+/g, "");
+  // Password visibility eye toggles
+  setupPasswordToggle("login-pwd-toggle", "login-password-input");
+  setupPasswordToggle("reg-pwd-toggle", "reg-password-input");
+  setupPasswordToggle("reg-confirm-pwd-toggle", "reg-confirm-password-input");
+
+  // Forgot password
+  $("auth-forgot-link")?.addEventListener("click", () => {
+    alert("የይለፍ ቃልዎን ለመቀየር እባክዎን የቴሌግራም አድሚን ያነጋግሩ (@Biregugsa)");
+  });
+
+  // Choose avatar popup
+  $("reg-choose-avatar-btn")?.addEventListener("click", () => {
+    const grid = $("avatar-picker-grid");
+    if (grid) grid.hidden = !grid.hidden;
+  });
+
+  document.querySelectorAll(".lb-av-opt").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const av = btn.getAttribute("data-avatar") || "AB";
+      selectedRegAvatar = av;
+      const preview = $("reg-avatar-text");
+      if (preview) preview.textContent = av;
+      const grid = $("avatar-picker-grid");
+      if (grid) grid.hidden = true;
+    });
+  });
+
+  $("reg-name-input")?.addEventListener("input", (e) => {
+    const name = e.target.value.trim();
+    if (name && (selectedRegAvatar === "AB" || selectedRegAvatar.length <= 2)) {
+      const initials = name.slice(0, 2).toUpperCase();
+      const preview = $("reg-avatar-text");
+      if (preview) preview.textContent = initials;
+      selectedRegAvatar = initials;
+    }
+  });
+
+  // 1. Mobile Login Form Submit
+  const loginForm = $("mobile-login-form");
+  loginForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const phoneInput = $("login-phone-input");
+    const pwdInput = $("login-password-input");
+    const statusMsg = $("login-status-msg");
+    const submitBtn = $("login-submit-btn");
+
+    let phone = phoneInput ? phoneInput.value.trim().replace(/[\s\-()]+/g, "") : "";
+    let password = pwdInput ? pwdInput.value.trim() : "";
+
     if (!phone) {
       if (statusMsg) {
         statusMsg.textContent = "እባክዎ ስልክ ቁጥር ያስገቡ";
@@ -1421,17 +1481,111 @@ function setupMobileAuthEvents() {
       return;
     }
 
-    const nickname = nickInput ? nickInput.value.trim() : "";
-    const submitBtn = $("auth-submit-btn");
     if (submitBtn) submitBtn.disabled = true;
 
     try {
-      let res;
-      if (authMode === "register") {
-        res = await LuckyBingoAPI.mobileRegister(phone, nickname);
+      const res = await LuckyBingoAPI.mobileLogin(phone, password);
+      if (res && res.ok && res.user) {
+        const modal = $("mobile-auth-modal");
+        if (modal) modal.hidden = true;
+
+        if (typeof res.user.balance === "number") {
+          balance = Number(res.user.balance);
+          localStorage.setItem(BALANCE_KEY, String(balance));
+        }
+
+        updateGameUserInfo();
+        renderBalance();
+        syncProfileWithServer();
+        showView("lobby");
+        toast(`👋 እንኳን ደህና ተመለሱ ${res.user.first_name || ""}!`, "win");
       } else {
-        res = await LuckyBingoAPI.mobileLogin(phone);
+        if (statusMsg) {
+          statusMsg.textContent = res?.message || "ስልክ ቁጥር ወይም የይለፍ ቃል አልተገኘም";
+          statusMsg.className = "lb-auth-status is-error";
+          statusMsg.hidden = false;
+        }
       }
+    } catch (err) {
+      if (statusMsg) {
+        statusMsg.textContent = "ከሰርቨሩ ጋር መገናኘት አልተቻለም። እባክዎ ኢንተርኔትዎን ይፈትሹ።";
+        statusMsg.className = "lb-auth-status is-error";
+        statusMsg.hidden = false;
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+
+  // 2. Mobile Register Form Submit
+  const regForm = $("mobile-register-form");
+  regForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const nameInput = $("reg-name-input");
+    const phoneInput = $("reg-phone-input");
+    const pwdInput = $("reg-password-input");
+    const confirmPwdInput = $("reg-confirm-password-input");
+    const statusMsg = $("reg-status-msg");
+    const submitBtn = $("reg-submit-btn");
+
+    let name = nameInput ? nameInput.value.trim() : "";
+    let phone = phoneInput ? phoneInput.value.trim().replace(/[\s\-()]+/g, "") : "";
+    let password = pwdInput ? pwdInput.value.trim() : "";
+    let confirmPassword = confirmPwdInput ? confirmPwdInput.value.trim() : "";
+
+    if (!name) {
+      if (statusMsg) {
+        statusMsg.textContent = "እባክዎ ሙሉ ስምዎን ያስገቡ";
+        statusMsg.className = "lb-auth-status is-error";
+        statusMsg.hidden = false;
+      }
+      return;
+    }
+
+    if (!phone) {
+      if (statusMsg) {
+        statusMsg.textContent = "እባክዎ ስልክ ቁጥር ያስገቡ";
+        statusMsg.className = "lb-auth-status is-error";
+        statusMsg.hidden = false;
+      }
+      return;
+    }
+
+    if (phone.startsWith("+251")) phone = "0" + phone.slice(4);
+    else if (phone.startsWith("251")) phone = "0" + phone.slice(3);
+
+    if (phone.length < 9) {
+      if (statusMsg) {
+        statusMsg.textContent = "ትክክለኛ ባለ 10 ዲጂት ስልክ ቁጥር ያስገቡ (ለምሳሌ 0911000000)";
+        statusMsg.className = "lb-auth-status is-error";
+        statusMsg.hidden = false;
+      }
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      if (statusMsg) {
+        statusMsg.textContent = "የይለፍ ቃል ቢያንስ 6 ፊደላት ወይም ቁጥሮች መሆን አለበት";
+        statusMsg.className = "lb-auth-status is-error";
+        statusMsg.hidden = false;
+      }
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      if (statusMsg) {
+        statusMsg.textContent = "የይለፍ ቃሎቹ አይመሳሰሉም! እባክዎ በትክክል ያረጋግጡ";
+        statusMsg.className = "lb-auth-status is-error";
+        statusMsg.hidden = false;
+      }
+      return;
+    }
+
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      const avatar = selectedRegAvatar || "AB";
+      const res = await LuckyBingoAPI.mobileRegister(phone, name, password, avatar);
 
       if (res && res.ok && res.user) {
         const modal = $("mobile-auth-modal");
@@ -1445,6 +1599,7 @@ function setupMobileAuthEvents() {
         updateGameUserInfo();
         renderBalance();
         syncProfileWithServer();
+        showView("lobby");
 
         if (res.isNew || res.bonusGranted) {
           toast("🎁 እንኳን ደህና መጡ! 10 ብር ቦነስ ተሰጥቶዎታል!", "win");
@@ -1453,7 +1608,7 @@ function setupMobileAuthEvents() {
         }
       } else {
         if (statusMsg) {
-          statusMsg.textContent = res?.message || res?.error || "ስህተት ተከስቷል፣ እባክዎ እንደገና ይሞክሩ።";
+          statusMsg.textContent = res?.message || res?.error || "ይህ ስልክ ቁጥር ቀድሞ ተመዝግቧል፤ እባክዎ ይግቡ።";
           statusMsg.className = "lb-auth-status is-error";
           statusMsg.hidden = false;
         }

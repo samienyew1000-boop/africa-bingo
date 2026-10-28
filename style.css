@@ -6094,17 +6094,20 @@ body.is-game-active #view-game {
 }
 
 /* Standalone Auth Overlay & Modal */
+/* ==========================================================================
+   MOBILE AUTH: Exact Match to User Screenshots (Login & Register)
+   ========================================================================== */
 .lb-auth-overlay {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(10, 20, 38, 0.88);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: #ede6d6;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 16px;
+  justify-content: flex-start;
   box-sizing: border-box;
 }
 
@@ -6112,206 +6115,391 @@ body.is-game-active #view-game {
   display: none !important;
 }
 
-.lb-auth-card {
-  width: min(100%, 420px);
-  background: linear-gradient(180deg, #1b3d6f 0%, #122849 100%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 24px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
-  padding: 26px 22px 22px 22px;
+.lb-auth-screen-container {
+  width: 100%;
+  max-width: 440px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 18px 18px 36px 18px;
   box-sizing: border-box;
-  text-align: center;
-  animation: lbAuthPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes lbAuthPop {
-  0% {
-    opacity: 0;
-    transform: scale(0.92) translateY(12px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.lb-auth-icon img {
-  display: block;
-  margin: 0 auto 12px auto;
-  border-radius: 18px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.lb-auth-header h2 {
-  font-size: 24px;
-  font-weight: 900;
-  color: #ffffff;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.3px;
-}
-
-.lb-auth-subtitle {
-  font-size: 13.5px;
-  color: #b7c3d7;
-  margin: 0 0 12px 0;
-  font-weight: 600;
-}
-
-.lb-auth-bonus-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 242, 41, 0.12);
-  border: 1px solid rgba(255, 242, 41, 0.35);
-  color: #fff229;
-  padding: 8px 14px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 20px;
-}
-
-.lb-auth-bonus-badge strong {
-  color: #fff;
-  text-decoration: underline;
-}
-
-.lb-auth-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  text-align: left;
 }
 
-.lb-auth-input-group label {
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
-  color: #cbd5e1;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.lb-auth-phone-field {
+/* Top bar with back button */
+.lb-auth-top-bar {
   display: flex;
   align-items: center;
-  background: #0d1e37;
-  border: 1.5px solid #294b79;
-  border-radius: 12px;
-  overflow: hidden;
-  transition: border-color 0.2s ease;
-}
-
-.lb-auth-phone-field:focus-within {
-  border-color: #f45b0a;
-  box-shadow: 0 0 0 3px rgba(244, 91, 10, 0.25);
-}
-
-.lb-phone-flag {
-  padding: 0 12px;
-  font-size: 13px;
-  font-weight: 800;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.04);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  height: 46px;
-}
-
-.lb-auth-phone-field input,
-.lb-auth-input-group input[type="text"] {
+  justify-content: flex-start;
+  margin-bottom: 16px;
   width: 100%;
-  height: 46px;
+}
+
+.lb-auth-back-btn {
   background: transparent;
   border: none;
-  padding: 0 14px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffffff;
-  outline: none;
+  color: #1e1045;
+  cursor: pointer;
+  padding: 8px 8px 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, opacity 0.2s ease;
+}
+
+.lb-auth-back-btn:active {
+  transform: scale(0.92);
+}
+
+/* Header Banner: AFRICA BINGO-ONLINE */
+.lb-auth-banner-card {
+  width: 100%;
+  background: linear-gradient(135deg, #1b0a3a 0%, #2e1065 50%, #1e1045 100%);
+  border-radius: 18px;
+  padding: 16px 16px 20px 16px;
   box-sizing: border-box;
+  box-shadow: 0 6px 20px rgba(46, 16, 101, 0.28);
+  margin-bottom: 20px;
+  text-align: center;
 }
 
-.lb-auth-input-group input[type="text"] {
-  background: #0d1e37;
-  border: 1.5px solid #294b79;
-  border-radius: 12px;
+.lb-auth-banner-title {
+  color: #f7ce55;
+  font-size: 14.5px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
-.lb-auth-input-group input[type="text"]:focus {
-  border-color: #f45b0a;
-  box-shadow: 0 0 0 3px rgba(244, 91, 10, 0.25);
-}
-
-.lb-auth-submit-btn {
+.lb-auth-bingo-chips {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  width: 100%;
-  height: 48px;
-  background: linear-gradient(135deg, #f45b0a 0%, #dd4d05 100%);
+}
+
+.lb-bingo-chip {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
   color: #ffffff;
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
+  user-select: none;
+}
+
+.lb-bingo-chip.chip-b {
+  background: #e11d48;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.6);
+}
+
+.lb-bingo-chip.chip-i {
+  background: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.6);
+}
+
+.lb-bingo-chip.chip-n {
+  background: #16a34a;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.6);
+}
+
+.lb-bingo-chip.chip-g {
+  background: #ea580c;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.6);
+}
+
+.lb-bingo-chip.chip-o {
+  background: #9333ea;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.9);
+}
+
+/* Heading for Login */
+.lb-auth-heading {
+  font-size: 22px;
   font-weight: 800;
-  cursor: pointer;
-  margin-top: 6px;
-  box-shadow: 0 4px 14px rgba(244, 91, 10, 0.45);
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.lb-auth-submit-btn:active {
-  transform: scale(0.98);
-  filter: brightness(0.95);
-}
-
-.lb-auth-mode-switch {
+  color: #1e1045;
   text-align: center;
-  margin-top: 6px;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.2px;
 }
 
-.lb-auth-switch-link {
-  background: none;
-  border: none;
-  color: #94a3b8;
+/* Form Card Container */
+.lb-auth-card-box {
+  width: 100%;
+  background: #fbf9f4;
+  border: 1.5px solid #ded6c5;
+  border-radius: 24px;
+  padding: 22px 18px 24px 18px;
+  box-sizing: border-box;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+/* Form field */
+.lb-form-field {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.lb-field-label {
   font-size: 13px;
+  font-weight: 700;
+  color: #1e1045;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.lb-input-wrap {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid #ded6c5;
+  border-radius: 14px;
+  padding: 0 14px;
+  height: 52px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lb-input-wrap:focus-within {
+  border-color: #2e1065;
+  box-shadow: 0 0 0 3px rgba(46, 16, 101, 0.12);
+}
+
+.lb-input-icon {
+  color: #1e1045;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lb-input-wrap input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e1045;
+  height: 100%;
+  padding: 0;
+}
+
+.lb-input-wrap input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.lb-pwd-toggle-btn {
+  background: transparent;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Forgot Password link */
+.lb-forgot-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -6px;
+  margin-bottom: 18px;
+}
+
+.lb-forgot-link {
+  background: transparent;
+  border: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1e1045;
   cursor: pointer;
   padding: 4px;
-  transition: color 0.2s ease;
 }
 
-.lb-auth-switch-link strong {
-  color: #38bdf8;
+.lb-forgot-link:hover {
   text-decoration: underline;
 }
 
-.lb-auth-switch-link:hover {
+/* Primary Action Button (ግባ / ቀጥል) */
+.lb-auth-btn-primary {
+  width: 100%;
+  height: 52px;
+  background: #1c0944;
   color: #ffffff;
+  border: none;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(28, 9, 68, 0.3);
+  transition: transform 0.15s ease, background 0.2s ease, opacity 0.2s ease;
 }
 
-.lb-auth-status {
-  padding: 10px 12px;
-  border-radius: 10px;
+.lb-auth-btn-primary:active {
+  transform: scale(0.98);
+  opacity: 0.95;
+}
+
+.lb-auth-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Footer view switch */
+.lb-auth-footer-switch {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+  width: 100%;
+}
+
+.lb-switch-view-btn {
+  background: transparent;
+  border: none;
+  color: #1e1045;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: opacity 0.2s ease;
+}
+
+.lb-switch-view-btn:hover {
+  text-decoration: underline;
+}
+
+/* Avatar Section in Register View */
+.lb-reg-avatar-sec {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.lb-reg-avatar-circle {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #ede9fe;
+  border: 2.5px solid #ddd6fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: #2e1065;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 10px rgba(46, 16, 101, 0.08);
+  user-select: none;
+  overflow: hidden;
+}
+
+.lb-reg-avatar-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e1045;
+  margin-bottom: 2px;
+}
+
+.lb-reg-avatar-desc {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.lb-choose-avatar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 18px;
+  border: 1.5px solid #d4c8b5;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1e1045;
   font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
-  margin-top: 2px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lb-choose-avatar-btn:hover {
+  border-color: #2e1065;
+  background: #fbf9f4;
+}
+
+.lb-choose-avatar-btn svg {
+  color: #1e1045;
+}
+
+/* Avatar Picker Popup Grid */
+.lb-avatar-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #ded6c5;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.lb-avatar-picker-grid[hidden] {
+  display: none !important;
+}
+
+.lb-av-opt {
+  font-size: 24px;
+  padding: 6px;
+  border: 1px solid #e2d9cc;
+  border-radius: 10px;
+  background: #fbf9f4;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.lb-av-opt:hover,
+.lb-av-opt:active {
+  transform: scale(1.15);
+  background: #ede9fe;
+}
+
+/* Status Messages */
+.lb-auth-status {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-bottom: 14px;
+  text-align: center;
 }
 
 .lb-auth-status.is-error {
-  background: rgba(243, 66, 79, 0.16);
-  border: 1px solid rgba(243, 66, 79, 0.4);
-  color: #fca5a5;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
 }
 
 .lb-auth-status.is-success {
-  background: rgba(87, 199, 124, 0.16);
-  border: 1px solid rgba(87, 199, 124, 0.4);
-  color: #86efac;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #15803d;
 }
 
 /* Standalone Profile Enhancements */

@@ -61,10 +61,10 @@ const LuckyBingoAPI = (() => {
     localStorage.removeItem("lb_device_player_id");
   }
 
-  async function mobileRegister(phone, nickname = "") {
+  async function mobileRegister(phone, fullName = "", password = "", avatar = "") {
     const res = await apiRequest("/api/auth/register-mobile", {
       method: "POST",
-      body: JSON.stringify({ phone, nickname }),
+      body: JSON.stringify({ phone, name: fullName, nickname: fullName, password, avatar }),
     });
     if (res && res.ok && res.user) {
       localStorage.setItem("lb_mobile_user", JSON.stringify(res.user));
@@ -73,10 +73,10 @@ const LuckyBingoAPI = (() => {
     return res;
   }
 
-  async function mobileLogin(phone) {
+  async function mobileLogin(phone, password = "") {
     const res = await apiRequest("/api/auth/login-mobile", {
       method: "POST",
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify({ phone, password }),
     });
     if (res && res.ok && res.user) {
       localStorage.setItem("lb_mobile_user", JSON.stringify(res.user));
