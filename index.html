@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="Africa Bingo" />
     <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=20261009_03" />
+    <link rel="stylesheet" href="style.css?v=20261028_01" />
     <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
     <script src="players-data.js?v=20261009_03"></script>
     <script>
@@ -77,55 +77,50 @@
                     <span class="c-o">O</span>
                   </div>
                   
-                  <div class="lb-demo-grid">
+                  <div class="lb-demo-grid" id="demo-grid">
                     <!-- Row 1 -->
-                    <div class="lb-demo-cell is-called">7</div>
-                    <div class="lb-demo-cell is-called">18</div>
-                    <div class="lb-demo-cell is-called">34</div>
-                    <div class="lb-demo-cell is-called">48</div>
-                    <div class="lb-demo-cell is-called">67</div>
+                    <div class="lb-demo-cell is-called" data-cell="0">7</div>
+                    <div class="lb-demo-cell is-called" data-cell="1">18</div>
+                    <div class="lb-demo-cell is-called" data-cell="2">34</div>
+                    <div class="lb-demo-cell is-called" data-cell="3">48</div>
+                    <div class="lb-demo-cell is-called" data-cell="4">67</div>
 
                     <!-- Row 2 -->
-                    <div class="lb-demo-cell">11</div>
-                    <div class="lb-demo-cell is-called">20</div>
-                    <div class="lb-demo-cell is-called">39</div>
-                    <div class="lb-demo-cell is-called">57</div>
-                    <div class="lb-demo-cell">71</div>
+                    <div class="lb-demo-cell" data-cell="5">11</div>
+                    <div class="lb-demo-cell is-called" data-cell="6">20</div>
+                    <div class="lb-demo-cell is-called" data-cell="7">39</div>
+                    <div class="lb-demo-cell is-called" data-cell="8">57</div>
+                    <div class="lb-demo-cell" data-cell="9">71</div>
 
                     <!-- Row 3 -->
-                    <div class="lb-demo-cell is-called">13</div>
-                    <div class="lb-demo-cell is-called">23</div>
-                    <div class="lb-demo-cell is-free">★</div>
-                    <div class="lb-demo-cell is-called">66</div>
-                    <div class="lb-demo-cell is-called">73</div>
+                    <div class="lb-demo-cell is-called" data-cell="10">13</div>
+                    <div class="lb-demo-cell is-called" data-cell="11">23</div>
+                    <div class="lb-demo-cell is-free" data-cell="12">★</div>
+                    <div class="lb-demo-cell is-called" data-cell="13">66</div>
+                    <div class="lb-demo-cell is-called" data-cell="14">73</div>
 
                     <!-- Row 4 -->
-                    <div class="lb-demo-cell">14</div>
-                    <div class="lb-demo-cell">25</div>
-                    <div class="lb-demo-cell is-called">42</div>
-                    <div class="lb-demo-cell">53</div>
-                    <div class="lb-demo-cell">74</div>
+                    <div class="lb-demo-cell" data-cell="15">14</div>
+                    <div class="lb-demo-cell" data-cell="16">25</div>
+                    <div class="lb-demo-cell is-called" data-cell="17">42</div>
+                    <div class="lb-demo-cell" data-cell="18">53</div>
+                    <div class="lb-demo-cell" data-cell="19">74</div>
 
                     <!-- Row 5 -->
-                    <div class="lb-demo-cell is-called">15</div>
-                    <div class="lb-demo-cell is-called">30</div>
-                    <div class="lb-demo-cell is-called">45</div>
-                    <div class="lb-demo-cell">58</div>
-                    <div class="lb-demo-cell">75</div>
+                    <div class="lb-demo-cell is-called" data-cell="20">15</div>
+                    <div class="lb-demo-cell is-called" data-cell="21">30</div>
+                    <div class="lb-demo-cell is-called" data-cell="22">45</div>
+                    <div class="lb-demo-cell" data-cell="23">58</div>
+                    <div class="lb-demo-cell" data-cell="24">75</div>
+
+                    <!-- SVG Winning Lines Overlay: Perfectly aligned inside grid -->
+                    <svg class="lb-win-lines-svg" id="demo-win-lines-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <line x1="10" y1="10" x2="90" y2="90" class="lb-red-win-line" />
+                    </svg>
                   </div>
 
-                  <!-- SVG Winning Lines Overlay: Horizontal, Vertical, and Diagonal! -->
-                  <svg class="lb-win-lines-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <!-- Diagonal: top-left (7) to center (FREE) -->
-                    <line x1="10" y1="18" x2="50" y2="52" class="lb-red-win-line" />
-                    <!-- Horizontal: across row 3 -->
-                    <line x1="5" y1="52" x2="95" y2="52" class="lb-red-win-line" />
-                    <!-- Vertical: down column 3 (N) -->
-                    <line x1="50" y1="12" x2="50" y2="92" class="lb-red-win-line" />
-                  </svg>
-
                   <div class="lb-demo-card-footer">
-                    <span>በመጨረሻ ዲያጎናል ሲሆን ይጠናቀቃል::</span>
+                    <span id="demo-pattern-desc">በመጨረሻ ዲያጎናል ሲሆን ይጠናቀቃል::</span>
                     <button type="button" class="lb-demo-tag" id="demo-diagonal-btn">ዲያጎናል ቢንጎ</button>
                   </div>
                 </div>
@@ -927,6 +922,6 @@
     <script src="app-config.js?v=20261009_02"></script>
     <script src="api-client.js?v=20261009_02"></script>
     <script src="../shared-balance.js?v=20261009_02"></script>
-    <script src="game.js?v=20261009_02"></script>
+    <script src="game.js?v=20261028_01"></script>
   </body>
 </html>

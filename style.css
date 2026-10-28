@@ -6574,6 +6574,7 @@ body.is-game-active #view-game {
   grid-template-columns: repeat(5, 1fr);
   gap: 7px;
   position: relative;
+  width: 100%;
 }
 
 .lb-demo-cell {
@@ -6588,12 +6589,15 @@ body.is-game-active #view-game {
   color: #1e293b;
   box-shadow: 0 1.5px 4px rgba(0, 0, 0, 0.06);
   z-index: 1;
+  transition: background-color 0.35s ease, color 0.35s ease, transform 0.25s ease, box-shadow 0.35s ease;
+  user-select: none;
 }
 
 .lb-demo-cell.is-called {
   background: #16a34a !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.45) !important;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.5) !important;
+  transform: scale(1.02);
 }
 
 .lb-demo-cell.is-free {
@@ -6602,22 +6606,34 @@ body.is-game-active #view-game {
   font-size: 16px;
 }
 
-/* Red Winning Intersection Lines */
+/* Red Winning Intersection Lines: Exact Overlay */
 .lb-win-lines-svg {
   position: absolute;
-  top: 36px;
-  left: 12px;
-  right: 12px;
-  height: 200px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   z-index: 15;
+  overflow: visible;
 }
 
 .lb-red-win-line {
   stroke: #ef4444;
-  stroke-width: 4.5;
+  stroke-width: 5.5;
   stroke-linecap: round;
-  filter: drop-shadow(0 2px 5px rgba(239, 68, 68, 0.6));
+  filter: drop-shadow(0 2px 6px rgba(239, 68, 68, 0.8));
+  animation: lbLaserLine 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes lbLaserLine {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .lb-demo-card-footer {
@@ -6628,17 +6644,34 @@ body.is-game-active #view-game {
   font-size: 11.5px;
   color: #475569;
   font-weight: 700;
+  min-height: 28px;
 }
 
 .lb-demo-tag {
   background: #ded4bf;
-  border: none;
+  border: 1px solid rgba(46, 16, 101, 0.15);
   color: #1e1b4b;
   padding: 5px 12px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.lb-demo-tag:active {
+  transform: scale(0.95);
+}
+
+.lb-demo-tag.is-animating {
+  animation: lbTagPulse 0.4s ease-out;
+}
+
+@keyframes lbTagPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); background: #2e1065; color: #fbbf24; }
+  100% { transform: scale(1); }
 }
 
 .lb-landing-kicker {

@@ -789,6 +789,131 @@ function checkAdminAccess() {
   }
 }
 
+// --- Landing Page 5x5 Bingo Demo Pattern Animation ---
+const DEMO_PATTERNS = [
+  {
+    name: "ዲያጎናል ቢንጎ",
+    desc: "በመጨረሻ ዲያጎናል ሲሆን ይጠናቀቃል::",
+    called: [0, 6, 12, 18, 24, 2, 8, 14, 21],
+    lines: [{ x1: 10, y1: 10, x2: 90, y2: 90 }]
+  },
+  {
+    name: "አግድም ቢንጎ",
+    desc: "በአግድም መስመር 5 ቁጥሮች ሲሞሉ ያሸንፋል::",
+    called: [10, 11, 12, 13, 14, 1, 7, 18, 23],
+    lines: [{ x1: 8, y1: 50, x2: 92, y2: 50 }]
+  },
+  {
+    name: "ቁልቁል ቢንጎ",
+    desc: "በቁልቁል መስመር 5 ቁጥሮች ሲሞሉ ያሸንፋል::",
+    called: [2, 7, 12, 17, 22, 6, 10, 14, 20],
+    lines: [{ x1: 50, y1: 8, x2: 50, y2: 92 }]
+  },
+  {
+    name: "ቀኝ ዲያጎናል",
+    desc: "በቀኝ ዲያጎናል 5 ቁጥሮች ሲሞሉ ያሸንፋል::",
+    called: [4, 8, 12, 16, 20, 0, 7, 13, 22],
+    lines: [{ x1: 90, y1: 10, x2: 10, y2: 90 }]
+  },
+  {
+    name: "መስቀለኛ (X) ቢንጎ",
+    desc: "በሁለቱ ዲያጎናሎች መስቀል (X) ሲዘጋ ያሸንፋል::",
+    called: [0, 6, 12, 18, 24, 4, 8, 16, 20, 2, 22],
+    lines: [
+      { x1: 10, y1: 10, x2: 90, y2: 90 },
+      { x1: 90, y1: 10, x2: 10, y2: 90 }
+    ]
+  },
+  {
+    name: "4 ማዕዘን ቢንጎ",
+    desc: "በአራቱ ማዕዘን ቁጥሮች ሲሞሉ ያሸንፋል::",
+    called: [0, 4, 12, 20, 24, 7, 11, 17],
+    lines: [
+      { x1: 10, y1: 10, x2: 90, y2: 10 },
+      { x1: 90, y1: 10, x2: 90, y2: 90 },
+      { x1: 90, y1: 90, x2: 10, y2: 90 },
+      { x1: 10, y1: 90, x2: 10, y2: 10 }
+    ]
+  },
+  {
+    name: "ሁለት መስመር ቢንጎ",
+    desc: "በሁለት አግድም እና ቁልቁል መስመሮች ሲዘጋ ያሸንፋል::",
+    called: [10, 11, 12, 13, 14, 2, 7, 17, 22, 0, 24],
+    lines: [
+      { x1: 8, y1: 50, x2: 92, y2: 50 },
+      { x1: 50, y1: 8, x2: 50, y2: 92 }
+    ]
+  }
+];
+
+let demoAnimationTimer = null;
+let demoPatternIndex = 0;
+
+function applyDemoPattern(idx) {
+  const p = DEMO_PATTERNS[idx % DEMO_PATTERNS.length];
+  if (!p) return;
+  demoPatternIndex = idx % DEMO_PATTERNS.length;
+
+  const descEl = $("demo-pattern-desc");
+  if (descEl) descEl.textContent = p.desc;
+
+  const btnEl = $("demo-diagonal-btn");
+  if (btnEl) {
+    btnEl.textContent = p.name;
+    btnEl.classList.remove("is-animating");
+    void btnEl.offsetWidth;
+    btnEl.classList.add("is-animating");
+  }
+
+  const calledSet = new Set(p.called);
+  const cells = document.querySelectorAll("#demo-grid .lb-demo-cell");
+  cells.forEach(cell => {
+    const rawVal = cell.getAttribute("data-cell");
+    if (rawVal === null) return;
+    const cellIdx = parseInt(rawVal, 10);
+    if (cellIdx === 12) {
+      cell.classList.add("is-free");
+      cell.classList.remove("is-called");
+    } else if (calledSet.has(cellIdx)) {
+      cell.classList.add("is-called");
+    } else {
+      cell.classList.remove("is-called");
+    }
+  });
+
+  const svgEl = $("demo-win-lines-svg");
+  if (svgEl) {
+    const linesHtml = p.lines.map(line =>
+      `<line x1="${line.x1}" y1="${line.y1}" x2="${line.x2}" y2="${line.y2}" class="lb-red-win-line" />`
+    ).join("");
+    svgEl.innerHTML = linesHtml;
+  }
+}
+
+function startDemoCardAnimation() {
+  stopDemoCardAnimation();
+  applyDemoPattern(demoPatternIndex);
+  demoAnimationTimer = setInterval(() => {
+    const landingEl = views.landing || $("view-landing");
+    if (document.body.classList.contains("is-landing-active") || (landingEl && landingEl.classList.contains("is-on"))) {
+      demoPatternIndex = (demoPatternIndex + 1) % DEMO_PATTERNS.length;
+      applyDemoPattern(demoPatternIndex);
+    }
+  }, 2800);
+}
+
+function stopDemoCardAnimation() {
+  if (demoAnimationTimer) {
+    clearInterval(demoAnimationTimer);
+    demoAnimationTimer = null;
+  }
+}
+
+function nextDemoPattern() {
+  demoPatternIndex = (demoPatternIndex + 1) % DEMO_PATTERNS.length;
+  applyDemoPattern(demoPatternIndex);
+}
+
 function showView(name) {
   Object.entries(views).forEach(([key, el]) => {
     if (el) el.classList.toggle("is-on", key === name);
@@ -797,6 +922,11 @@ function showView(name) {
   document.body.classList.toggle("is-selection-active", name === "pick");
   document.body.classList.toggle("is-game-active", name === "game");
   document.body.classList.toggle("is-lobby-active", name === "lobby");
+  if (name === "landing") {
+    startDemoCardAnimation();
+  } else {
+    stopDemoCardAnimation();
+  }
   if (name === "lobby") {
     checkAdminAccess();
     startRoomUpdates();
@@ -1426,7 +1556,12 @@ function setupSideDrawerEvents() {
     showView("lobby");
   });
   $("demo-diagonal-btn")?.addEventListener("click", () => {
-    toast("🎉 ዲያጎናል መስመር ተዘግቷል! BINGO!", "win");
+    nextDemoPattern();
+    startDemoCardAnimation();
+    const current = DEMO_PATTERNS[demoPatternIndex];
+    if (current) {
+      toast(`🎯 ${current.name}`, "win");
+    }
   });
 
   // Drawer buttons
