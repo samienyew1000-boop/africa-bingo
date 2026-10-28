@@ -6619,10 +6619,10 @@ body.is-game-active #view-game {
 
 .lb-red-win-line {
   stroke: #ef4444;
-  stroke-width: 5.5;
+  stroke-width: 2.2;
   stroke-linecap: round;
-  filter: drop-shadow(0 2px 6px rgba(239, 68, 68, 0.8));
-  animation: lbLaserLine 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  filter: drop-shadow(0 1px 3px rgba(239, 68, 68, 0.6));
+  animation: lbLaserLine 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes lbLaserLine {
