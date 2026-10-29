@@ -2310,7 +2310,8 @@ function renderPickRoomSummary() {
   const isCounting = pickTimer !== null && pickLeft !== null && pickLeft > 0;
   if (time) time.textContent = isCounting ? `${Math.max(0, pickLeft)}` : (selected.size > 0 ? (pickLeft ? `${pickLeft}` : "30") : "30");
   const reservedStake = selected.size * roomStake;
-  const availableBal = Math.max(0, balance - reservedStake);
+  const isOnline = Boolean(activeRoomId && typeof LuckyBingoAPI !== "undefined");
+  const availableBal = isOnline ? balance : Math.max(0, balance - reservedStake);
   if (pickBalance) pickBalance.textContent = String(Math.floor(availableBal));
   if (bannerSeconds) bannerSeconds.textContent = isCounting ? formatCountdown(pickLeft) : "Open";
 
@@ -2652,7 +2653,9 @@ function enterRoom(roomId) {
 }
 
 function updatePickInfo() {
-  const limit = Math.min(MAX_PICK, Math.floor(balance / stake));
+  const isOnline = Boolean(activeRoomId && typeof LuckyBingoAPI !== "undefined");
+  const maxPossible = isOnline ? (selected.size + Math.floor(balance / stake)) : Math.floor(balance / stake);
+  const limit = Math.min(MAX_PICK, maxPossible);
   const waitingForStart = pickTimer !== null && pickLeft !== null && pickLeft > 0;
   const startButton = $("start-game");
   if ($("pick-count")) $("pick-count").textContent = String(selected.size);
@@ -2782,9 +2785,17 @@ function toggleCard(id) {
       toast(`MAXIMUM ${MAX_PICK} CARDS`, "lose");
       return;
     }
-    if (selected.size >= Math.min(MAX_PICK, Math.floor(balance / stake))) {
-      toast("NOT ENOUGH BALANCE", "lose");
-      return;
+    const isOnline = Boolean(activeRoomId && typeof LuckyBingoAPI !== "undefined");
+    if (isOnline) {
+      if (balance < stake) {
+        toast("NOT ENOUGH BALANCE", "lose");
+        return;
+      }
+    } else {
+      if (selected.size >= Math.min(MAX_PICK, Math.floor(balance / stake))) {
+        toast("NOT ENOUGH BALANCE", "lose");
+        return;
+      }
     }
     selected.add(id);
     selectedPreviewId = id;
@@ -2794,19 +2805,23 @@ function toggleCard(id) {
 }
 
 function randomAvailableCard() {
-  const limit = Math.min(MAX_PICK, Math.floor(balance / stake));
+  const isOnline = Boolean(activeRoomId && typeof LuckyBingoAPI !== "undefined");
+  const maxPossible = isOnline ? (selected.size + Math.floor(balance / stake)) : Math.floor(balance / stake);
+  const limit = Math.min(MAX_PICK, maxPossible);
   const available = cardNumbers.filter((id) => !takenByOthers.has(id) && !selected.has(id));
   if (selected.size >= limit || !available.length) return null;
   return available[Math.floor(Math.random() * available.length)];
 }
 
 function randomPick(amount) {
-  const limit = Math.min(MAX_PICK, Math.floor(balance / stake));
+  const isOnline = Boolean(activeRoomId && typeof LuckyBingoAPI !== "undefined");
+  const maxPossible = isOnline ? (selected.size + Math.floor(balance / stake)) : Math.floor(balance / stake);
+  const limit = Math.min(MAX_PICK, maxPossible);
   if (!cardsReady) {
     toast(cardsLoadError ? "CARD DATA UNAVAILABLE" : "CARD DATA LOADING", "lose");
     return;
   }
-  if (limit <= 0) {
+  if (limit <= selected.size) {
     toast("NOT ENOUGH BALANCE", "lose");
     return;
   }
@@ -4622,8 +4637,6 @@ if (window.location.hash === "#game" || window.location.search.includes("view=ga
   if ($("pick-stake")) $("pick-stake").textContent = String(stake);
   $("pick-cost").textContent = String(stake);
   selected.clear();
-  selected.add(97);
-  selected.add(99);
   updatePickInfo();
   buildCardGrid();
   renderCartelaPreview();
