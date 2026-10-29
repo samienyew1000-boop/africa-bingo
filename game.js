@@ -24,8 +24,8 @@ const MIN_WALLET_AMOUNT = 50;
 const PLAYER_ID = "LB-PLAYER";
 const PLAYER_NAME = "Africa Bingo Player";
 const PAYMENT_METHODS = Object.freeze({
-  Telebirr: { accountName: "Africa Bingo", accountNumber: "0981247219" },
-  "CBE Birr": { accountName: "Africa Bingo CBE Birr", accountNumber: "0981247219" },
+  Telebirr: { accountName: "Berihun", accountNumber: "0918182355" },
+  "CBE Birr": { accountName: "Berihun", accountNumber: "1000076108653" },
   "M-Pesa": { accountName: "Africa Bingo M-Pesa", accountNumber: "0700 000 000" },
 });
 
@@ -312,6 +312,14 @@ function startServerLobbySync() {
         roundId: String(sRoom.round_id ?? "0"),
         lifecycleKey: `${sRoom.status}:${sRoom.round_id}:server`,
       };
+    }
+    if (data.settings) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(ADMIN_SETTINGS_KEY) || "{}");
+        const merged = { ...saved, ...data.settings };
+        localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(merged));
+        updateDepositAccount();
+      } catch (e) {}
     }
     updateLandingLiveTracker(data.rooms);
     if (views.lobby && views.lobby.classList.contains("is-on")) renderRooms();
@@ -2112,7 +2120,7 @@ function setupSideDrawerEvents() {
     }
   });
   $("drawer-contact-btn")?.addEventListener("click", () => {
-    window.open("tel:0981247219");
+    window.open("tel:0918182355");
   });
   $("drawer-sound-toggle")?.addEventListener("change", (e) => {
     soundEnabled = Boolean(e.target.checked);
@@ -4132,16 +4140,21 @@ function showWalletFeedback(action, message, isError = false) {
 function getDepositPaymentAccount(method) {
   try {
     const adminSettings = JSON.parse(localStorage.getItem(ADMIN_SETTINGS_KEY) || "{}");
+    if (adminSettings.depositTelebirrPhone === "0981247219") adminSettings.depositTelebirrPhone = "0918182355";
+    if (adminSettings.depositTelebirrName === "Africa Bingo") adminSettings.depositTelebirrName = "Berihun";
+    if (adminSettings.depositCbeBirrPhone === "0981247219") adminSettings.depositCbeBirrPhone = "1000076108653";
+    if (adminSettings.depositCbeBirrName === "Africa Bingo CBE Birr") adminSettings.depositCbeBirrName = "Berihun";
+
     if (method === "Telebirr") {
       return {
-        accountName: adminSettings.depositTelebirrName || "Africa Bingo",
-        accountNumber: adminSettings.depositTelebirrPhone || "0981247219",
+        accountName: adminSettings.depositTelebirrName || "Berihun",
+        accountNumber: adminSettings.depositTelebirrPhone || "0918182355",
       };
     }
     if (method === "CBE Birr") {
       return {
-        accountName: adminSettings.depositCbeBirrName || "Africa Bingo CBE Birr",
-        accountNumber: adminSettings.depositCbeBirrPhone || "0981247219",
+        accountName: adminSettings.depositCbeBirrName || "Berihun",
+        accountNumber: adminSettings.depositCbeBirrPhone || "1000076108653",
       };
     }
     if (method === "M-Pesa" && adminSettings.depositMpesaPhone) {
@@ -4153,7 +4166,11 @@ function getDepositPaymentAccount(method) {
   } catch (e) {}
 
   if (window.LUCKY_BINGO_PAYMENT_METHODS && window.LUCKY_BINGO_PAYMENT_METHODS[method]) {
-    return window.LUCKY_BINGO_PAYMENT_METHODS[method];
+    const pm = window.LUCKY_BINGO_PAYMENT_METHODS[method];
+    return {
+      accountName: pm.account_name || pm.accountName || "Berihun",
+      accountNumber: pm.account_number || pm.accountNumber || (method === "Telebirr" ? "0918182355" : "1000076108653"),
+    };
   }
 
   return PAYMENT_METHODS[method] || PAYMENT_METHODS.Telebirr;
