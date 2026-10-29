@@ -143,14 +143,22 @@ class LiveBingoRoom {
     this.enabled = true;
   }
 
+  getDerash(totalCards) {
+    if (totalCards <= 0) return this.stake;
+    const pot = totalCards * this.stake;
+    if (totalCards <= 5) {
+      return pot; // Up to 5 registered cards: 0% commission (minm saykinse)
+    }
+    const commPct = Number(gameState.settings?.commissionRate || 20);
+    return Math.max(this.stake, Math.round(pot * (1 - commPct / 100)));
+  }
+
   getState() {
     const now = Date.now();
     const cdEnds = this.countdownEndsAt;
     const cdRem = this.status === "countdown" && cdEnds > now ? Math.ceil((cdEnds - now) / 1000) : 0;
     const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
-    const commPct = Number(gameState.settings?.commissionRate || 20);
-    const pot = totalCards * this.stake;
-    const derash = Math.max(this.stake, Math.round(pot * (1 - commPct / 100)));
+    const derash = this.getDerash(totalCards);
 
     return {
       room_id: this.id,
@@ -326,8 +334,7 @@ class LiveBingoRoom {
         const cardNumbers = cardCatalog[String(cardId)];
         if (cardNumbers && checkCardBingo(cardNumbers, calledSet)) {
           const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
-          const commPct = Number(gameState.settings?.commissionRate || 20);
-          const prize = Math.max(this.stake, Math.round(totalCards * this.stake * (1 - commPct / 100)));
+          const prize = this.getDerash(totalCards);
 
           this.endRound(player.user_id, player.first_name || player.username || "Player", prize, cardId);
           return;
@@ -352,8 +359,7 @@ class LiveBingoRoom {
     }
 
     const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
-    const commPct = Number(gameState.settings?.commissionRate || 20);
-    const prize = Math.max(this.stake, Math.round(totalCards * this.stake * (1 - commPct / 100)));
+    const prize = this.getDerash(totalCards);
 
     this.endRound(userId, player.first_name || player.username || "Player", prize, cardId);
     return { ok: true, winner: player.first_name, prize };

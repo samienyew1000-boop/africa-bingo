@@ -581,11 +581,14 @@ class GameEngine:
             bot_players = []
             round_result = self.get_round_result(room_id)
 
-            # Calculate derash based on setting commission %
-            comm_pct = float(get_game_setting('commission', 20))
+            # Calculate derash: up to 5 cards = 0% commission; > 5 cards = 20% commission
             total_cards = sum(len(json.loads(p.get('card_ids', '[]') or '[]')) for p in players)
             total_pot = max(1, total_cards) * int(room_id)
-            derash = max(float(room_id), round(total_pot * (1.0 - comm_pct / 100.0), 2))
+            if total_cards <= 5:
+                derash = float(total_pot)
+            else:
+                comm_pct = float(get_game_setting('commission', 20))
+                derash = max(float(room_id), round(total_pot * (1.0 - comm_pct / 100.0), 2))
             winning_pattern = str(get_game_setting('winning_pattern', '1'))
 
             now_ts = time.time()
@@ -922,16 +925,17 @@ class GameEngine:
             total_cards = 1
         total_pot = total_cards * stake
         
-        # Deduct percentage set in settings (Commission)
-        try:
-            comm_pct = float(get_game_setting('commission', 20))
-        except (ValueError, TypeError):
-            comm_pct = 20.0
-        commission_rate = comm_pct / 100.0
-        commission_amount = total_pot * commission_rate
-        
-        # Derash: remaining pot after deducting setting percent (always given 100% to the 1 winner)
-        derash = max(float(stake), round(total_pot - commission_amount, 2))
+        # Deduct percentage set in settings (Commission): 0% if <= 5 cards, else 20%
+        if total_cards <= 5:
+            derash = float(total_pot)
+        else:
+            try:
+                comm_pct = float(get_game_setting('commission', 20))
+            except (ValueError, TypeError):
+                comm_pct = 20.0
+            commission_rate = comm_pct / 100.0
+            commission_amount = total_pot * commission_rate
+            derash = max(float(stake), round(total_pot - commission_amount, 2))
         
         # Award derash to the ONLY 1 winner if real player
         if winner_id and not is_bot:

@@ -410,7 +410,7 @@ function handleServerRoomState(sState) {
         roundWinnerName = res.winner_name || "Opponent";
         showRoundResult("lose", roundWinnerName, "LINE", res.card_id);
         markLoserCards();
-        showWinnerOverlay("lose", roundWinnerName, res.prize || stake * 3, res.card_id, "LINE");
+        showWinnerOverlay("lose", roundWinnerName, res.prize != null ? res.prize : stake, res.card_id, "LINE");
         toast((roundWinnerName).toUpperCase() + " WON!", "lose");
       }
       syncProfileWithServer();
@@ -2271,20 +2271,23 @@ function ensureCard(id) {
 }
 
 function prizePool() {
-  const room = activeRoomId ? getLobbyRoom(activeRoomId) : null;
   const server = activeRoomId ? serverRoomStates[String(activeRoomId)] : null;
-  const count = server ? Number(server.player_count) || 0 : 0;
-  return stake * count * (1 - COMMISSION_RATE);
+  const count = server ? Number(server.total_cards || server.player_count || 0) : selected.size;
+  return calculateDerash(count || 1, stake);
 }
 
 function canAfford(roomStake) {
   return balance >= roomStake;
 }
 
-function calculateDerash(players, roomStake) {
-  const p = Number(players) || 0;
-  if (p <= 0) return 0;
-  return Math.floor(p * roomStake * (1 - COMMISSION_RATE));
+function calculateDerash(cards, roomStake) {
+  const p = Number(cards) || 0;
+  if (p <= 0) return roomStake;
+  const pot = p * roomStake;
+  if (p <= 5) {
+    return pot; // Up to 5 registered cards: 0% commission (minm saykinse)
+  }
+  return Math.max(roomStake, Math.round(pot * (1 - COMMISSION_RATE))); // > 5 cards: 20% commission
 }
 
 function renderPickRoomSummary() {
@@ -4083,13 +4086,19 @@ function claimBingo() {
   playing = false;
   $("bingo-btn").disabled = true;
 
-  const mult = kind === "FULL HOUSE" ? 1 : 0.22;
-  const totalPlayers = Math.max(2, selected.size + (botPlayers || 3));
-  const pool = calculateDerash(totalPlayers, stake);
-  const win = Math.max(stake, Math.round(pool * mult));
-  balance += win;
-  saveBalance();
-  renderBalance();
+  const isOnline = Boolean(activeRoomId && typeof LuckyBingoAPI !== "undefined");
+  const server = activeRoomId ? serverRoomStates[String(activeRoomId)] : null;
+  const serverCards = server ? Number(server.total_cards || 0) : 0;
+  const totalCards = Math.max(serverCards, selected.size + takenByOthers.size);
+  const win = (server && Number(server.derash) > 0)
+    ? Math.round(Number(server.derash))
+    : calculateDerash(Math.max(1, totalCards), stake);
+
+  if (!isOnline) {
+    balance += win;
+    saveBalance();
+    renderBalance();
+  }
   recordPlayerTransaction({
     type: "win",
     method: "Derash Prize Win",
@@ -4128,8 +4137,12 @@ function botWins() {
   ];
   const winnerName = BOT_WINNER_NAMES[Math.floor(Math.random() * BOT_WINNER_NAMES.length)] || "Dawit K.";
   const botCardId = [...takenByOthers][0] || Math.floor(Math.random() * 900) + 1;
-  const totalPlayers = Math.max(2, selected.size + (botPlayers || 3));
-  const botPrize = calculateDerash(totalPlayers, stake);
+  const server = activeRoomId ? serverRoomStates[String(activeRoomId)] : null;
+  const serverCards = server ? Number(server.total_cards || 0) : 0;
+  const totalCards = Math.max(serverCards, selected.size + takenByOthers.size);
+  const botPrize = (server && Number(server.derash) > 0)
+    ? Math.round(Number(server.derash))
+    : calculateDerash(Math.max(1, totalCards), stake);
   roundOutcome = "lose";
   roundWinnerName = winnerName;
   roundWinCardId = botCardId;
