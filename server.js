@@ -45,8 +45,8 @@ const DEFAULT_STATE = {
     minDeposit: 50,
     depositBonus: 20,
     bonusThreshold: 100,
-    startingBonus: 10,
-    startingBonusEnabled: true,
+    startingBonus: 0,
+    startingBonusEnabled: false,
     depositTelebirrPhone: "0981247219",
     depositTelebirrName: "Africa Bingo",
     depositCbeBirrPhone: "0981247219",
@@ -466,14 +466,14 @@ const server = http.createServer(async (req, res) => {
     // 1. Get or create current user profile
     if (pathname === "/api/me") {
       if (!gameState.users[user.id]) {
-        const bonus = Number(gameState.settings?.startingBonus != null ? gameState.settings.startingBonus : 10);
+        const bonus = Number(gameState.settings?.startingBonus != null && gameState.settings?.startingBonusEnabled ? gameState.settings.startingBonus : 0);
         gameState.users[user.id] = {
           id: user.id,
           username: user.username,
           first_name: user.name,
-          balance: bonus, // 10 ETB STARTING BONUS FOR NEW USERS!
+          balance: bonus,
           bonus_balance: bonus,
-          bonus_claimed: 1,
+          bonus_claimed: bonus > 0 ? 1 : 0,
           role: "player",
           is_verified: 1,
           created_at: new Date().toISOString(),
@@ -768,17 +768,38 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, { ok: true });
     }
 
-    // 12. Admin User Update (Deposit / Withdraw / Status)
+    // 12. Admin User Update (Deposit / Withdraw / Status / Live Balance Sync)
     if (pathname === "/api/admin/user/update" && req.method === "POST") {
       const body = await parseJsonBody(req);
-      const uid = body.user_id || body.userId;
-      if (uid && gameState.users[uid]) {
-        if (body.balance !== undefined) gameState.users[uid].balance = Number(body.balance);
-        if (body.status !== undefined) gameState.users[uid].status = body.status;
+      const uid = String(body.user_id || body.userId || "").trim();
+      if (uid) {
+        if (!gameState.users[uid]) {
+          gameState.users[uid] = {
+            id: uid,
+            username: body.username || "",
+            first_name: body.first_name || ('Player ' + uid.slice(-4)),
+            balance: 0,
+            bonus_balance: 0,
+            bonus_claimed: 0,
+            role: "player",
+            is_verified: 1,
+            created_at: new Date().toISOString()
+          };
+        }
+        if (body.balance !== undefined && !isNaN(Number(body.balance))) {
+          gameState.users[uid].balance = Math.max(0, Math.round(Number(body.balance) * 100) / 100);
+        }
+        if (body.bonus_balance !== undefined && !isNaN(Number(body.bonus_balance))) {
+          gameState.users[uid].bonus_balance = Math.max(0, Math.round(Number(body.bonus_balance) * 100) / 100);
+        }
+        if (body.status !== undefined) {
+          gameState.users[uid].status = body.status;
+        }
+        gameState.users[uid].updated_at = new Date().toISOString();
         saveGameState();
         return sendJson(res, { ok: true, user: gameState.users[uid] });
       }
-      return sendJson(res, { error: "User not found" }, 404);
+      return sendJson(res, { error: "Missing user_id" }, 400);
     }
 
     return sendJson(res, { ok: true });
