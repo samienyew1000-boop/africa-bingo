@@ -557,7 +557,27 @@ const server = http.createServer(async (req, res) => {
       const password = String(body.password || "").trim();
 
       if (!phone) {
-        return sendJson(res, { ok: false, error: "invalid_phone", message: "ስልክ ቁጥር ያስገቡ" }, 400);
+        return sendJson(res, { ok: false, error: "invalid_phone", message: "ስልክ ቁጥር ወይም Username ያስገቡ" }, 400);
+      }
+
+      // Check for Admin Login
+      if (phone.toLowerCase() === "admin") {
+        if (password === "Ber23@ret" || password === "AF7694") {
+          return sendJson(res, {
+            ok: true,
+            isAdmin: true,
+            token: "admin-auth-token-valid",
+            user: {
+              id: "admin-1",
+              username: "admin",
+              first_name: "Admin",
+              role: "admin",
+              balance: 100000,
+            },
+          });
+        } else {
+          return sendJson(res, { ok: false, error: "wrong_password", message: "የተሳሳተ የይለፍ ቃል። እባክዎ እንደገና ይሞክሩ።" }, 401);
+        }
       }
 
       if (phone.startsWith("+251")) phone = "0" + phone.slice(4);
@@ -709,7 +729,14 @@ const server = http.createServer(async (req, res) => {
 
     // 6. Admin Login
     if (pathname === "/api/admin/login") {
-      return sendJson(res, { ok: true, token: "admin-auth-token-valid" });
+      const body = await parseJsonBody(req);
+      const username = String(body.username || "").trim().toLowerCase();
+      const password = String(body.password || "").trim();
+      const validAdminUsers = ["admin", "0999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"];
+      if (validAdminUsers.includes(username) && (password === "Ber23@ret" || password === "AF7694")) {
+        return sendJson(res, { ok: true, token: "admin-auth-token-valid", username: "admin" });
+      }
+      return sendJson(res, { ok: false, error: "Invalid credentials" }, 401);
     }
 
     // 7. Authoritative Multiplayer Room State

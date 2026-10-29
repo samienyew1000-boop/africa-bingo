@@ -7,8 +7,9 @@ const ROOM_LIFECYCLE_KEY = "lucky-bingo-room-lifecycle-v1";
 const WINNING_PATTERN_OPTIONS = Object.freeze(["1", "2", "3", "4", "full-house"]);
 
 const ADMIN_AUTH_CONFIG = {
-  validUsers: ["0999909474", "+251999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa", "admin"],
-  password: "AF7694",
+  validUsers: ["admin", "0999909474", "+251999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"],
+  password: "Ber23@ret",
+  fallbackPassword: "AF7694",
 };
 
 function checkAdminAuth() {
@@ -49,7 +50,7 @@ function updateAdminUIAuth(isAuthenticated, username = "") {
     }
     const userInp = $("admin-login-username");
     if (userInp) {
-      if (!userInp.value) userInp.value = "0999909474";
+      if (!userInp.value) userInp.value = "admin";
       setTimeout(() => $("admin-login-password")?.focus(), 50);
     }
   }
@@ -1179,7 +1180,7 @@ function bindEvents() {
       const cleanUser = uInput.trim().replace(/^@/, "").toLowerCase();
       const cleanPass = pInput.trim();
 
-      if (ADMIN_AUTH_CONFIG.validUsers.includes(cleanUser) && cleanPass === ADMIN_AUTH_CONFIG.password) {
+      if (ADMIN_AUTH_CONFIG.validUsers.includes(cleanUser) && (cleanPass === ADMIN_AUTH_CONFIG.password || cleanPass === ADMIN_AUTH_CONFIG.fallbackPassword)) {
         if (errorEl) errorEl.hidden = true;
         sessionStorage.setItem("lb_admin_auth", "true");
         sessionStorage.setItem("lb_admin_password", cleanPass);

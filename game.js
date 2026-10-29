@@ -1458,6 +1458,13 @@ function updateGameUserInfo() {
       drawerRegisterBtn.textContent = "ተመዝገብ";
     }
   }
+
+  // Update Drawer Admin Button
+  const drawerAdminBtn = $("drawer-admin-btn");
+  if (drawerAdminBtn) {
+    const isAdmin = localStorage.getItem("lb_admin_auth") === "true" || sessionStorage.getItem("lb_admin_auth") === "true";
+    drawerAdminBtn.style.display = isAdmin ? "flex" : "none";
+  }
 }
 
 let authMode = "register"; // "register" or "login"
@@ -1576,11 +1583,60 @@ function setupMobileAuthEvents() {
 
     if (!phone) {
       if (statusMsg) {
-        statusMsg.textContent = "እባክዎ ስልክ ቁጥር ያስገቡ";
+        statusMsg.textContent = "እባክዎ ስልክ ቁጥር ወይም Username ያስገቡ";
         statusMsg.className = "lb-auth-status is-error";
         statusMsg.hidden = false;
       }
       return;
+    }
+
+    const isAdminLogin = phone.toLowerCase() === "admin";
+
+    // Direct Admin Login Handling
+    if (isAdminLogin) {
+      if (password === "Ber23@ret" || password === "AF7694") {
+        if (submitBtn) submitBtn.disabled = true;
+        sessionStorage.setItem("lb_admin_auth", "true");
+        sessionStorage.setItem("lb_admin_password", password);
+        sessionStorage.setItem("lb_admin_user", "admin");
+        sessionStorage.setItem("lb_admin_token", "admin-auth-token-valid");
+        localStorage.setItem("lb_admin_auth", "true");
+        localStorage.setItem("lb_admin_password", password);
+        localStorage.setItem("lb_admin_user", "admin");
+        localStorage.setItem("lb_admin_token", "admin-auth-token-valid");
+
+        const adminUserObj = {
+          id: "admin-1",
+          username: "admin",
+          first_name: "Admin",
+          role: "admin",
+          balance: 100000,
+        };
+        localStorage.setItem("lb_mobile_user", JSON.stringify(adminUserObj));
+        localStorage.setItem("lb_tg_user", JSON.stringify(adminUserObj));
+
+        if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.adminLogin) {
+          LuckyBingoAPI.adminLogin("admin", password).catch(() => {});
+        }
+
+        if (statusMsg) {
+          statusMsg.textContent = "✅ እንኳን ደህና መጡ Admin! ወደ Admin Console በማምራት ላይ...";
+          statusMsg.className = "lb-auth-status is-success";
+          statusMsg.hidden = false;
+        }
+        toast("👑 እንኳን ደህና መጡ Admin! ወደ Admin Console በማምራት ላይ...", "win");
+        setTimeout(() => {
+          window.location.href = "admin.html";
+        }, 600);
+        return;
+      } else {
+        if (statusMsg) {
+          statusMsg.textContent = "የተሳሳተ የይለፍ ቃል። እባክዎ እንደገና ይሞክሩ።";
+          statusMsg.className = "lb-auth-status is-error";
+          statusMsg.hidden = false;
+        }
+        return;
+      }
     }
 
     if (phone.startsWith("+251")) phone = "0" + phone.slice(4);
@@ -1599,6 +1655,22 @@ function setupMobileAuthEvents() {
 
     try {
       const res = await LuckyBingoAPI.mobileLogin(phone, password);
+      if (res && res.ok && (res.isAdmin || res.user?.role === "admin")) {
+        sessionStorage.setItem("lb_admin_auth", "true");
+        sessionStorage.setItem("lb_admin_password", password);
+        sessionStorage.setItem("lb_admin_user", "admin");
+        sessionStorage.setItem("lb_admin_token", "admin-auth-token-valid");
+        localStorage.setItem("lb_admin_auth", "true");
+        localStorage.setItem("lb_admin_password", password);
+        localStorage.setItem("lb_admin_user", "admin");
+        localStorage.setItem("lb_admin_token", "admin-auth-token-valid");
+        toast("👑 እንኳን ደህና መጡ Admin! ወደ Admin Console በማምራት ላይ...", "win");
+        setTimeout(() => {
+          window.location.href = "admin.html";
+        }, 600);
+        return;
+      }
+
       if (res && res.ok && res.user) {
         const modal = $("mobile-auth-modal");
         if (modal) modal.hidden = true;
