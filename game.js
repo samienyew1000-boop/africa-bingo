@@ -1763,7 +1763,8 @@ function handleInstallClick() {
     if (isIOS) {
       alert("አፑን ወደ ስልክዎ ለመጫን:\nከስር ያለውን የ Share ምልክት [⎋] ተጭነው 'Add to Home Screen' የሚለውን ይምረጡ።");
     } else {
-      toast("አፑን ከ Browser Menu 'Add to Home screen' በማለት መጫን ይችላሉ", "win");
+      toast("የአንድሮይድ መተግበሪያ (APK) በማውረድ ላይ ነው...", "win");
+      window.location.href = "AfricaBingo.apk";
     }
   }
 }
