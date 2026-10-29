@@ -2120,7 +2120,7 @@ function setupSideDrawerEvents() {
     }
   });
   $("drawer-contact-btn")?.addEventListener("click", () => {
-    window.open("tel:0918182355");
+    window.open("tel:0939292694");
   });
   $("drawer-sound-toggle")?.addEventListener("change", (e) => {
     soundEnabled = Boolean(e.target.checked);
