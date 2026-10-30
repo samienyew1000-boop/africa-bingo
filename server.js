@@ -726,6 +726,10 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, { ok: false, error: "not_found", message: "ይህ ስልክ ቁጥር አልተመዘገበም፤ እባክዎ መጀመሪያ ይመዝገቡ።" }, 404);
       }
 
+      if (existingUser.status === "blocked") {
+        return sendJson(res, { ok: false, error: "account_blocked", message: "ይህ አካውንት ታግዷል፤ እባክዎ አስተዳዳሪውን ያነጋግሩ።" }, 403);
+      }
+
       if (existingUser.password && password && existingUser.password !== password) {
         return sendJson(res, { ok: false, error: "wrong_password", message: "የተሳሳተ የይለፍ ቃል። እባክዎ እንደገና ይሞክሩ።" }, 401);
       }
@@ -820,6 +824,11 @@ const server = http.createServer(async (req, res) => {
 
       const usersList = Object.values(gameState.users);
       const roomsOverview = Object.values(activeRooms).map(r => r.getState());
+      const totalPlayers = usersList.length;
+      const verifiedPlayers = usersList.filter(u => u.is_verified).length || totalPlayers;
+      const blockedPlayers = usersList.filter(u => u.status === "blocked").length;
+      const thisMonth = new Date().toISOString().slice(0, 7);
+      const newPlayers = usersList.filter(u => (u.created_at || u.createdAt || "").startsWith(thisMonth)).length;
 
       return sendJson(res, {
         rooms: roomsOverview,
@@ -827,8 +836,10 @@ const server = http.createServer(async (req, res) => {
         players: usersList,
         transactions: gameState.transactions,
         metrics: {
-          totalPlayers: Math.max(1, usersList.length),
-          verifiedPlayers: Math.max(1, usersList.length),
+          totalPlayers: totalPlayers,
+          verifiedPlayers: verifiedPlayers,
+          newPlayers: newPlayers,
+          blockedPlayers: blockedPlayers,
           processedToday: approvedTotal,
           pendingTransactions: pendingCount,
         },
@@ -930,38 +941,58 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, { ok: true });
     }
 
-    // 12. Admin User Update (Deposit / Withdraw / Status / Live Balance Sync)
+    // 12. Admin User Update (Deposit / Withdraw / Status / Password / Balance Sync)
     if (pathname === "/api/admin/user/update" && req.method === "POST") {
       const body = await parseJsonBody(req);
-      const uid = String(body.user_id || body.userId || "").trim();
-      if (uid) {
-        if (!gameState.users[uid]) {
-          gameState.users[uid] = {
-            id: uid,
-            username: body.username || "",
-            first_name: body.first_name || ('Player ' + uid.slice(-4)),
-            balance: 0,
-            bonus_balance: 0,
-            bonus_claimed: 0,
-            role: "player",
-            is_verified: 1,
-            created_at: new Date().toISOString()
-          };
-        }
-        if (body.balance !== undefined && !isNaN(Number(body.balance))) {
-          gameState.users[uid].balance = Math.max(0, Math.round(Number(body.balance) * 100) / 100);
-        }
-        if (body.bonus_balance !== undefined && !isNaN(Number(body.bonus_balance))) {
-          gameState.users[uid].bonus_balance = Math.max(0, Math.round(Number(body.bonus_balance) * 100) / 100);
-        }
-        if (body.status !== undefined) {
-          gameState.users[uid].status = body.status;
-        }
-        gameState.users[uid].updated_at = new Date().toISOString();
-        saveGameState();
-        return sendJson(res, { ok: true, user: gameState.users[uid] });
+      const searchKey = String(body.user_id || body.userId || body.phone || body.username || "").trim();
+      if (!searchKey) {
+        return sendJson(res, { error: "Missing user_id" }, 400);
       }
-      return sendJson(res, { error: "Missing user_id" }, 400);
+
+      let targetUser = gameState.users[searchKey];
+      if (!targetUser) {
+        targetUser = Object.values(gameState.users).find(
+          (u) => (u.id && String(u.id) === searchKey) ||
+                 (u.phone && (u.phone === searchKey || u.phone.replace(/^0/, "") === searchKey.replace(/^0/, ""))) ||
+                 (u.username && u.username.toLowerCase() === searchKey.toLowerCase())
+        );
+      }
+
+      if (!targetUser) {
+        targetUser = {
+          id: searchKey,
+          username: body.username || searchKey,
+          phone: body.phone || searchKey,
+          first_name: body.first_name || ('Player ' + searchKey.slice(-4)),
+          balance: 0,
+          bonus_balance: 0,
+          bonus_claimed: 0,
+          role: "player",
+          status: "active",
+          is_verified: 1,
+          created_at: new Date().toISOString(),
+        };
+        gameState.users[searchKey] = targetUser;
+      }
+
+      if (body.balance !== undefined && !isNaN(Number(body.balance))) {
+        targetUser.balance = Math.max(0, Math.round(Number(body.balance) * 100) / 100);
+      }
+      if (body.bonus_balance !== undefined && !isNaN(Number(body.bonus_balance))) {
+        targetUser.bonus_balance = Math.max(0, Math.round(Number(body.bonus_balance) * 100) / 100);
+      }
+      if (body.status !== undefined) {
+        targetUser.status = body.status;
+      }
+      if (body.password !== undefined && String(body.password).trim()) {
+        targetUser.password = String(body.password).trim();
+      }
+      if (body.first_name !== undefined && String(body.first_name).trim()) {
+        targetUser.first_name = String(body.first_name).trim();
+      }
+      targetUser.updated_at = new Date().toISOString();
+      saveGameState();
+      return sendJson(res, { ok: true, user: targetUser });
     }
 
     // 13. Test / Demo Game Starter (Allows running live round for testing)

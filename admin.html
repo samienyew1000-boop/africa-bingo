@@ -393,9 +393,9 @@
 
     <div class="admin-modal-backdrop" id="password-modal" hidden>
       <section class="admin-modal admin-modal-small" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
-        <div class="admin-modal-heading"><div><span class="admin-panel-eyebrow">SECURITY ACTION</span><h2 id="password-modal-title">Change password</h2></div><button type="button" class="admin-modal-close" data-close-modal="password-modal" aria-label="Close">×</button></div>
-        <p class="admin-modal-copy">Set a temporary password for <b id="password-player-name">this player</b>. The player will be asked to change it after signing in.</p>
-        <form id="password-form"><input type="hidden" id="password-form-id" /><label class="admin-form-wide"><span>Temporary password</span><input type="password" id="password-form-value" minlength="6" required placeholder="At least 6 characters" /></label><label class="admin-check-row"><input type="checkbox" id="password-notify" checked /><span>Notify the player about the password reset</span></label><div class="admin-modal-actions"><button type="button" class="admin-button admin-button-soft" data-close-modal="password-modal">Cancel</button><button type="submit" class="admin-button admin-button-primary">Set password</button></div></form>
+        <div class="admin-modal-heading"><div><span class="admin-panel-eyebrow">SECURITY ACTION</span><h2 id="password-modal-title">Change player password</h2></div><button type="button" class="admin-modal-close" data-close-modal="password-modal" aria-label="Close">×</button></div>
+        <p class="admin-modal-copy">Set a new password for <b id="password-player-name">this player</b>. They will use this password to log in.</p>
+        <form id="password-form"><input type="hidden" id="password-form-id" /><label class="admin-form-wide"><span>New Password</span><input type="text" id="password-form-value" minlength="4" required placeholder="Enter new password (e.g. 123456)" autocomplete="off" /></label><label class="admin-check-row"><input type="checkbox" id="password-notify" checked /><span>Notify the player about the password reset</span></label><div class="admin-modal-actions"><button type="button" class="admin-button admin-button-soft" data-close-modal="password-modal">Cancel</button><button type="submit" class="admin-button admin-button-primary">Save password</button></div></form>
       </section>
     </div>
 

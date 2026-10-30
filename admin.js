@@ -767,23 +767,89 @@ function updateTransaction(id, nextStatus) {
 function renderPlayers() {
   const table = $("players-table");
   if (!table) return;
+
+  const q = (playerQuery || "").trim().toLowerCase();
+  const qClean = q.replace(/^0/, "");
+
   const filtered = state.players.filter((player) => {
     const matchesStatus = playerStatusFilter === "all" || player.status === playerStatusFilter;
-    const haystack = `${player.id} ${player.name} ${player.email} ${player.phone}`.toLowerCase();
-    return matchesStatus && (!playerQuery || haystack.includes(playerQuery));
+    if (!matchesStatus) return false;
+    if (!q) return true;
+
+    const pPhone = String(player.phone || "").toLowerCase();
+    const pPhoneClean = pPhone.replace(/^0/, "");
+    const pName = String(player.name || "").toLowerCase();
+    const pEmail = String(player.email || "").toLowerCase();
+    const pId = String(player.id || "").toLowerCase();
+    const pUser = String(player.username || "").toLowerCase();
+
+    return (
+      pPhone.includes(q) ||
+      pPhoneClean.includes(qClean) ||
+      pName.includes(q) ||
+      pEmail.includes(q) ||
+      pId.includes(q) ||
+      pUser.includes(q)
+    );
   });
-  $("player-total-count").textContent = fmt(state.metrics.totalPlayers);
-  $("player-verified-count").textContent = fmt(state.metrics.verifiedPlayers);
-  $("player-new-count").textContent = fmt(state.metrics.newPlayers);
-  $("player-blocked-count").textContent = fmt(state.metrics.blockedPlayers);
-  $("player-result-count").textContent = `Showing ${filtered.length} player${filtered.length === 1 ? "" : "s"}`;
-  table.innerHTML = filtered.length ? filtered.map(playerRow).join("") : `<tr><td colspan="7"><p class="admin-empty-note">No players match this search.</p></td></tr>`;
+
+  const total = state.players.length || state.metrics.totalPlayers || 0;
+  const verified = state.players.filter((p) => p.verified).length || total;
+  const blocked = state.players.filter((p) => p.status === "blocked").length;
+  const newMonth = state.metrics.newPlayers || total;
+
+  if ($("player-total-count")) $("player-total-count").textContent = fmt(total);
+  if ($("player-verified-count")) $("player-verified-count").textContent = fmt(verified);
+  if ($("player-new-count")) $("player-new-count").textContent = fmt(newMonth);
+  if ($("player-blocked-count")) $("player-blocked-count").textContent = fmt(blocked);
+  if ($("player-result-count")) $("player-result-count").textContent = `Showing ${filtered.length} player${filtered.length === 1 ? "" : "s"}`;
+
+  table.innerHTML = filtered.length
+    ? filtered.map(playerRow).join("")
+    : `<tr><td colspan="7"><p class="admin-empty-note">No players match this search.</p></td></tr>`;
 }
 
 function playerRow(player) {
   const isBlocked = player.status === "blocked";
-  const statusLabel = player.status.charAt(0).toUpperCase() + player.status.slice(1);
-  return `<tr><td><div class="admin-player-cell"><span class="admin-player-avatar avatar-${escapeHTML(player.avatar || "blue")}">${initials(player.name)}</span><span><strong>${escapeHTML(player.name)}</strong><small>${escapeHTML(player.id)}</small></span></div></td><td><div class="admin-contact-cell"><span>${escapeHTML(player.email || player.username || "—")}</span><small>${escapeHTML(player.phone || "—")}</small></div></td><td><strong class="admin-table-amount">${money(player.balance)}</strong></td><td>${fmt(player.games || 0)}</td><td>${escapeHTML(player.lastActive || "Recently")}</td><td><span class="admin-status-pill is-${escapeHTML(player.status)}">${escapeHTML(statusLabel)}</span></td><td><div class="admin-action-menu"><button type="button" class="admin-action-menu-button" data-player-menu="${escapeHTML(player.id)}" aria-label="Actions for ${escapeHTML(player.name)}">•••</button><div class="admin-action-menu-list"><button type="button" data-player-action="balance" data-id="${escapeHTML(player.id)}">Deposit / Withdraw</button><button type="button" data-player-action="edit" data-id="${escapeHTML(player.id)}">Edit player</button><button type="button" data-player-action="password" data-id="${escapeHTML(player.id)}">Change password</button><button type="button" class="${isBlocked ? "" : "is-danger"}" data-player-action="${isBlocked ? "unblock" : "block"}" data-id="${escapeHTML(player.id)}">${isBlocked ? "Unblock account" : "Block account"}</button></div></div></td></tr>`;
+  const statusLabel = isBlocked ? "Blocked" : "Active";
+  const passDisp = player.password
+    ? ` <span title="Current Password: ${escapeHTML(player.password)}" style="cursor:help; font-size:11px; color:#4f46e5; background:#eef2ff; padding:1px 5px; border-radius:4px; margin-left:4px;">🔑 ${escapeHTML(player.password)}</span>`
+    : "";
+
+  return `<tr>
+    <td>
+      <div class="admin-player-cell">
+        <span class="admin-player-avatar avatar-${escapeHTML(player.avatar || "blue")}">${initials(player.name)}</span>
+        <span>
+          <strong>${escapeHTML(player.name)}${passDisp}</strong>
+          <small>ID: ${escapeHTML(player.id)}</small>
+        </span>
+      </div>
+    </td>
+    <td>
+      <div class="admin-contact-cell">
+        <strong style="color:#0f172a; font-size:13px; font-family:monospace; font-weight:800;">${escapeHTML(player.phone || "—")}</strong>
+        <small>${escapeHTML(player.username ? `@${player.username}` : (player.email || "—"))}</small>
+      </div>
+    </td>
+    <td><strong class="admin-table-amount">${money(player.balance)}</strong></td>
+    <td>${fmt(player.games || 0)}</td>
+    <td>${escapeHTML(player.lastActive || "Recently")}</td>
+    <td><span class="admin-status-pill is-${escapeHTML(player.status || "active")}">${escapeHTML(statusLabel)}</span></td>
+    <td>
+      <div class="admin-action-menu">
+        <button type="button" class="admin-action-menu-button" data-player-menu="${escapeHTML(player.id)}" aria-label="Actions for ${escapeHTML(player.name)}">•••</button>
+        <div class="admin-action-menu-list">
+          <button type="button" data-player-action="balance" data-id="${escapeHTML(player.id)}">💰 Deposit / Withdraw</button>
+          <button type="button" data-player-action="password" data-id="${escapeHTML(player.id)}">🔑 Change Password</button>
+          <button type="button" data-player-action="edit" data-id="${escapeHTML(player.id)}">✏️ Edit Player</button>
+          <button type="button" class="${isBlocked ? "" : "is-danger"}" data-player-action="${isBlocked ? "unblock" : "block"}" data-id="${escapeHTML(player.id)}">
+            ${isBlocked ? "✅ Unblock Account" : "🚫 Block Account"}
+          </button>
+        </div>
+      </div>
+    </td>
+  </tr>`;
 }
 
 function renderAdminProfile() {
@@ -841,8 +907,8 @@ function openPlayerForm(player = null) {
 
 function openPasswordForm(player) {
   $("password-form-id").value = player.id;
-  $("password-player-name").textContent = player.name;
-  $("password-form-value").value = "";
+  $("password-player-name").textContent = `${player.name} (${player.phone || player.id})`;
+  $("password-form-value").value = player.password || "";
   $("password-notify").checked = true;
   openModal("password-modal");
   setTimeout(() => $("password-form-value").focus(), 40);
@@ -904,12 +970,12 @@ function makePlayerId() {
   return `LB-${String(Math.max(10000, ...ids, 0) + 1).padStart(5, "0")}`;
 }
 
-function adjustPlayerBalance(player) {
+async function adjustPlayerBalance(player) {
   const currentBal = Number(player.balance || 0);
   const input = prompt(
-    `💰 Adjust balance for ${player.name} (${player.id})\n` +
+    `💰 Adjust balance for ${player.name} (${player.phone || player.id})\n` +
     `Current Balance: ${currentBal.toFixed(2)} ETB\n\n` +
-    `Enter deposit amount (e.g. +50), withdrawal amount (e.g. -20), or new total balance:`,
+    `Enter deposit amount (e.g. +50 or 50), withdrawal amount (e.g. -20), or new total balance:`,
     currentBal
   );
   if (input === null || input.trim() === "") return;
@@ -934,42 +1000,74 @@ function adjustPlayerBalance(player) {
   const act = diff >= 0 ? `Deposited +${diff.toFixed(2)} ETB to` : `Withdrew -${Math.abs(diff).toFixed(2)} ETB from`;
   addActivity(`${act} ${player.name} (New Balance: ${nextBal.toFixed(2)} ETB)`, "finance", "💰");
 
-  const targetUid = player.userId || (player.id && player.id.startsWith("TG-") ? Number(player.id.replace("TG-", "")) : null);
-  if (targetUid && typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
-    LuckyBingoAPI.updateAdminUser(targetUid, { balance: nextBal }).catch((err) => {
+  const targetUid = String(player.userId || player.id);
+  if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
+    try {
+      await LuckyBingoAPI.updateAdminUser(targetUid, { balance: nextBal });
+    } catch (err) {
       console.error("Failed to update user balance:", err);
-    });
+    }
   }
 
   renderAll();
   showToast(`Updated balance: ${nextBal.toFixed(2)} ETB for ${player.name}`);
 }
 
-function togglePlayerStatus(id) {
+async function togglePlayerStatus(id) {
   const player = state.players.find((item) => item.id === id);
   if (!player) return;
   const wasBlocked = player.status === "blocked";
-  player.status = wasBlocked ? "active" : "blocked";
-  state.metrics.blockedPlayers += wasBlocked ? -1 : 1;
-  state.metrics.blockedPlayers = Math.max(0, state.metrics.blockedPlayers);
-  addActivity(`${wasBlocked ? "Unblocked" : "Blocked"} player account ${player.id}`, "security", wasBlocked ? "✓" : "!");
-  const targetUid = player.userId || (player.id && player.id.startsWith("TG-") ? Number(player.id.replace("TG-", "")) : null);
-  if (targetUid && typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
-    LuckyBingoAPI.updateAdminUser(targetUid, { status: player.status }).catch(() => {});
+  const nextStatus = wasBlocked ? "active" : "blocked";
+  player.status = nextStatus;
+
+  addActivity(`${wasBlocked ? "Unblocked" : "Blocked"} account ${player.phone || player.name}`, "security", wasBlocked ? "✓" : "!");
+
+  const targetUid = String(player.userId || player.id);
+  if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
+    try {
+      await LuckyBingoAPI.updateAdminUser(targetUid, { status: nextStatus });
+    } catch (e) {
+      console.error("Error updating user status on server:", e);
+    }
   }
+
   renderAll();
-  showToast(`${player.name} is now ${player.status}.`);
+  showToast(`${player.name} (${player.phone}) is now ${nextStatus.toUpperCase()}`);
 }
 
-function savePassword(event) {
+async function savePassword(event) {
   event.preventDefault();
-  const player = state.players.find((item) => item.id === $("password-form-id").value);
-  if (!player) return;
+  const id = $("password-form-id").value;
+  const newPass = $("password-form-value").value.trim();
+  const player = state.players.find((item) => item.id === id);
+  if (!player || !newPass) return;
+
+  if (newPass.length < 4) {
+    alert("Password must be at least 4 characters");
+    return;
+  }
+
+  player.password = newPass;
   player.passwordUpdatedAt = new Date().toISOString();
-  addActivity(`Changed the password for ${player.name}`, "security", "⌁");
+  addActivity(`Changed password for ${player.name} (${player.phone}) to ${newPass}`, "security", "🔑");
+
+  const targetUid = String(player.userId || player.id);
+  if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
+    try {
+      const res = await LuckyBingoAPI.updateAdminUser(targetUid, { password: newPass });
+      if (res && res.error) {
+        showToast("Error updating password: " + res.error);
+        return;
+      }
+    } catch (e) {
+      console.error("Error updating password on server:", e);
+    }
+  }
+
   saveState();
   closeModal("password-modal");
-  showToast(`Password updated for ${player.name}.`);
+  renderPlayers();
+  showToast(`✅ Password successfully changed to "${newPass}" for ${player.name}`);
 }
 
 function downloadCSV(filename, rows) {
@@ -1392,25 +1490,41 @@ function _startAdminDataPoll() {
       renderFinanceSummary();
     }
 
-    // 3. Sync registered users / players from SQLite database
-    if (Array.isArray(data.players) && data.players.length > 0) {
-      state.players = data.players.map((u) => ({
-        id: `TG-${u.id}`,
-        userId: u.id,
-        name: [u.first_name, u.last_name].filter(Boolean).join(" ") || (u.username ? `@${u.username}` : `Player ${u.id}`),
-        email: u.username ? `@${u.username}` : `${u.id}@t.me`,
-        phone: u.phone_number || "—",
-        role: u.role || "player",
-        balance: Number(u.balance) || 0,
-        games: u.games || 0,
-        lastActive: u.last_active || "Recently",
-        status: u.status || "active",
-        avatar: "blue",
-        verified: Boolean(u.is_verified),
-        joined: u.registered_at || "Recent",
-        activeRoom: u.active_room || "Lobby",
-        note: `Telegram Verified Player (TG ID: ${u.id})`,
-      }));
+    // 3. Sync registered users / players from authoritative backend
+    const playerList = Array.isArray(data.players) && data.players.length > 0
+      ? data.players
+      : (Array.isArray(data.users) && data.users.length > 0 ? data.users : []);
+
+    if (playerList.length > 0) {
+      state.players = playerList.map((u) => {
+        const rawPhone = String(u.phone || u.phone_number || "").trim();
+        const dispPhone = rawPhone || (u.username && /^\d+$/.test(u.username) ? u.username : "—");
+        const dispName = [u.first_name, u.last_name].filter(Boolean).join(" ") ||
+          (u.first_name ? u.first_name : (u.username ? (u.username.startsWith("@") ? u.username : `@${u.username}`) : `Player ${String(u.id).slice(-4)}`));
+        return {
+          id: String(u.id),
+          userId: String(u.id),
+          name: dispName,
+          email: u.email || (u.username ? `@${u.username}` : `${dispPhone || u.id}@t.me`),
+          phone: dispPhone,
+          rawPhone: rawPhone,
+          username: u.username || "",
+          password: u.password || "",
+          role: u.role || "player",
+          balance: Number(u.balance) || 0,
+          bonusBalance: Number(u.bonus_balance) || 0,
+          games: Number(u.games) || 0,
+          lastActive: u.updated_at
+            ? new Date(u.updated_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+            : (u.created_at ? new Date(u.created_at).toLocaleDateString([], { month: "short", day: "numeric" }) : "Recently"),
+          status: u.status || "active",
+          avatar: "blue",
+          verified: Boolean(u.is_verified ?? true),
+          joined: u.created_at || u.createdAt || "Recent",
+          activeRoom: u.active_room || "Lobby",
+          note: u.note || `Registered Player (ID: ${u.id})`,
+        };
+      });
       renderPlayers();
     }
 
@@ -1418,9 +1532,11 @@ function _startAdminDataPoll() {
     if (data.metrics) {
       state.metrics = {
         ...state.metrics,
-        totalPlayers: data.metrics.totalPlayers ?? state.metrics.totalPlayers,
-        verifiedPlayers: data.metrics.verifiedPlayers ?? state.metrics.verifiedPlayers,
-        activePlayers: data.metrics.activePlayers ?? state.metrics.activePlayers,
+        totalPlayers: data.metrics.totalPlayers ?? state.players.length,
+        verifiedPlayers: data.metrics.verifiedPlayers ?? state.players.length,
+        newPlayers: data.metrics.newPlayers ?? state.players.length,
+        blockedPlayers: data.metrics.blockedPlayers ?? state.players.filter((p) => p.status === "blocked").length,
+        activePlayers: data.metrics.activePlayers ?? state.players.filter((p) => p.status !== "blocked").length,
         processedToday: data.metrics.processedToday ?? (Number(data.metrics.totalDeposits || 0) + Number(data.metrics.totalWithdrawals || 0)),
       };
     }
@@ -1470,9 +1586,7 @@ function initialise() {
   const isAuth = checkAdminAuth();
   const savedUser = sessionStorage.getItem("lb_admin_user") || localStorage.getItem("lb_admin_user") || "@Su121316";
   updateAdminUIAuth(isAuth, savedUser);
-  if (isAuth) {
-    syncAdminWithServer();
-  }
+  syncAdminWithServer();
 
   bindSettings();
   bindEvents();

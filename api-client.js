@@ -10,11 +10,13 @@ const LuckyBingoAPI = (() => {
   let _baseUrl = "";
 
   function getBaseUrl() {
-    if (_baseUrl) return _baseUrl;
+    if (window.location.pathname.startsWith("/bingo")) {
+      return window.location.origin + "/bingo";
+    }
     try {
       const params = new URLSearchParams(window.location.search);
       const apiParam = params.get("api");
-      if (apiParam) {
+      if (apiParam && !apiParam.includes(":3005")) {
         _baseUrl = apiParam.replace(/\/+$/, "");
         localStorage.setItem("lb_api_url", _baseUrl);
         return _baseUrl;
@@ -22,18 +24,12 @@ const LuckyBingoAPI = (() => {
     } catch (e) {}
 
     const configuredUrl = window.LUCKY_BINGO_API_URL || localStorage.getItem("lb_api_url");
-    if (configuredUrl) {
+    if (configuredUrl && !configuredUrl.includes(":3005")) {
       _baseUrl = configuredUrl.replace(/\/+$/, "");
       return _baseUrl;
     }
 
-    if (window.location.pathname.startsWith("/bingo")) {
-      _baseUrl = window.location.origin + "/bingo";
-      return _baseUrl;
-    }
-
-    _baseUrl = "";
-    return _baseUrl;
+    return window.location.origin || "";
   }
 
   function getInitData() {
@@ -189,7 +185,7 @@ const LuckyBingoAPI = (() => {
       // Self-healing: if fetch failed, check if Vercel has an updated tunnel URL and retry
       if (!options._retried) {
         try {
-          const configRes = await fetch("https://lucky-bingo-iota.vercel.app/app-config.js?_t=" + Date.now(), { cache: "no-store" });
+          const configRes = await fetch("/app-config.js?_t=" + Date.now(), { cache: "no-store" });
           if (configRes.ok) {
             const configText = await configRes.text();
             const match = configText.match(/DEFAULT_BACKEND_URL\s*=\s*["']([^"']+)["']/);
@@ -380,7 +376,7 @@ const LuckyBingoAPI = (() => {
   async function updateAdminUser(userId, updates = {}) {
     return apiRequest("/api/admin/user/update", {
       method: "POST",
-      body: JSON.stringify({ user_id: Number(userId), ...updates }),
+      body: JSON.stringify({ user_id: String(userId), ...updates }),
     });
   }
 

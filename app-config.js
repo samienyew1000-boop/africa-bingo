@@ -19,12 +19,12 @@
   } else {
     try {
       const stored = localStorage.getItem("lb_api_url");
-      if (!stored || stored.includes("trycloudflare.com") || stored.includes("ethiodeploy") || stored.includes("lucky-bingo")) {
+      if (!stored || stored.includes(":3005") || stored.includes("trycloudflare.com") || stored.includes("ethiodeploy") || stored.includes("lucky-bingo")) {
         localStorage.setItem("lb_api_url", DEFAULT_BACKEND_URL);
       }
     } catch (e) {}
     let activeUrl = localStorage.getItem("lb_api_url") || DEFAULT_BACKEND_URL;
-    if (activeUrl.includes("trycloudflare.com") || activeUrl.includes("ethiodeploy") || activeUrl.includes("lucky-bingo")) {
+    if (activeUrl.includes(":3005") || activeUrl.includes("trycloudflare.com") || activeUrl.includes("ethiodeploy") || activeUrl.includes("lucky-bingo")) {
       activeUrl = DEFAULT_BACKEND_URL;
       try {
         localStorage.setItem("lb_api_url", DEFAULT_BACKEND_URL);
