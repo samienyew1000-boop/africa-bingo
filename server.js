@@ -43,6 +43,7 @@ const DEFAULT_STATE = {
     { id: "50", stake: 50, players: 0, status: "waiting", roundId: "#AB-103", prizePool: 0, called: [] },
   ],
   settings: {
+    countdown: 120,
     commissionRate: 20,
     minDeposit: 50,
     depositBonus: 20,
@@ -163,11 +164,38 @@ const WINNING_LINES = [
   [4, 8, 12, 16, 20],
 ];
 
-function checkCardBingo(cardNumbers, calledSet) {
+const BINGO_PATTERNS = [
+  { id: "3_lines", name: "3 መስመር", targetLines: 3, label: "3 መስመር ዝግ", description: "3 መስመር ሲዘጋ" },
+  { id: "4_lines", name: "4 መስመር", targetLines: 4, label: "4 መስመር ዝግ", description: "4 መስመር ሲዘጋ" },
+  { id: "5_lines", name: "5 መስመር", targetLines: 5, label: "5 መስመር ዝግ", description: "5 መስመር ሲዘጋ" },
+  { id: "6_lines", name: "6 መስመር", targetLines: 6, label: "6 መስመር ዝግ", description: "6 መስመር ሲዘጋ" },
+  { id: "7_lines", name: "7 መስመር", targetLines: 7, label: "7 መስመር ዝግ", description: "7 መስመር ሲዘጋ" },
+  { id: "fullhouse", name: "ሙሉ ካርቴላ", targetLines: 24, isFullHouse: true, label: "ሙሉ ካርቴላ (Full House)", description: "ሙሉ ካርቴላ ሲዘጋ" },
+];
+
+function countCompletedLines(cardNumbers, calledSet) {
+  if (!Array.isArray(cardNumbers) || cardNumbers.length !== 25) return 0;
+  let count = 0;
+  for (const line of WINNING_LINES) {
+    if (line.every((idx) => idx === 12 || cardNumbers[idx] === 0 || cardNumbers[idx] === "FREE" || calledSet.has(Number(cardNumbers[idx])))) {
+      count++;
+    }
+  }
+  return count;
+}
+
+function checkCardBingo(cardNumbers, calledSet, pattern) {
   if (!Array.isArray(cardNumbers) || cardNumbers.length !== 25) return false;
-  return WINNING_LINES.some((line) =>
-    line.every((idx) => idx === 12 || cardNumbers[idx] === 0 || cardNumbers[idx] === "FREE" || calledSet.has(Number(cardNumbers[idx])))
-  );
+  if (!pattern) {
+    return countCompletedLines(cardNumbers, calledSet) >= 3;
+  }
+  if (pattern.isFullHouse || pattern.id === "fullhouse") {
+    return cardNumbers.every((val, idx) =>
+      idx === 12 || val === 0 || val === "FREE" || calledSet.has(Number(val))
+    );
+  }
+  const req = Number(pattern.targetLines || 3);
+  return countCompletedLines(cardNumbers, calledSet) >= req;
 }
 
 class LiveBingoRoom {
@@ -176,6 +204,7 @@ class LiveBingoRoom {
     this.stake = Number(stake);
     this.status = "open"; // "open", "countdown", "live", "ended"
     this.roundId = 100 + Number(id);
+    this.patternIndex = 0;
     this.players = []; // [{ user_id, username, first_name, card_ids: [1, 2], joined_at }]
     this.calls = []; // [14, 55, ...]
     this.deck = [];
@@ -197,6 +226,14 @@ class LiveBingoRoom {
     return Math.max(this.stake, Math.round(pot * (1 - commPct / 100)));
   }
 
+  get currentPattern() {
+    return BINGO_PATTERNS[this.patternIndex % BINGO_PATTERNS.length];
+  }
+
+  get nextPattern() {
+    return BINGO_PATTERNS[(this.patternIndex + 1) % BINGO_PATTERNS.length];
+  }
+
   getState() {
     const now = Date.now();
     const cdEnds = this.countdownEndsAt;
@@ -210,6 +247,8 @@ class LiveBingoRoom {
       stake: this.stake,
       status: this.status,
       round_id: this.roundId,
+      pattern: this.currentPattern,
+      next_pattern: this.nextPattern,
       countdown_ends_at: Math.floor(cdEnds / 1000),
       countdown_remaining: cdRem,
       server_time: Math.floor(now / 1000),
@@ -323,7 +362,7 @@ class LiveBingoRoom {
 
   startCountdown() {
     this.status = "countdown";
-    const durationSec = Math.max(10, Number(gameState.settings?.countdown || 25));
+    const durationSec = Math.max(10, Number(gameState.settings?.countdown || 120));
     this.countdownEndsAt = Date.now() + durationSec * 1000;
 
     if (this.countdownTimer) clearTimeout(this.countdownTimer);
@@ -373,10 +412,11 @@ class LiveBingoRoom {
     this.calls.push(ball);
 
     const calledSet = new Set(this.calls);
+    const activePattern = this.currentPattern;
     for (const player of this.players) {
       for (const cardId of (player.card_ids || [])) {
         const cardNumbers = cardCatalog[String(cardId)];
-        if (cardNumbers && checkCardBingo(cardNumbers, calledSet)) {
+        if (cardNumbers && checkCardBingo(cardNumbers, calledSet, activePattern)) {
           const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
           const prize = this.getDerash(totalCards);
 
@@ -398,7 +438,8 @@ class LiveBingoRoom {
 
     const cardNumbers = cardCatalog[String(cardId)];
     const calledSet = new Set(this.calls);
-    if (!cardNumbers || !checkCardBingo(cardNumbers, calledSet)) {
+    const activePattern = this.currentPattern;
+    if (!cardNumbers || !checkCardBingo(cardNumbers, calledSet, activePattern)) {
       return { error: "Bingo not complete yet" };
     }
 
@@ -427,7 +468,7 @@ class LiveBingoRoom {
       winner_name: winnerName,
       prize: prize,
       card_id: cardId,
-      pattern: "LINE",
+      pattern: this.currentPattern ? (this.currentPattern.label || this.currentPattern.name) : "3 መስመር",
       ended_at: Math.floor(Date.now() / 1000),
     };
 
@@ -439,6 +480,7 @@ class LiveBingoRoom {
   resetRound() {
     this.status = "open";
     this.roundId += 1;
+    this.patternIndex = (this.patternIndex + 1) % BINGO_PATTERNS.length;
     this.players = [];
     this.calls = [];
     this.deck = [];

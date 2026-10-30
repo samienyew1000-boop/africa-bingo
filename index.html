@@ -272,6 +272,62 @@
               </button>
             </header>
 
+            <!-- Embedded Live & Next Round Tracker matching live game state -->
+            <div class="lb-pick-live-tracker" id="pick-live-tracker">
+              <!-- Top row: Title and info button -->
+              <div class="lb-plt-top-row">
+                <div class="lb-plt-title-wrap">
+                  <h3 class="lb-plt-title" id="plt-card-title">ቀጣይ ጨዋታ</h3>
+                  <span class="lb-plt-title-pill" id="plt-title-pill">ቀጣይ ጨዋታ</span>
+                </div>
+                <button type="button" class="lb-plt-info-btn" id="plt-info-btn" aria-label="Room info">
+                  <span>info</span>
+                  <svg viewBox="0 0 20 20" width="13" height="13" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Collapsible info explanation -->
+              <div class="lb-plt-info-box" id="plt-info-box" style="display: none;">
+                <p id="plt-info-text">በዚህ ዙር ካርቴላዎችዎን ይምረጡ፤ 3 ወይም ከዚያ በላይ መስመሮች ሲዘጉ Bingo ያገኛሉ!</p>
+              </div>
+
+              <!-- Middle section: Active or Previous Game Ball Stream -->
+              <div class="lb-plt-middle-box" id="plt-middle-box">
+                <div class="lb-plt-meta-row">
+                  <span class="lb-plt-pattern" id="plt-pattern">3 መስመር (ያለፈ ጨዋታ)</span>
+                  <span class="lb-plt-badge" id="plt-badge">ቀጥታ</span>
+                </div>
+
+                <!-- Called balls horizontal row -->
+                <div class="lb-plt-balls-row" id="plt-balls-row" aria-label="Called balls">
+                  <!-- Dynamically populated from active room state -->
+                </div>
+
+                <div class="lb-plt-footer" id="plt-footer">
+                  ያለፈውን ጨዋታ የቀሩ 44 ኳሶች
+                </div>
+              </div>
+
+              <!-- Bottom banner: Expandable live & next round pattern display -->
+              <div class="lb-plt-banner" id="plt-banner">
+                <div class="lb-plt-banner-header" id="plt-banner-toggle">
+                  <div class="lb-plt-banner-header-left">
+                    <span class="lb-plt-banner-symbol">☲</span>
+                    <span class="lb-plt-banner-title">ቀጥታ እና ቀጣይ ዙር</span>
+                  </div>
+                  <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" class="lb-plt-banner-chevron" id="plt-banner-chevron">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="lb-plt-banner-content" id="plt-banner-content">
+                  <div class="lb-plt-banner-line1" id="plt-line-current">ያለፊት ጨዋታ · 3 መስመር</div>
+                  <div class="lb-plt-banner-line2" id="plt-line-next">ቀጣይ ዝግጁ · 3 መስመር ዝግ · አሁን ለቀጣይ ጨዋታ መመዝገብ ይቻላል</div>
+                </div>
+              </div>
+            </div>
+
             <!-- 2. SUB-HEADER BAR: Boards counter, Stake & Room #, Deselect All -->
             <div class="lb-pick-subheader">
               <span class="lb-pick-boards" id="pick-boards-counter">Boards: 0/50</span>

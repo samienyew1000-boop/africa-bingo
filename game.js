@@ -13,7 +13,7 @@ const DEFAULT_STARTING_BONUS = 10;
 const CARD_COUNT = 1000;
 const MAX_PICK = 50;
 const CALL_MS = 3200;
-const DEFAULT_PICK_SECS = 60;
+const DEFAULT_PICK_SECS = 120;
 const DEFAULT_WINNING_PATTERN = "1";
 const WINNING_PATTERNS = Object.freeze(["1", "2", "3", "4", "full-house"]);
 const ROOM_GAME_MS = CALL_MS * 75;
@@ -297,6 +297,93 @@ function updateLandingLiveTracker(rooms) {
   }
 }
 
+function updatePickLiveTracker(sState) {
+  const tracker = $("pick-live-tracker");
+  if (!tracker) return;
+
+  const currentPattern = sState?.pattern || { id: "3_lines", name: "3 መስመር", label: "3 መስመር ዝግ", targetLines: 3 };
+  const nextPattern = sState?.next_pattern || { id: "4_lines", name: "4 መስመር", label: "4 መስመር ዝግ", targetLines: 4 };
+  const isLive = sState?.status === "live";
+  const isCd = sState?.status === "countdown";
+  const calls = Array.isArray(sState?.calls) ? sState.calls : [];
+  const latestBall = calls.length ? calls[calls.length - 1] : null;
+  const remBalls = Math.max(0, 75 - calls.length);
+
+  const cardTitle = $("plt-card-title");
+  const titlePill = $("plt-title-pill");
+  const patternEl = $("plt-pattern");
+  const badgeEl = $("plt-badge");
+  const footerEl = $("plt-footer");
+  const ballsRow = $("plt-balls-row");
+  const lineCurrent = $("plt-line-current");
+  const lineNext = $("plt-line-next");
+  const infoText = $("plt-info-text");
+
+  if (cardTitle) {
+    cardTitle.textContent = isLive ? "የቀጥታ ጨዋታ" : "ቀጣይ ጨዋታ";
+  }
+  if (titlePill) {
+    titlePill.textContent = isLive ? "ቀጥታ" : "ቀጣይ ጨዋታ";
+  }
+
+  if (patternEl) {
+    if (isLive) {
+      patternEl.textContent = `${currentPattern.name || "3 መስመር"} (የቀጥታ ጨዋታ)`;
+    } else if (isCd) {
+      patternEl.textContent = `${currentPattern.name || "3 መስመር"} (ሊጀመር ነው)`;
+    } else {
+      const pastName = sState?.last_result?.pattern || currentPattern.name || "3 መስመር";
+      patternEl.textContent = `${pastName} (ያለፈ ጨዋታ)`;
+    }
+  }
+
+  if (badgeEl) {
+    badgeEl.textContent = isLive ? "ቀጥታ" : (isCd ? "ዝግጁ" : "ቀጥታ");
+  }
+
+  if (footerEl) {
+    if (isLive) {
+      footerEl.textContent = `የቀሩ ${remBalls} ኳሶች`;
+    } else if (calls.length) {
+      footerEl.textContent = `ያለፈውን ጨዋታ የቀሩ ${remBalls} ኳሶች`;
+    } else {
+      footerEl.textContent = `ይህ ዙር በ ${currentPattern.label || "3 መስመር ዝግ"} ይጫወታል`;
+    }
+  }
+
+  if (ballsRow) {
+    if (calls.length) {
+      const latestLetter = letterFor(latestBall);
+      const prevCalls = calls.slice(0, -1).reverse();
+      let html = `<div class="lb-plt-ball-latest">${latestLetter}-${latestBall}</div>`;
+      for (const n of prevCalls) {
+        const letCode = letterFor(n);
+        html += `<div class="lb-plt-ball is-${letCode.toLowerCase()}">${letCode}-${n}</div>`;
+      }
+      ballsRow.innerHTML = html;
+    } else {
+      ballsRow.innerHTML = `<div style="padding: 10px 14px; font-size: 13px; font-weight: 700; color: #4338ca; width: 100%; text-align: center;">🎲 ${isCd ? "ጨዋታው ሊጀመር ነው... ቁጥሮች በቅርቡ ይወጣሉ" : "ካርቴላዎችን ይምረጡ፤ ቁጥሮች ሲወጡ እዚህ ይታያሉ"}</div>`;
+    }
+  }
+
+  if (lineCurrent) {
+    if (isLive) {
+      lineCurrent.textContent = `የአሁኑ ጨዋታ · ${currentPattern.label || "3 መስመር ዝግ"}`;
+    } else {
+      const pastPatternName = sState?.last_result?.pattern || currentPattern.label || "3 መስመር ዝግ";
+      lineCurrent.textContent = `ያለፊት ጨዋታ · ${pastPatternName}`;
+    }
+  }
+
+  if (lineNext) {
+    lineNext.textContent = `ቀጣይ ዝግጁ · ${currentPattern.label || "3 መስመር ዝግ"} · አሁን ለቀጣይ ጨዋታ መመዝገብ ይቻላል`;
+  }
+
+  if (infoText) {
+    infoText.textContent = `ይህ ዙር የሚጫወተው በ ${currentPattern.label || "3 መስመር ዝግ"} ነው። የሚቀጥለው ዙር ደግሞ ${nextPattern.label || "4 መስመር ዝግ"} ይሆናል!`;
+  }
+}
+
 function startServerLobbySync() {
   if (typeof LuckyBingoAPI === "undefined") return;
   LuckyBingoAPI.startLobbyPoll((data) => {
@@ -332,7 +419,9 @@ function handleServerRoomState(sState) {
   serverRoomStates[rid] = { ...serverRoomStates[rid], ...sState };
   if (activeRoomId && rid !== String(activeRoomId)) return;
 
-  const current = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getTelegramUser) ? LuckyBingoAPI.getTelegramUser() : null;
+  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+  const tgUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getTelegramUser) ? LuckyBingoAPI.getTelegramUser() : null;
+  const current = mUser || tgUser;
   const myId = current?.id;
 
   // 1. Sync cards taken by other players in this room
@@ -343,8 +432,13 @@ function handleServerRoomState(sState) {
       const cids = Array.isArray(player.card_ids) ? player.card_ids : (typeof player.card_ids === "string" ? JSON.parse(player.card_ids || "[]") : []);
       if (!isMine) {
         cids.forEach((cid) => takenByOthers.add(Number(cid)));
-      } else if (!playing && !gameWaiting && selected.size === 0) {
-        cids.forEach((cid) => selected.add(Number(cid)));
+      } else {
+        if (cids.length > 0 && selected.size === 0) {
+          cids.forEach((cid) => selected.add(Number(cid)));
+          if (views.game && views.game.classList.contains("is-on")) {
+            renderMineCards();
+          }
+        }
       }
     });
     if (views.pick && views.pick.classList.contains("is-on")) {
@@ -353,6 +447,8 @@ function handleServerRoomState(sState) {
       updatePickInfo();
     }
   }
+
+  updatePickLiveTracker(sState);
 
   // 2. Status is COUNTDOWN
   if (sState.status === "countdown" && sState.countdown_ends_at > 0) {
@@ -367,6 +463,12 @@ function handleServerRoomState(sState) {
 
   // 3. Status is LIVE
   if (sState.status === "live") {
+    if (selected.size === 0 && Array.isArray(sState.players)) {
+      const myPlayer = sState.players.find((p) => myId && String(p.user_id) === String(myId));
+      if (myPlayer && Array.isArray(myPlayer.card_ids)) {
+        myPlayer.card_ids.forEach((cid) => selected.add(Number(cid)));
+      }
+    }
     if (!playing && selected.size > 0) {
       entryCharged = true;
       beginLiveGame();
@@ -460,11 +562,17 @@ function normalizeWinningPattern(value) {
 }
 
 function getWinningPattern() {
+  if (activeRoomId && serverRoomStates[activeRoomId]?.pattern) {
+    const p = serverRoomStates[activeRoomId].pattern;
+    if (p.isFullHouse || p.id === "fullhouse") return "full-house";
+    if (p.targetLines) return String(p.targetLines);
+    if (typeof p === "string") return p;
+  }
   try {
     const saved = JSON.parse(localStorage.getItem(ADMIN_SETTINGS_KEY) || "null");
     return normalizeWinningPattern(saved?.winningPattern);
   } catch (error) {
-    return DEFAULT_WINNING_PATTERN;
+    return "3";
   }
 }
 
@@ -2111,6 +2219,15 @@ function setupSideDrawerEvents() {
     const box = $("llt-info-box");
     if (box) box.style.display = box.style.display === "none" ? "block" : "none";
   });
+  $("plt-info-btn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const box = $("plt-info-box");
+    if (box) box.style.display = box.style.display === "none" ? "block" : "none";
+  });
+  $("plt-banner-toggle")?.addEventListener("click", () => {
+    const banner = $("plt-banner");
+    if (banner) banner.classList.toggle("is-collapsed");
+  });
   $("landing-live-tracker")?.addEventListener("click", () => {
     setAuthMode("register");
     showMobileAuthModal(true);
@@ -2298,6 +2415,7 @@ function calculateDerash(cards, roomStake) {
 function renderPickRoomSummary() {
   const room = activeRoomId ? getLobbyRoom(activeRoomId) : null;
   const server = activeRoomId ? serverRoomStates[String(activeRoomId)] : null;
+  if (server) updatePickLiveTracker(server);
   const roomStake = room?.stake || stake;
   const playerCount = server ? Number(server.player_count) || 0 : 0;
   const available = cardNumbers.length ? Math.max(0, cardNumbers.length - takenByOthers.size - selected.size) : 0;
@@ -2866,7 +2984,7 @@ function setupPickWaitingState() {
   const timer = $("pick-timer");
   const banner = $("pick-banner-secs");
   const helper = $("pick-helper");
-  if (time) time.textContent = selected.size > 0 ? String(pickLeft || 30) : "30";
+  if (time) time.textContent = selected.size > 0 ? formatCountdown(pickLeft || 120) : "02:00";
   if (seconds) seconds.textContent = "Open";
   if (banner) banner.textContent = "Open";
   if (timer) timer.classList.remove("is-urgent");
@@ -3060,12 +3178,12 @@ function updatePickCountdownDisplay() {
   const time = $("pick-time");
   const timer = $("pick-timer");
   const banner = $("pick-banner-secs");
-  const isCounting = pickTimer !== null && pickLeft !== null && pickLeft > 0;
+  const isCounting = pickLeft !== null && pickLeft > 0;
   const label = isCounting ? formatCountdown(pickLeft) : (selected.size > 0 ? "Waiting" : "Open");
   if (seconds) seconds.textContent = label;
-  if (time) time.textContent = isCounting ? `${Math.max(0, pickLeft)}` : (selected.size > 0 ? (pickLeft ? `${pickLeft}` : "30") : "30");
+  if (time) time.textContent = isCounting ? formatCountdown(pickLeft) : (selected.size > 0 ? (pickLeft ? formatCountdown(pickLeft) : "02:00") : "02:00");
   if (banner) banner.textContent = label;
-  if (timer) timer.classList.toggle("is-urgent", isCounting && pickLeft <= 5);
+  if (timer) timer.classList.toggle("is-urgent", isCounting && pickLeft <= 10);
   renderPickRoomSummary();
   updateGameWaiting();
 }

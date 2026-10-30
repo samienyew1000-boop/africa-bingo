@@ -7775,3 +7775,238 @@ body.is-dark-theme .lb-bnav-btn.is-active {
 
 
 
+
+/* Pick Room Live Tracker embedded under Topbar */
+.lb-pick-live-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fbf8f2;
+  border: 1px solid #e5dcc5;
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin: 6px 10px 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+}
+
+.lb-plt-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.lb-plt-title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.lb-plt-title {
+  font-family: Arial, -apple-system, "Segoe UI", sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  color: #2e1065;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.3px;
+  text-align: center;
+}
+
+.lb-plt-title-pill {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  background: #ede9dc;
+  color: #2e1065;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.lb-plt-info-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.lb-plt-info-box {
+  background: #fff;
+  border: 1px solid #dcd3bd;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+/* Middle box for ball stream */
+.lb-plt-middle-box {
+  background: #faf6ed;
+  border: 1px solid #dcd3bd;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lb-plt-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lb-plt-pattern {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #1e1b4b;
+}
+
+.lb-plt-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1e1b4b;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lb-plt-balls-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 6px;
+  scrollbar-width: thin;
+}
+
+.lb-plt-balls-row::-webkit-scrollbar {
+  height: 4px;
+}
+.lb-plt-balls-row::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.lb-plt-ball-latest {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff1c2, #fcd34d 40%, #f59e0b 85%);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.8);
+  border: 2px solid #fef3c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
+  color: #4338ca;
+}
+
+.lb-plt-ball {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: inset 0 -2px 3px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.6);
+}
+
+.lb-plt-ball.is-b { background: #3b82f6; }
+.lb-plt-ball.is-i { background: #ef4444; }
+.lb-plt-ball.is-n { background: #8b5cf6; }
+.lb-plt-ball.is-g { background: #f97316; }
+.lb-plt-ball.is-o { background: #eab308; }
+
+.lb-plt-footer {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #2e1065;
+  text-align: center;
+}
+
+/* Bottom banner */
+.lb-plt-banner {
+  background: #faf6ed;
+  border: 1px solid #dcd3bd;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lb-plt-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.lb-plt-banner-header-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.lb-plt-banner-symbol {
+  font-size: 14px;
+  font-weight: 900;
+  color: #2e1065;
+}
+
+.lb-plt-banner-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #2e1065;
+}
+
+.lb-plt-banner-chevron {
+  color: #4b5563;
+  transition: transform 0.2s ease;
+}
+
+.lb-plt-banner.is-collapsed .lb-plt-banner-chevron {
+  transform: rotate(-90deg);
+}
+.lb-plt-banner.is-collapsed .lb-plt-banner-content {
+  display: none;
+}
+
+.lb-plt-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 2px;
+}
+
+.lb-plt-banner-line1 {
+  font-size: 12px;
+  font-weight: 700;
+  color: #a16207;
+  line-height: 1.35;
+}
+
+.lb-plt-banner-line2 {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e1b4b;
+  line-height: 1.35;
+}
