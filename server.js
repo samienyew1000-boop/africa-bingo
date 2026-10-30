@@ -6,6 +6,8 @@ const path = require("path");
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const PUBLIC_DIR = __dirname;
 const STATE_FILE = path.join(__dirname, "game-state.json");
+const BACKUP_STATE_FILE = path.join(__dirname, "game-state.backup.json");
+const ROOT_BACKUP_FILE = "/var/backups/africa-bingo-state.json";
 const BOT_TOKEN = process.env.BOT_TOKEN || "8882887936:AAEXtkABLYGWPSC-r4tXRMAOzET9Jp21NUQ";
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://africa-bingo.ethiodeploy.com/").replace(/\/+$/, "") + "/";
 const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,Biregugsa";
@@ -67,15 +69,50 @@ let gameState = DEFAULT_STATE;
 
 function loadGameState() {
   try {
+    let fileData = null;
     if (fs.existsSync(STATE_FILE)) {
-      const data = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
-      gameState = {
-        ...DEFAULT_STATE,
-        ...data,
-        settings: { ...DEFAULT_STATE.settings, ...(data.settings || {}) },
-        users: data.users || {},
-        transactions: data.transactions || [],
-      };
+      try {
+        fileData = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
+      } catch (err) {
+        console.warn("[STATE] Corrupt game-state.json:", err.message);
+      }
+    }
+
+    // Always merge users from persistent backup files so git resets cannot wipe balances
+    let backupUsers = {};
+    let backupTxns = [];
+    [BACKUP_STATE_FILE, ROOT_BACKUP_FILE].forEach((bp) => {
+      try {
+        if (fs.existsSync(bp)) {
+          const parsed = JSON.parse(fs.readFileSync(bp, "utf-8"));
+          if (parsed && parsed.users && Object.keys(parsed.users).length > Object.keys(backupUsers).length) {
+            backupUsers = parsed.users;
+            backupTxns = parsed.transactions || [];
+          }
+        }
+      } catch (e) {}
+    });
+
+    const mergedUsers = {
+      ...backupUsers,
+      ...(fileData?.users || {}),
+    };
+
+    const mergedTxns = (fileData?.transactions && fileData.transactions.length > 0)
+      ? fileData.transactions
+      : (backupTxns.length > 0 ? backupTxns : []);
+
+    gameState = {
+      ...DEFAULT_STATE,
+      ...(fileData || {}),
+      settings: { ...DEFAULT_STATE.settings, ...(fileData?.settings || {}) },
+      users: mergedUsers,
+      transactions: mergedTxns,
+    };
+
+    if (Object.keys(backupUsers).length > Object.keys(fileData?.users || {}).length) {
+      console.log(`[STATE] Auto-recovered ${Object.keys(backupUsers).length} users from backup!`);
+      saveGameState();
     }
   } catch (e) {
     console.warn("Failed to load game-state.json:", e.message);
@@ -84,7 +121,14 @@ function loadGameState() {
 
 function saveGameState() {
   try {
-    fs.writeFileSync(STATE_FILE, JSON.stringify(gameState, null, 2), "utf-8");
+    const jsonStr = JSON.stringify(gameState, null, 2);
+    fs.writeFileSync(STATE_FILE, jsonStr, "utf-8");
+
+    // Write persistent backup whenever we have users to ensure durability
+    if (gameState.users && Object.keys(gameState.users).length > 0) {
+      try { fs.writeFileSync(BACKUP_STATE_FILE, jsonStr, "utf-8"); } catch (e) {}
+      try { fs.writeFileSync(ROOT_BACKUP_FILE, jsonStr, "utf-8"); } catch (e) {}
+    }
   } catch (e) {
     console.warn("Failed to save game-state.json:", e.message);
   }
@@ -471,6 +515,32 @@ const server = http.createServer(async (req, res) => {
 
     // 1. Get or create current user profile
     if (pathname === "/api/me") {
+      // Special protection for Admin user
+      if (user.id === "admin-1" || (user.username && user.username.toLowerCase() === "admin")) {
+        if (!gameState.users["admin-1"]) {
+          gameState.users["admin-1"] = {
+            id: "admin-1",
+            username: "admin",
+            phone: "admin",
+            first_name: "Admin",
+            role: "admin",
+            balance: 100000,
+            bonus_balance: 0,
+            bonus_claimed: 1,
+            is_verified: 1,
+            created_at: new Date().toISOString(),
+          };
+          saveGameState();
+        } else {
+          gameState.users["admin-1"].role = "admin";
+          if (typeof gameState.users["admin-1"].balance !== "number" || gameState.users["admin-1"].balance < 100) {
+            gameState.users["admin-1"].balance = 100000;
+            saveGameState();
+          }
+        }
+        return sendJson(res, gameState.users["admin-1"]);
+      }
+
       if (!gameState.users[user.id]) {
         const bonus = Number(gameState.settings?.startingBonus != null && gameState.settings?.startingBonusEnabled ? gameState.settings.startingBonus : 0);
         gameState.users[user.id] = {
@@ -569,17 +639,34 @@ const server = http.createServer(async (req, res) => {
       // Check for Admin Login
       if (phone.toLowerCase() === "admin") {
         if (password === "Ber23@ret" || password === "AF7694") {
+          let adminUser = gameState.users["admin-1"];
+          if (!adminUser) {
+            adminUser = {
+              id: "admin-1",
+              username: "admin",
+              phone: "admin",
+              first_name: "Admin",
+              role: "admin",
+              balance: 100000,
+              bonus_balance: 0,
+              bonus_claimed: 1,
+              is_verified: 1,
+              created_at: new Date().toISOString(),
+            };
+            gameState.users["admin-1"] = adminUser;
+          } else {
+            adminUser.role = "admin";
+            adminUser.username = "admin";
+            if (typeof adminUser.balance !== "number" || adminUser.balance < 100) {
+              adminUser.balance = 100000;
+            }
+          }
+          saveGameState();
           return sendJson(res, {
             ok: true,
             isAdmin: true,
             token: "admin-auth-token-valid",
-            user: {
-              id: "admin-1",
-              username: "admin",
-              first_name: "Admin",
-              role: "admin",
-              balance: 100000,
-            },
+            user: adminUser,
           });
         } else {
           return sendJson(res, { ok: false, error: "wrong_password", message: "የተሳሳተ የይለፍ ቃል። እባክዎ እንደገና ይሞክሩ።" }, 401);
