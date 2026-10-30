@@ -3528,6 +3528,46 @@ body.is-game-active #view-game {
   right: 0 !important;
 }
 
+/* Hide global top header in active game view so Leave, Refresh, Bingo buttons fit cleanly on mobile */
+body.is-game-active .lb-global-header {
+  display: none !important;
+}
+
+body.is-game-active .lb-bottom-gold-divider {
+  display: none !important;
+}
+
+body.is-game-active .lb-frame {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding-top: env(safe-area-inset-top, 0px) !important;
+  padding-bottom: 0 !important;
+}
+
+body.is-game-active .lb-main {
+  flex: 1 1 0px !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+body.is-game-active #view-game {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  flex: 1 1 0px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  padding: 3px 6px max(env(safe-area-inset-bottom, 4px), 4px) 6px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
 /* Frame constraint for mobile view on all devices */
 .lb-frame {
   position: relative;
@@ -4066,10 +4106,11 @@ body.is-game-active #view-game {
   justify-content: space-between !important;
   align-items: stretch !important;
   width: 100% !important;
-  height: 100dvh !important;
-  min-height: 100dvh !important;
-  max-height: 100dvh !important;
-  padding: 3px 6px 3px !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  flex: 1 1 0px !important;
+  padding: 3px 6px max(env(safe-area-inset-bottom, 4px), 4px) 6px !important;
   background: #bfa2d0 !important;
   color: #ffffff !important;
   overflow: hidden !important;

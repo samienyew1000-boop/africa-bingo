@@ -1026,6 +1026,11 @@ function showView(name) {
   document.body.classList.toggle("is-selection-active", name === "pick");
   document.body.classList.toggle("is-game-active", name === "game");
   document.body.classList.toggle("is-lobby-active", name === "lobby");
+
+  const globalHeader = $("global-header");
+  if (globalHeader) {
+    globalHeader.style.display = name === "game" ? "none" : "";
+  }
   if (name === "landing") {
     startDemoCardAnimation();
   } else {
