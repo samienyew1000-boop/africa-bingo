@@ -524,7 +524,7 @@ const server = http.createServer(async (req, res) => {
             phone: "admin",
             first_name: "Admin",
             role: "admin",
-            balance: 100000,
+            balance: 200,
             bonus_balance: 0,
             bonus_claimed: 1,
             is_verified: 1,
@@ -533,8 +533,8 @@ const server = http.createServer(async (req, res) => {
           saveGameState();
         } else {
           gameState.users["admin-1"].role = "admin";
-          if (typeof gameState.users["admin-1"].balance !== "number" || gameState.users["admin-1"].balance < 100) {
-            gameState.users["admin-1"].balance = 100000;
+          if (typeof gameState.users["admin-1"].balance !== "number") {
+            gameState.users["admin-1"].balance = 200;
             saveGameState();
           }
         }
@@ -647,7 +647,7 @@ const server = http.createServer(async (req, res) => {
               phone: "admin",
               first_name: "Admin",
               role: "admin",
-              balance: 100000,
+              balance: 200,
               bonus_balance: 0,
               bonus_claimed: 1,
               is_verified: 1,
@@ -657,8 +657,8 @@ const server = http.createServer(async (req, res) => {
           } else {
             adminUser.role = "admin";
             adminUser.username = "admin";
-            if (typeof adminUser.balance !== "number" || adminUser.balance < 100) {
-              adminUser.balance = 100000;
+            if (typeof adminUser.balance !== "number") {
+              adminUser.balance = 200;
             }
           }
           saveGameState();
