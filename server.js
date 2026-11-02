@@ -601,7 +601,10 @@ class LiveBingoRoom {
       }
     }
 
+    const resultId = `RES_${this.id}_R${this.roundId}_${Math.floor(Date.now() / 1000)}`;
     this.lastResult = {
+      result_id: resultId,
+      round_id: this.roundId,
       winner_id: winnerId,
       winner_name: winnerName,
       prize: prize,
@@ -612,7 +615,7 @@ class LiveBingoRoom {
 
     setTimeout(() => {
       this.resetRound();
-    }, 10000);
+    }, 14000);
   }
 
   resetRound() {
@@ -623,6 +626,7 @@ class LiveBingoRoom {
     this.calls = [];
     this.deck = [];
     this.countdownEndsAt = 0;
+    this.lastResult = null;
   }
 }
 

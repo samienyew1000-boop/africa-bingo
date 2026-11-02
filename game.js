@@ -133,6 +133,7 @@ let callPool = [];
 let callTimer = null;
 let pickTimer = null;
 let winnerTimer = null;
+const displayedResultIds = new Set();
 let roomTimer = null;
 let roomStatusTimer = null;
 let roomLifecycle = loadRoomLifecycle();
@@ -493,27 +494,38 @@ function handleServerRoomState(sState) {
   }
 
   // 5. Server reports round result (Winner announced!)
-  if (sState.last_result && !claimed) {
+  if (sState.last_result) {
     const res = sState.last_result;
-    if (res.ended_at && (Date.now() / 1000 - res.ended_at) < 12) {
-      const isMe = res.winner_id && myId && String(res.winner_id) === String(myId);
+    const resultKey = String(
+      res.result_id || `${sState.room_id || activeRoomId || "R"}_R${res.round_id || ""}_${res.ended_at || ""}`
+    );
+    const ageSeconds = res.ended_at ? Math.max(0, Date.now() / 1000 - res.ended_at) : 0;
+
+    // Show ONLY ONCE per round across all devices, and only while fresh (< 14s)
+    if (ageSeconds < 14 && !displayedResultIds.has(resultKey)) {
+      displayedResultIds.add(resultKey);
       claimed = true;
       playing = false;
       clearInterval(callTimer);
       callTimer = null;
-      if (isMe) {
-        roundOutcome = "win";
-        roundWinnerName = res.winner_name || PLAYER_NAME;
-        showRoundResult("win", roundWinnerName, "LINE", res.card_id || selected.values().next().value);
-        showWinnerOverlay("win", roundWinnerName, res.prize, res.card_id || selected.values().next().value, "LINE");
-        toast("YOU WON!", "win");
-      } else {
-        roundOutcome = "lose";
-        roundWinnerName = res.winner_name || "Opponent";
-        showRoundResult("lose", roundWinnerName, "LINE", res.card_id);
-        markLoserCards();
-        showWinnerOverlay("lose", roundWinnerName, res.prize != null ? res.prize : stake, res.card_id, "LINE");
-        toast((roundWinnerName).toUpperCase() + " WON!", "lose");
+
+      // If winner overlay is already showing for this exact round, don't restart it
+      if (!winnerTimer) {
+        const isMe = res.winner_id && myId && String(res.winner_id) === String(myId);
+        if (isMe) {
+          roundOutcome = "win";
+          roundWinnerName = res.winner_name || PLAYER_NAME;
+          showRoundResult("win", roundWinnerName, "LINE", res.card_id || selected.values().next().value);
+          showWinnerOverlay("win", roundWinnerName, res.prize, res.card_id || selected.values().next().value, "LINE");
+          toast("YOU WON!", "win");
+        } else {
+          roundOutcome = "lose";
+          roundWinnerName = res.winner_name || "Opponent";
+          showRoundResult("lose", roundWinnerName, "LINE", res.card_id);
+          markLoserCards();
+          showWinnerOverlay("lose", roundWinnerName, res.prize != null ? res.prize : stake, res.card_id, "LINE");
+          toast((roundWinnerName).toUpperCase() + " WON!", "lose");
+        }
       }
       syncProfileWithServer();
     }
@@ -3581,12 +3593,12 @@ function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kin
   renderWinnerConfetti();
   renderWinnerCard(finalCardId, new Set(called), kind);
 
-  let remaining = 7;
+  let remaining = 12; // 12 seconds winner celebration
   const hint = $("winner-overlay-hint");
   const updateCountdownDisplay = () => {
     if (seconds) seconds.textContent = String(Math.max(0, remaining));
     if (hint) {
-      if (remaining > 2) {
+      if (remaining > 3) {
         hint.innerHTML = `<span>Returning to selection in <b id="winner-overlay-seconds">${Math.max(0, remaining)}</b>s</span>`;
       } else {
         hint.innerHTML = `<span>Returning to selection in <b id="winner-overlay-seconds">${Math.max(0, remaining)}</b>s · Tap to return</span>`;
@@ -3599,8 +3611,8 @@ function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kin
   overlay.hidden = false;
 
   overlay.onclick = () => {
-    // Only allow manual dismissal when countdown is almost done (<= 2s) to prevent accidental immediate clicks
-    if (remaining <= 2) {
+    // Allow manual dismissal only when countdown is near finish (<= 3s)
+    if (remaining <= 3) {
       clearInterval(winnerTimer);
       winnerTimer = null;
       returnToCardSelection();
@@ -4252,6 +4264,7 @@ function claimBingo() {
 }
 
 function botWins() {
+  if (activeRoomId) return; // In multiplayer, server determines winner!
   if (claimed || !playing) return;
   claimed = true;
   playing = false;
