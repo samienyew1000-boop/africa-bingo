@@ -3,7 +3,7 @@
 window.LUCKY_BINGO_ADMIN = {
   "name": "Admin Africabingooo",
   "username": "@Africabingooo",
-  "phone": "+251939292694",
+  "phone": "+251918182355",
   "role": "Super administrator"
 };
 window.LUCKY_BINGO_PAYMENT_METHODS = {

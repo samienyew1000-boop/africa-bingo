@@ -5071,9 +5071,55 @@ body.is-game-active #view-game {
   box-sizing: border-box !important;
 }
 
+.lb-empty-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(5, minmax(0, 1fr)) !important;
+  gap: 3px !important;
+  width: 100% !important;
+  max-width: 260px !important;
+  aspect-ratio: 1 / 1 !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
 .lb-empty-grid .lb-cell {
+  aspect-ratio: 1 / 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  font-size: 11px !important;
+  box-sizing: border-box !important;
+}
+
+.lb-empty-grid .lb-cell.is-free {
+  background: rgba(234, 179, 8, 0.2) !important;
+  border-color: rgba(234, 179, 8, 0.5) !important;
+  color: #eab308 !important;
   font-size: 14px !important;
-  border-radius: 6px !important;
+}
+
+.lb-empty-pick-btn {
+  margin-top: 8px !important;
+  padding: 8px 16px !important;
+  background: linear-gradient(135deg, #f97316, #ea580c) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4) !important;
+  transition: transform 0.1s ease !important;
+}
+
+.lb-empty-pick-btn:active {
+  transform: scale(0.96) !important;
 }
 
 /* Empty Cartela Overlay Notice (Image 2) */

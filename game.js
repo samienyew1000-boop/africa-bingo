@@ -4722,6 +4722,9 @@ function bind() {
   $("game-leave-btn")?.addEventListener("click", () => {
     leaveGame();
   });
+  $("empty-pick-action-btn")?.addEventListener("click", () => {
+    returnToCardSelection();
+  });
   $("game-refresh-btn")?.addEventListener("click", () => {
     syncProfileWithServer();
     renderMineCards();

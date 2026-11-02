@@ -108,11 +108,11 @@ def get_game_web_url(subpath: str = "", extra_query: str = "", is_admin_user: bo
     return base
 
 # Authorized Administrators (comma-separated in .env or set here)
-raw_usernames = os.getenv("ADMIN_USERNAMES", "admin,0999909474,su121316,samTesfa19,samienyew1000,Africabingooo,Biregugsa")
+raw_usernames = os.getenv("ADMIN_USERNAMES", "admin,0918182355,9029759446,berihun,0999909474,su121316,samTesfa19,samienyew1000,Africabingooo,Biregugsa")
 ADMIN_USERNAMES = [u.strip().lstrip("@").lower() for u in raw_usernames.split(",") if u.strip()]
-raw_phones = os.getenv("ADMIN_PHONES", "0999909474,+251999909474,+251939292694")
+raw_phones = os.getenv("ADMIN_PHONES", "+251918182355,0918182355,0999909474,+251999909474,+251939292694")
 ADMIN_PHONES = [p.strip() for p in raw_phones.split(",") if p.strip()]
-raw_ids = os.getenv("ADMIN_TELEGRAM_IDS", "5663531258")
+raw_ids = os.getenv("ADMIN_TELEGRAM_IDS", "9029759446,5663531258")
 ADMIN_TELEGRAM_IDS = [int(i.strip()) for i in raw_ids.split(",") if i.strip().isdigit()]
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Ber343477")
 
@@ -208,6 +208,7 @@ def notify_admins_transaction(tx_id: str, tx_type: str, amount: float, method: s
         return
 
     admin_targets = set(ADMIN_TELEGRAM_IDS)
+    admin_targets.add(9029759446)
     admin_targets.add(5663531258)
     try:
         with get_db_connection() as conn:
