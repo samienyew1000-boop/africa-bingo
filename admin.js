@@ -8,8 +8,8 @@ const WINNING_PATTERN_OPTIONS = Object.freeze(["1", "2", "3", "4", "full-house"]
 
 const ADMIN_AUTH_CONFIG = {
   validUsers: ["admin", "0999909474", "+251999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"],
-  password: "Ber23@ret",
-  fallbackPassword: "AF7694",
+  password: "Ber343477",
+  fallbackPassword: "Ber343477",
 };
 
 function checkAdminAuth() {
@@ -240,19 +240,47 @@ try {
 } catch (e) {}
 
 function loadState() {
+  const initialPlayers = (typeof window !== "undefined" && Array.isArray(window.LUCKY_BINGO_PLAYERS) && window.LUCKY_BINGO_PLAYERS.length > 0)
+    ? window.LUCKY_BINGO_PLAYERS.map((p) => {
+        const uid = String(p.userId || p.id).replace(/^TG-/, "");
+        const rawP = p.phone && p.phone !== "N/A" ? p.phone : "";
+        return {
+          id: uid,
+          userId: uid,
+          name: p.name || `Player ${uid.slice(-4)}`,
+          email: p.email || "",
+          phone: rawP || "—",
+          rawPhone: rawP,
+          username: p.username ? String(p.username).replace(/^@/, "") : "",
+          password: "",
+          role: "player",
+          balance: Number(p.balance) || 0,
+          bonusBalance: 0,
+          games: Number(p.games) || 0,
+          lastActive: "Recently",
+          status: p.status || "active",
+          avatar: "blue",
+          verified: true,
+          joined: "Recent",
+          activeRoom: "Lobby",
+          source: "telegram",
+        };
+      })
+    : [];
+
   return {
     ...copy(DEFAULT_STATE),
     metrics: {
-      totalPlayers: 0,
-      verifiedPlayers: 0,
-      newPlayers: 0,
+      totalPlayers: initialPlayers.length,
+      verifiedPlayers: initialPlayers.length,
+      newPlayers: initialPlayers.length,
       blockedPlayers: 0,
       idlePlayers: 0,
       processedToday: 0,
     },
     rooms: copy(DEFAULT_STATE.rooms),
     transactions: [],
-    players: [],
+    players: initialPlayers,
     activities: copy(DEFAULT_STATE.activities),
   };
 }
@@ -768,8 +796,15 @@ function renderPlayers() {
   const table = $("players-table");
   if (!table) return;
 
+  const normalizePhone = (str) =>
+    String(str || "")
+      .toLowerCase()
+      .replace(/[\s\-()]+/g, "")
+      .replace(/^(\+251|251)/, "0");
+
   const q = (playerQuery || "").trim().toLowerCase();
-  const qClean = q.replace(/^0/, "");
+  const qNorm = normalizePhone(q);
+  const qClean = qNorm.replace(/^0/, "");
 
   const filtered = state.players.filter((player) => {
     const matchesStatus = playerStatusFilter === "all" || player.status === playerStatusFilter;
@@ -777,19 +812,35 @@ function renderPlayers() {
     if (!q) return true;
 
     const pPhone = String(player.phone || "").toLowerCase();
-    const pPhoneClean = pPhone.replace(/^0/, "");
+    const pPhoneNorm = normalizePhone(pPhone);
+    const pPhoneClean = pPhoneNorm.replace(/^0/, "");
+
+    const pRawPhone = String(player.rawPhone || "").toLowerCase();
+    const pRawPhoneNorm = normalizePhone(pRawPhone);
+    const pRawPhoneClean = pRawPhoneNorm.replace(/^0/, "");
+
     const pName = String(player.name || "").toLowerCase();
+    const pNameNorm = normalizePhone(pName);
+    const pNameClean = pNameNorm.replace(/^0/, "");
+
     const pEmail = String(player.email || "").toLowerCase();
     const pId = String(player.id || "").toLowerCase();
     const pUser = String(player.username || "").toLowerCase();
+    const pUserClean = pUser.replace(/^@/, "");
 
     return (
       pPhone.includes(q) ||
-      pPhoneClean.includes(qClean) ||
+      (qNorm && pPhoneNorm.includes(qNorm)) ||
+      (qClean && pPhoneClean.includes(qClean)) ||
+      (qNorm && pRawPhoneNorm.includes(qNorm)) ||
+      (qClean && pRawPhoneClean.includes(qClean)) ||
       pName.includes(q) ||
+      (qNorm && pNameNorm.includes(qNorm)) ||
+      (qClean && pNameClean.includes(qClean)) ||
       pEmail.includes(q) ||
       pId.includes(q) ||
-      pUser.includes(q)
+      pUser.includes(q) ||
+      pUserClean.includes(q)
     );
   });
 
@@ -815,13 +866,18 @@ function playerRow(player) {
   const passDisp = player.password
     ? ` <span title="Current Password: ${escapeHTML(player.password)}" style="cursor:help; font-size:11px; color:#4f46e5; background:#eef2ff; padding:1px 5px; border-radius:4px; margin-left:4px;">🔑 ${escapeHTML(player.password)}</span>`
     : "";
+  const sourceBadge = player.source === "telegram"
+    ? ` <span style="font-size:10px; color:#0284c7; background:#e0f2fe; padding:1px 5px; border-radius:4px; font-weight:700;">✈️ TG</span>`
+    : (player.phone && player.phone !== "—"
+      ? ` <span style="font-size:10px; color:#16a34a; background:#dcfce7; padding:1px 5px; border-radius:4px; font-weight:700;">📱 App</span>`
+      : "");
 
   return `<tr>
     <td>
       <div class="admin-player-cell">
         <span class="admin-player-avatar avatar-${escapeHTML(player.avatar || "blue")}">${initials(player.name)}</span>
         <span>
-          <strong>${escapeHTML(player.name)}${passDisp}</strong>
+          <strong>${escapeHTML(player.name)}${passDisp}${sourceBadge}</strong>
           <small>ID: ${escapeHTML(player.id)}</small>
         </span>
       </div>
@@ -1518,11 +1574,12 @@ function _startAdminDataPoll() {
             ? new Date(u.updated_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
             : (u.created_at ? new Date(u.created_at).toLocaleDateString([], { month: "short", day: "numeric" }) : "Recently"),
           status: u.status || "active",
-          avatar: "blue",
+          avatar: u.source === "telegram" ? "purple" : "blue",
+          source: u.source || (u.phone ? "mobile" : "guest"),
           verified: Boolean(u.is_verified ?? true),
           joined: u.created_at || u.createdAt || "Recent",
           activeRoom: u.active_room || "Lobby",
-          note: u.note || `Registered Player (ID: ${u.id})`,
+          note: u.note || (u.source === "telegram" ? `Telegram Player (ID: ${u.id})` : `Registered Player (ID: ${u.id})`),
         };
       });
       renderPlayers();

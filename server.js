@@ -13,6 +13,7 @@ const WEB_APP_URL = (process.env.WEB_APP_URL || "https://africa-bingo.ethiodeplo
 const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,Biregugsa";
 const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
 const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "5663531258,0999909474";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Ber343477";
 const ADMIN_IDS = rawAdminIds.split(",").map((id) => id.trim()).filter(Boolean);
 
 const MIME_TYPES = {
@@ -135,7 +136,144 @@ function saveGameState() {
   }
 }
 
+
+// Synchronize registered users from SQLite lucky_bingo.db / players.json
+let lastDbSyncTime = 0;
+function syncFromSQLite(force = false) {
+  const now = Date.now();
+  if (!force && now - lastDbSyncTime < 15000) return;
+  lastDbSyncTime = now;
+
+  let updated = false;
+
+  // 1. Fix user 9266193525 (who entered their phone 0939292694 in the Name field)
+  if (gameState.users["9266193525"]) {
+    const u = gameState.users["9266193525"];
+    if (u.phone === "1234567890" || u.name === "0939292694" || u.first_name === "0939292694") {
+      u.phone = "0939292694";
+      u.username = "0939292694";
+      u.first_name = "Player 2694";
+      u.name = "Player 2694";
+      updated = true;
+    }
+  }
+
+  // 2. Read lucky_bingo.db via python
+  const dbPaths = [
+    "/var/www/lucky-bingo/data/lucky_bingo.db",
+    path.join(__dirname, "data", "africa_bingo.db"),
+    path.join(__dirname, "data", "lucky_bingo.db"),
+  ];
+  const dbPath = dbPaths.find((p) => fs.existsSync(p));
+
+  if (dbPath) {
+    try {
+      const { execSync } = require("child_process");
+      const pyCmd = `python3 -c "import sqlite3, json; conn = sqlite3.connect('${dbPath}'); conn.row_factory = sqlite3.Row; c = conn.cursor(); rows = [dict(r) for r in c.execute('SELECT * FROM users').fetchall()]; print(json.dumps(rows))"`;
+      const out = execSync(pyCmd, { encoding: "utf-8", timeout: 4000 });
+      const dbUsers = JSON.parse(out);
+
+      for (const r of dbUsers) {
+        const uid = String(r.id);
+        const uname = String(r.username || "").trim();
+        const fname = String(r.first_name || "").trim();
+        const lname = String(r.last_name || "").trim();
+        const fullName = [fname, lname].filter(Boolean).join(" ") ||
+          (uname ? (uname.startsWith("@") ? uname : "@" + uname) : `Player ${uid.slice(-4)}`);
+
+        let phone = String(r.phone_number || "").trim().replace(/[\s\-()]+/g, "");
+        if (!phone && (/^(?:\+251|251|0)?[97]\d{8}$/.test(uname))) {
+          phone = uname;
+        }
+        if (phone.startsWith("+251")) phone = "0" + phone.slice(4);
+        else if (phone.startsWith("251")) phone = "0" + phone.slice(3);
+        else if (phone.startsWith("9") && phone.length === 9) phone = "0" + phone;
+        else if (phone.startsWith("7") && phone.length === 9) phone = "0" + phone;
+
+        if (!gameState.users[uid]) {
+          gameState.users[uid] = {
+            id: uid,
+            phone: phone || null,
+            username: uname || uid,
+            first_name: fullName,
+            name: fullName,
+            password: "",
+            avatar: "TG",
+            balance: Number(r.balance) || 0,
+            bonus_balance: Number(r.bonus_balance) || 0,
+            bonus_claimed: Number(r.bonus_claimed) || 1,
+            role: r.role || "player",
+            is_verified: Number(r.is_verified) || 1,
+            status: r.status || "active",
+            created_at: r.registered_at || new Date().toISOString(),
+            source: "telegram",
+          };
+          updated = true;
+        } else {
+          if (!gameState.users[uid].phone && phone) {
+            gameState.users[uid].phone = phone;
+            updated = true;
+          }
+          if (!gameState.users[uid].first_name || gameState.users[uid].first_name.startsWith("@")) {
+            if (fullName && !fullName.startsWith("@")) {
+              gameState.users[uid].first_name = fullName;
+              gameState.users[uid].name = fullName;
+              updated = true;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[STATE] Error reading lucky_bingo.db:", err.message);
+    }
+  }
+
+  // 3. Fallback: Also check players.json if present
+  const playersJsonPaths = [
+    "/var/www/lucky-bingo/data/players.json",
+    path.join(__dirname, "data", "players.json"),
+  ];
+  const pJsonPath = playersJsonPaths.find((p) => fs.existsSync(p));
+  if (pJsonPath) {
+    try {
+      const pData = JSON.parse(fs.readFileSync(pJsonPath, "utf-8"));
+      const pList = pData.players || [];
+      for (const p of pList) {
+        const uid = String(p.userId || p.id).replace(/^TG-/, "");
+        if (!gameState.users[uid]) {
+          let phone = String(p.phone || "").trim();
+          if (phone === "N/A" || phone === "—") phone = "";
+          gameState.users[uid] = {
+            id: uid,
+            phone: phone || null,
+            username: String(p.username || "").replace(/^@/, ""),
+            first_name: p.name || `Player ${uid.slice(-4)}`,
+            name: p.name || `Player ${uid.slice(-4)}`,
+            password: "",
+            avatar: "TG",
+            balance: Number(p.balance) || 0,
+            bonus_balance: 0,
+            bonus_claimed: 1,
+            role: "player",
+            is_verified: 1,
+            status: p.status || "active",
+            created_at: new Date().toISOString(),
+            source: "telegram",
+          };
+          updated = true;
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (updated) {
+    saveGameState();
+    console.log(`[STATE] Synchronized users from external DB/JSON. Total users: ${Object.keys(gameState.users).length}`);
+  }
+}
+
 loadGameState();
+syncFromSQLite(true);
 
 // Load 1000 bingo cards from card number.json
 const CARDS_FILE = path.join(__dirname, "card number.json");
@@ -605,16 +743,26 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/auth/register-mobile" && req.method === "POST") {
       const body = await parseJsonBody(req);
       let phone = String(body.phone || "").trim().replace(/[\s\-()]+/g, "");
-      const fullName = String(body.name || body.fullName || body.nickname || "").trim();
+      let fullName = String(body.name || body.fullName || body.nickname || "").trim();
       const password = String(body.password || "").trim();
       const avatar = String(body.avatar || "").trim();
 
-      if (!phone || phone.length < 9) {
-        return sendJson(res, { ok: false, error: "invalid_phone", message: "ትክክለኛ ስልክ ቁጥር ያስገቡ" }, 400);
+      // Smart check: Did the user type their phone number in the Full Name field?
+      const isEthiopianPhone = (p) => /^(?:\+251|251|0)?[97]\d{8}$/.test(String(p || "").replace(/[\s\-()]+/g, ""));
+      if (!isEthiopianPhone(phone) && isEthiopianPhone(fullName)) {
+        const temp = phone;
+        phone = fullName.replace(/[\s\-()]+/g, "");
+        fullName = isEthiopianPhone(temp) ? "" : temp;
       }
 
       if (phone.startsWith("+251")) phone = "0" + phone.slice(4);
       else if (phone.startsWith("251")) phone = "0" + phone.slice(3);
+      else if (phone.startsWith("9") && phone.length === 9) phone = "0" + phone;
+      else if (phone.startsWith("7") && phone.length === 9) phone = "0" + phone;
+
+      if (!phone || phone.length < 9) {
+        return sendJson(res, { ok: false, error: "invalid_phone", message: "ትክክለኛ ስልክ ቁጥር ያስገቡ" }, 400);
+      }
 
       // Check if user with this phone already exists in gameState.users
       let existingUser = Object.values(gameState.users).find(
@@ -622,18 +770,31 @@ const server = http.createServer(async (req, res) => {
       );
 
       if (existingUser) {
+        // If account exists from Telegram sync without a password, link & set their password
+        if (!existingUser.password) {
+          existingUser.password = password;
+          if (fullName && (!existingUser.first_name || existingUser.first_name.startsWith("@") || existingUser.first_name.startsWith("Player "))) {
+            existingUser.first_name = fullName;
+            existingUser.name = fullName;
+          }
+          if (avatar) existingUser.avatar = avatar;
+          existingUser.is_verified = 1;
+          saveGameState();
+          return sendJson(res, { ok: true, user: existingUser, isNew: false, bonusGranted: false });
+        }
         return sendJson(res, { ok: false, error: "already_exists", message: "ይህ ስልክ ቁጥር ቀድሞ ተመዝግቧል፤ እባክዎ ይግቡ (Login)።" });
       }
 
       // Generate unique user id
       const userId = String(Math.floor(9000000000 + Math.random() * 999999999));
       const bonus = Number(gameState.settings?.startingBonus != null ? gameState.settings.startingBonus : 10);
+      const dispName = fullName || `Player ${phone.slice(-4)}`;
       const newUser = {
         id: userId,
         phone: phone,
         username: phone,
-        first_name: fullName || `Player ${phone.slice(-4)}`,
-        name: fullName || `Player ${phone.slice(-4)}`,
+        first_name: dispName,
+        name: dispName,
         password: password,
         avatar: avatar || "AB",
         balance: bonus,
@@ -642,6 +803,7 @@ const server = http.createServer(async (req, res) => {
         role: "player",
         is_verified: 1,
         created_at: new Date().toISOString(),
+        source: "mobile",
       };
 
       gameState.users[userId] = newUser;
@@ -680,7 +842,7 @@ const server = http.createServer(async (req, res) => {
 
       // Check for Admin Login
       if (phone.toLowerCase() === "admin") {
-        if (password === "Ber23@ret" || password === "AF7694") {
+        if (password === ADMIN_PASSWORD || password === "Ber343477" || password === "Ber23@ret") {
           let adminUser = gameState.users["admin-1"];
           if (!adminUser) {
             adminUser = {
@@ -817,12 +979,19 @@ const server = http.createServer(async (req, res) => {
 
     // 4. Admin Overview (Live feed of rooms, transactions, players, settings)
     if (pathname === "/api/admin/overview") {
+      syncFromSQLite();
       const pendingCount = gameState.transactions.filter((t) => t.status === "pending").length;
       const approvedTotal = gameState.transactions
         .filter((t) => t.status === "approved" || t.status === "completed")
         .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
       const usersList = Object.values(gameState.users);
+      usersList.sort((a, b) => {
+        const aScore = (a.phone ? 2 : 0) + (a.password ? 1 : 0) + (a.source === "telegram" ? 1 : 0);
+        const bScore = (b.phone ? 2 : 0) + (b.password ? 1 : 0) + (b.source === "telegram" ? 1 : 0);
+        if (bScore !== aScore) return bScore - aScore;
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      });
       const roomsOverview = Object.values(activeRooms).map(r => r.getState());
       const totalPlayers = usersList.length;
       const verifiedPlayers = usersList.filter(u => u.is_verified).length || totalPlayers;
@@ -879,7 +1048,7 @@ const server = http.createServer(async (req, res) => {
       const username = String(body.username || "").trim().toLowerCase();
       const password = String(body.password || "").trim();
       const validAdminUsers = ["admin", "0999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"];
-      if (validAdminUsers.includes(username) && (password === "Ber23@ret" || password === "AF7694")) {
+      if (validAdminUsers.includes(username) && (password === ADMIN_PASSWORD || password === "Ber343477" || password === "Ber23@ret")) {
         return sendJson(res, { ok: true, token: "admin-auth-token-valid", username: "admin" });
       }
       return sendJson(res, { ok: false, error: "Invalid credentials" }, 401);

@@ -937,26 +937,7 @@
                 </div>
 
                 <form id="mobile-register-form" novalidate>
-                  <!-- Full Name -->
-                  <div class="lb-form-field">
-                    <label class="lb-field-label" for="reg-name-input">ሙሉ ስም</label>
-                    <div class="lb-input-wrap">
-                      <span class="lb-input-icon">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                        </svg>
-                      </span>
-                      <input
-                        type="text"
-                        id="reg-name-input"
-                        name="name"
-                        placeholder="ሙሉ ስም"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <!-- Phone Number -->
+                  <!-- Phone Number (First & Primary) -->
                   <div class="lb-form-field">
                     <label class="lb-field-label" for="reg-phone-input">ስልክ ቁጥር</label>
                     <div class="lb-input-wrap">
@@ -969,10 +950,28 @@
                         type="tel"
                         id="reg-phone-input"
                         name="phone"
-                        placeholder="091*******"
+                        placeholder="091******* ወይም 07********"
                         inputmode="tel"
                         autocomplete="tel"
                         required
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Full Name (Optional / Secondary) -->
+                  <div class="lb-form-field">
+                    <label class="lb-field-label" for="reg-name-input">ሙሉ ስም (የተጫዋች ስም)</label>
+                    <div class="lb-input-wrap">
+                      <span class="lb-input-icon">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        </svg>
+                      </span>
+                      <input
+                        type="text"
+                        id="reg-name-input"
+                        name="name"
+                        placeholder="ሙሉ ስምዎን ያስገቡ"
                       />
                     </div>
                   </div>

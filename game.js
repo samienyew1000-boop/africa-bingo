@@ -1707,7 +1707,7 @@ function setupMobileAuthEvents() {
 
     // Direct Admin Login Handling
     if (isAdminLogin) {
-      if (password === "Ber23@ret" || password === "AF7694") {
+      if (password === "Ber343477" || password === "Ber23@ret" || password === "AF7694") {
         if (submitBtn) submitBtn.disabled = true;
         sessionStorage.setItem("lb_admin_auth", "true");
         sessionStorage.setItem("lb_admin_password", password);
@@ -1832,13 +1832,12 @@ function setupMobileAuthEvents() {
     let password = pwdInput ? pwdInput.value.trim() : "";
     let confirmPassword = confirmPwdInput ? confirmPwdInput.value.trim() : "";
 
-    if (!name) {
-      if (statusMsg) {
-        statusMsg.textContent = "እባክዎ ሙሉ ስምዎን ያስገቡ";
-        statusMsg.className = "lb-auth-status is-error";
-        statusMsg.hidden = false;
-      }
-      return;
+    // If user typed phone number in the name input by mistake, swap them!
+    const isPhonePattern = (p) => /^(?:\+251|251|0)?[97]\d{8}$/.test(p.replace(/[\s\-()]+/g, ""));
+    if (!isPhonePattern(phone) && isPhonePattern(name)) {
+      const temp = phone;
+      phone = name.replace(/[\s\-()]+/g, "");
+      name = isPhonePattern(temp) ? "" : temp;
     }
 
     if (!phone) {
@@ -1848,6 +1847,10 @@ function setupMobileAuthEvents() {
         statusMsg.hidden = false;
       }
       return;
+    }
+
+    if (!name) {
+      name = `Player ${phone.slice(-4)}`;
     }
 
     if (phone.startsWith("+251")) phone = "0" + phone.slice(4);
