@@ -8056,3 +8056,82 @@ body.is-dark-theme .lb-bnav-btn.is-active {
   color: #1e1b4b;
   line-height: 1.35;
 }
+
+/* ============================================================
+   DEVELOPER / SYSTEM SALES PROMO BANNER (RED & BLINKING)
+   ============================================================ */
+@keyframes lb-dev-blink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.45);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.985);
+    box-shadow: 0 0 2px rgba(239, 68, 68, 0.1);
+  }
+}
+
+.lb-dev-promo-box {
+  display: block !important;
+  margin: 18px auto 10px auto !important;
+  padding: 8px 12px !important;
+  width: calc(100% - 24px) !important;
+  max-width: 440px !important;
+  background: rgba(254, 242, 242, 0.95) !important;
+  border: 1.5px dashed #ef4444 !important;
+  border-radius: 12px !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+  animation: lb-dev-blink 1.4s ease-in-out infinite !important;
+  cursor: pointer !important;
+  flex: 0 0 auto !important;
+}
+
+.lb-dev-promo-link {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+  gap: 4px 6px !important;
+  text-decoration: none !important;
+  color: #dc2626 !important;
+  font-family: Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1.35 !important;
+}
+
+.lb-dev-promo-icon {
+  font-size: 14px !important;
+  display: inline-block !important;
+}
+
+.lb-dev-promo-phone {
+  color: #b91c1c !important;
+  font-family: monospace, Arial, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.5px !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+  padding: 2px 7px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  white-space: nowrap !important;
+}
+
+body.is-dark-theme .lb-dev-promo-box {
+  background: rgba(45, 12, 18, 0.92) !important;
+  border-color: #ef4444 !important;
+}
+
+body.is-dark-theme .lb-dev-promo-link {
+  color: #f87171 !important;
+}
+
+body.is-dark-theme .lb-dev-promo-phone {
+  color: #fecaca !important;
+  background: rgba(239, 68, 68, 0.28) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+}
