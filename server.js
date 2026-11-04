@@ -152,22 +152,26 @@ function cleanPhone(p) {
 
 function updateSqliteUserBalance(userId, newBalance) {
   const dbPaths = [
+    "/var/www/africa-bingo/data/africa_bingo.db",
     "/var/www/lucky-bingo/data/lucky_bingo.db",
     path.join(__dirname, "data", "africa_bingo.db"),
     path.join(__dirname, "data", "lucky_bingo.db"),
   ];
-  const dbPath = dbPaths.find((p) => fs.existsSync(p));
-  if (!dbPath) return;
 
   try {
     const { exec } = require("child_process");
     const numBal = Math.max(0, Math.round(Number(newBalance) * 100) / 100);
     const cleanId = String(userId).replace(/['"\\;]/g, "");
     const last9 = cleanId.slice(-9);
-    const pyScript = `python3 -c "import sqlite3; conn = sqlite3.connect('${dbPath}'); c = conn.cursor(); c.execute('UPDATE users SET balance = ${numBal} WHERE id = \\"${cleanId}\\" OR phone_number LIKE \\"%${last9}\\"'); conn.commit(); conn.close()"`;
-    exec(pyScript, (err) => {
-      if (err) console.warn("[DB] Failed to update balance in SQLite:", err.message);
-    });
+
+    for (const dbPath of dbPaths) {
+      if (fs.existsSync(dbPath)) {
+        const pyScript = `python3 -c "import sqlite3; conn = sqlite3.connect('${dbPath}'); c = conn.cursor(); c.execute('UPDATE users SET balance = ${numBal} WHERE id = \\"${cleanId}\\" OR phone_number LIKE \\"%${last9}\\"'); conn.commit(); conn.close()"`;
+        exec(pyScript, (err) => {
+          if (err) console.warn("[DB] Failed to update balance in SQLite:", err.message);
+        });
+      }
+    }
   } catch (e) {
     console.warn("[DB] SQLite balance update error:", e.message);
   }
@@ -1025,6 +1029,10 @@ const server = http.createServer(async (req, res) => {
         targetUser.balance = Math.max(0, (Number(targetUser.balance) || 0) - amount);
         targetUser.updated_at = new Date().toISOString();
         updateSqliteUserBalance(targetUser.id, targetUser.balance);
+        if (targetUser.phone) updateSqliteUserBalance(targetUser.phone, targetUser.balance);
+        if (activeUser.id && gameState.users[activeUser.id]) {
+          gameState.users[activeUser.id].balance = targetUser.balance;
+        }
       }
 
       const txId = `WTH-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;

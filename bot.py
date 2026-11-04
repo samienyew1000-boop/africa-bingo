@@ -2229,6 +2229,9 @@ def update_admin_transaction(tx_id: str, action: str) -> Dict[str, Any]:
         if action == 'approve':
             if tx_type == 'deposit':
                 cursor.execute('UPDATE users SET balance = balance + ? WHERE id = ?', (amount, user_id))
+            elif tx_type == 'withdraw':
+                # Ensure balance is deducted in SQLite if not already deducted
+                cursor.execute('UPDATE users SET balance = MAX(0, balance - ?) WHERE (id = ? OR phone_number LIKE ?) AND balance >= ?', (amount, user_id, f"%{str(user_id)[-9:]}", amount))
             cursor.execute('UPDATE transactions SET status = ? WHERE id = ?', ('approved', tx_id))
             conn.commit()
             export_admin_players()
