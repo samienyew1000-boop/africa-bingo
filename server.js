@@ -139,6 +139,40 @@ function saveGameState() {
 
 // Synchronize registered users from SQLite lucky_bingo.db / players.json
 let lastDbSyncTime = 0;
+
+function cleanPhone(p) {
+  if (!p) return "";
+  let phone = String(p).trim().replace(/[\s\-()]+/g, "");
+  if (phone.startsWith("+251")) phone = "0" + phone.slice(4);
+  else if (phone.startsWith("251")) phone = "0" + phone.slice(3);
+  else if (phone.startsWith("9") && phone.length === 9) phone = "0" + phone;
+  else if (phone.startsWith("7") && phone.length === 9) phone = "0" + phone;
+  return phone;
+}
+
+function updateSqliteUserBalance(userId, newBalance) {
+  const dbPaths = [
+    "/var/www/lucky-bingo/data/lucky_bingo.db",
+    path.join(__dirname, "data", "africa_bingo.db"),
+    path.join(__dirname, "data", "lucky_bingo.db"),
+  ];
+  const dbPath = dbPaths.find((p) => fs.existsSync(p));
+  if (!dbPath) return;
+
+  try {
+    const { exec } = require("child_process");
+    const numBal = Math.max(0, Math.round(Number(newBalance) * 100) / 100);
+    const cleanId = String(userId).replace(/['"\\;]/g, "");
+    const last9 = cleanId.slice(-9);
+    const pyScript = `python3 -c "import sqlite3; conn = sqlite3.connect('${dbPath}'); c = conn.cursor(); c.execute('UPDATE users SET balance = ${numBal} WHERE id = \\"${cleanId}\\" OR phone_number LIKE \\"%${last9}\\"'); conn.commit(); conn.close()"`;
+    exec(pyScript, (err) => {
+      if (err) console.warn("[DB] Failed to update balance in SQLite:", err.message);
+    });
+  } catch (e) {
+    console.warn("[DB] SQLite balance update error:", e.message);
+  }
+}
+
 function syncFromSQLite(force = false) {
   const now = Date.now();
   if (!force && now - lastDbSyncTime < 15000) return;
@@ -951,34 +985,76 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, { ok: true, id: txId, status: "pending" });
     }
 
-    // 3. Submit Withdrawal Request
+    // 3. Submit Withdrawal Request (Deducts balance immediately upon submission)
     if (pathname === "/api/withdraw" && req.method === "POST") {
       const body = await parseJsonBody(req);
+      const activeUser = (body && body.user_id) ? getUserFromHeaders(req, body) : user;
       const amount = Number(body.amount) || 0;
       const method = body.method || "Telebirr";
-      const phone = body.phone || "";
+      const phone = cleanPhone(body.phone || activeUser.username || "");
+
+      if (amount <= 0) {
+        return sendJson(res, { ok: false, error: "ትክክለኛ የገንዘብ መጠን ያስገቡ (Invalid amount)" }, 400);
+      }
+      if (amount < 50) {
+        return sendJson(res, { ok: false, error: "ዝቅተኛው የማውጣት መጠን 50 ብር ነው (Minimum withdrawal is 50 ETB)" }, 400);
+      }
+
+      // Find user in gameState
+      let targetUser = gameState.users[activeUser.id];
+      if (!targetUser && body.user_id) {
+        targetUser = gameState.users[body.user_id];
+      }
+      if (!targetUser) {
+        targetUser = Object.values(gameState.users).find(
+          (u) => (u.id && (String(u.id) === String(activeUser.id) || (body.user_id && String(u.id) === String(body.user_id)))) ||
+                 (phone && u.phone && cleanPhone(u.phone) === phone) ||
+                 (activeUser.username && u.username && u.username.toLowerCase() === activeUser.username.toLowerCase())
+        );
+      }
+
+      if (targetUser && (Number(targetUser.balance) || 0) < amount) {
+        return sendJson(res, {
+          ok: false,
+          error: `ያለዎት ቀሪ ሂሳብ ${targetUser.balance} ETB ነው። ${amount} ETB ማውጣት አይቻልም። (Insufficient balance)`
+        }, 400);
+      }
+
+      // Deduct from player balance immediately upon request
+      if (targetUser) {
+        targetUser.balance = Math.max(0, (Number(targetUser.balance) || 0) - amount);
+        targetUser.updated_at = new Date().toISOString();
+        updateSqliteUserBalance(targetUser.id, targetUser.balance);
+      }
 
       const txId = `WTH-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
       const newTx = {
         id: txId,
-        playerId: `LB-${String(user.id).slice(-5)}`,
-        user_id: user.id,
-        player: user.name,
-        phone: phone,
+        playerId: `LB-${String(targetUser ? targetUser.id : activeUser.id).slice(-5)}`,
+        user_id: targetUser ? targetUser.id : activeUser.id,
+        player: targetUser ? (targetUser.name || targetUser.first_name || activeUser.name) : activeUser.name,
+        phone: phone || (targetUser ? targetUser.phone : ""),
         type: "withdraw",
         method: method,
         amount: amount,
         requested: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         status: "pending",
+        heldFromBalance: true,
+        deducted: true,
         created_at: new Date().toISOString(),
       };
 
       gameState.transactions.unshift(newTx);
       saveGameState();
 
-      notifyTelegramAdmin(`📤 *የገንዘብ ማውጣት ጥያቄ (New Withdrawal Request)*\n\n👤 *ተጫዋች:* ${user.name}\n💰 *መጠን:* \`${amount} ETB\`\n📱 *ስልክ:* \`${phone}\`\n🏦 *መንገድ:* ${method}\n\n✅ ለማጽደቅ: ${WEB_APP_URL}admin.html`);
+      notifyTelegramAdmin(`📤 *የገንዘብ ማውጣት ጥያቄ (New Withdrawal Request)*\n\n👤 *ተጫዋች:* ${newTx.player}\n💰 *መጠን:* \`${amount} ETB\`\n📱 *ስልክ:* \`${newTx.phone}\`\n🏦 *መንገድ:* ${method}\n\n✅ ለማጽደቅ: ${WEB_APP_URL}admin.html`);
 
-      return sendJson(res, { ok: true, id: txId, status: "pending" });
+      return sendJson(res, {
+        ok: true,
+        id: txId,
+        status: "pending",
+        balance: targetUser ? targetUser.balance : 0
+      });
     }
 
     // 4. Admin Overview (Live feed of rooms, transactions, players, settings)
@@ -1020,7 +1096,7 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // 5. Admin Approve / Reject Transaction
+    // 5. Admin Approve / Reject Transaction (Deducts balance for withdraw, refunds on reject)
     if ((pathname === "/api/admin/transaction/update" || pathname === "/api/admin/transaction") && req.method === "POST") {
       const body = await parseJsonBody(req);
       const txId = body.id || body.tx_id;
@@ -1031,17 +1107,78 @@ const server = http.createServer(async (req, res) => {
         tx.status = action === "approve" ? "approved" : "rejected";
         tx.processedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-        // If deposit approved, credit the user balance
+        // Find target user with flexible matching
+        let targetUser = tx.user_id ? gameState.users[tx.user_id] : null;
+        if (!targetUser) {
+          const cleanTxPhone = cleanPhone(tx.phone);
+          targetUser = Object.values(gameState.users).find(
+            (u) => (tx.user_id && String(u.id) === String(tx.user_id)) ||
+                   (cleanTxPhone && u.phone && cleanPhone(u.phone) === cleanTxPhone) ||
+                   (tx.playerId && String(u.id).endsWith(String(tx.playerId).replace(/\D/g, ""))) ||
+                   (tx.player && (u.name === tx.player || u.first_name === tx.player || u.username === tx.player))
+          );
+        }
+
+        // DEPOSIT APPROVAL: Credit amount + 20% bonus
         if (action === "approve" && tx.type === "deposit") {
           const bonus = tx.amount >= 100 ? Math.floor(tx.amount * 0.2) : 0;
           const totalCredit = tx.amount + bonus;
-          if (tx.user_id && gameState.users[tx.user_id]) {
-            gameState.users[tx.user_id].balance = (gameState.users[tx.user_id].balance || 0) + totalCredit;
+          if (targetUser) {
+            targetUser.balance = (Number(targetUser.balance) || 0) + totalCredit;
+            targetUser.updated_at = new Date().toISOString();
+            updateSqliteUserBalance(targetUser.id, targetUser.balance);
+
+            if (targetUser.id && /^\d+$/.test(targetUser.id) && !String(targetUser.id).startsWith("09")) {
+              telegramApi("sendMessage", {
+                chat_id: targetUser.id,
+                text: `✅ *ተቀማጭ ገንዘብዎ ጸድቋል!*\n\n💰 *የተጨመረ:* \`${totalCredit} ETB\`\n💵 *አሁን ያለዎት ቀሪ ሂሳብ:* \`${targetUser.balance} ETB\`\n\nመልካም ጨዋታ! 🎰`,
+                parse_mode: "Markdown",
+              }).catch(() => {});
+            }
+          }
+        }
+
+        // WITHDRAW APPROVAL: Ensure balance is deducted from user
+        if (action === "approve" && tx.type === "withdraw") {
+          if (!tx.deducted) {
+            if (targetUser) {
+              targetUser.balance = Math.max(0, (Number(targetUser.balance) || 0) - tx.amount);
+              targetUser.updated_at = new Date().toISOString();
+              updateSqliteUserBalance(targetUser.id, targetUser.balance);
+            }
+            tx.deducted = true;
+          }
+          if (targetUser && targetUser.id && /^\d+$/.test(targetUser.id) && !String(targetUser.id).startsWith("09")) {
+            telegramApi("sendMessage", {
+              chat_id: targetUser.id,
+              text: `✅ *የገንዘብ ማውጣት ጥያቄዎ ጸድቋል!*\n\n💰 *መጠን:* \`${tx.amount} ETB\`\n📱 *ስልክ:* \`${tx.phone}\`\n🏦 *መንገድ:* ${tx.method}\n💵 *አሁን ያለዎት ቀሪ ሂሳብ:* \`${targetUser.balance} ETB\``,
+              parse_mode: "Markdown",
+            }).catch(() => {});
+          }
+        }
+
+        // WITHDRAW REJECTION: Refund back to user if it was held/deducted
+        if (action === "reject" && tx.type === "withdraw") {
+          if (tx.deducted || tx.heldFromBalance) {
+            if (targetUser) {
+              targetUser.balance = (Number(targetUser.balance) || 0) + tx.amount;
+              targetUser.updated_at = new Date().toISOString();
+              updateSqliteUserBalance(targetUser.id, targetUser.balance);
+            }
+            tx.deducted = false;
+            tx.refunded = true;
+          }
+          if (targetUser && targetUser.id && /^\d+$/.test(targetUser.id) && !String(targetUser.id).startsWith("09")) {
+            telegramApi("sendMessage", {
+              chat_id: targetUser.id,
+              text: `❌ *የገንዘብ ማውጣት ጥያቄዎ ውድቅ ተደርጓል*\n\n💰 *መጠን:* \`${tx.amount} ETB\`\n💵 *ገንዘቡ ወደ ቀሪ ሂሳብዎ ተመልሷል:* \`${targetUser.balance} ETB\``,
+              parse_mode: "Markdown",
+            }).catch(() => {});
           }
         }
 
         saveGameState();
-        return sendJson(res, { ok: true, id: txId, status: tx.status });
+        return sendJson(res, { ok: true, id: txId, status: tx.status, user: targetUser || null });
       }
       return sendJson(res, { error: "Transaction not found" }, 404);
     }

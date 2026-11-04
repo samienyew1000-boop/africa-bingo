@@ -262,16 +262,31 @@ const LuckyBingoAPI = (() => {
   }
 
   async function deposit(amount, method, reference, phone) {
+    const user = getTelegramUser();
     return apiRequest("/api/deposit", {
       method: "POST",
-      body: JSON.stringify({ amount, method, reference, phone }),
+      body: JSON.stringify({
+        amount,
+        method,
+        reference,
+        phone,
+        user_id: user?.id ? String(user.id) : undefined,
+        username: user?.username || user?.phone || undefined,
+      }),
     });
   }
 
   async function withdraw(amount, method, phone) {
+    const user = getTelegramUser();
     return apiRequest("/api/withdraw", {
       method: "POST",
-      body: JSON.stringify({ amount, method, phone }),
+      body: JSON.stringify({
+        amount,
+        method,
+        phone,
+        user_id: user?.id ? String(user.id) : undefined,
+        username: user?.username || user?.phone || undefined,
+      }),
     });
   }
 

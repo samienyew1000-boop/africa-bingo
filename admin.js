@@ -221,6 +221,10 @@ function savePlayerBalance(playerId, newBalance) {
     balances[String(playerId)] = Number(newBalance);
     localStorage.setItem(PLAYER_BALANCES_KEY, JSON.stringify(balances));
   } catch (e) {}
+
+  if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
+    LuckyBingoAPI.updateAdminUser(playerId, { balance: Number(newBalance) }).catch(() => {});
+  }
 }
 
 function getLiveTelegramPlayers() {
@@ -738,12 +742,16 @@ function updateTransaction(id, nextStatus) {
   transaction.processedAt = "just now";
   const amount = Number(transaction.amount) || 0;
 
-  // Find corresponding player record
-  let player = state.players.find((p) =>
-    (transaction.playerId && String(p.id) === String(transaction.playerId)) ||
-    (transaction.phone && String(p.phone) === String(transaction.phone)) ||
-    (transaction.player && p.name && p.name.toLowerCase() === transaction.player.toLowerCase())
-  );
+  // Find corresponding player record with flexible matching
+  const cleanTxPhone = (transaction.phone || "").replace(/[\s\-()]+/g, "").slice(-9);
+  let player = state.players.find((p) => {
+    if (transaction.userId && String(p.id) === String(transaction.userId)) return true;
+    if (transaction.user_id && String(p.id) === String(transaction.user_id)) return true;
+    if (transaction.playerId && String(p.id) === String(transaction.playerId)) return true;
+    if (cleanTxPhone && p.phone && p.phone.replace(/[\s\-()]+/g, "").endsWith(cleanTxPhone)) return true;
+    if (transaction.player && p.name && p.name.toLowerCase() === transaction.player.toLowerCase()) return true;
+    return false;
+  });
 
   const curLocalBal = Number(localStorage.getItem("lucky-bingo-balance") || 0);
 
@@ -766,14 +774,14 @@ function updateTransaction(id, nextStatus) {
         savePlayerBalance(player.id, player.balance);
       }
       // 2. If not already held by player game UI upon submission, debit game wallet
-      if (!transaction.heldFromBalance) {
+      if (!transaction.heldFromBalance && !transaction.deducted) {
         const nextBal = Math.max(0, curLocalBal - amount);
         localStorage.setItem("lucky-bingo-balance", String(nextBal));
       }
     }
   } else if (nextStatus === "rejected") {
     // If a withdrawal was held from player balance upon request, refund it upon rejection!
-    if (transaction.type === "withdraw" && transaction.heldFromBalance) {
+    if (transaction.type === "withdraw" && (transaction.heldFromBalance || transaction.deducted)) {
       if (player) {
         player.balance = (Number(player.balance) || 0) + amount;
         savePlayerBalance(player.id, player.balance);
@@ -793,6 +801,15 @@ function updateTransaction(id, nextStatus) {
     LuckyBingoAPI.updateAdminTransaction(transaction.id, apiAction).then((res) => {
       if (res && res.error) {
         console.warn("[API] Transaction sync notice:", res.error);
+      }
+      if (res && res.user) {
+        const uId = String(res.user.id);
+        const pIdx = state.players.findIndex(p => String(p.id) === uId || (p.phone && p.phone === res.user.phone));
+        if (pIdx !== -1) {
+          state.players[pIdx].balance = res.user.balance;
+          renderPlayers();
+          renderDashboard();
+        }
       }
     }).catch(() => {});
   }
@@ -1412,15 +1429,18 @@ function bindEvents() {
         if (data && Array.isArray(data.transactions)) {
           state.transactions = data.transactions.map((tx) => ({
             id: tx.id,
-            playerId: `LB-${String(tx.user_id).slice(-5)}`,
+            playerId: tx.playerId || `LB-${String(tx.user_id).slice(-5)}`,
             userId: tx.user_id,
-            player: tx.first_name || (tx.username ? `@${tx.username}` : (tx.phone_number || "Player")),
-            phone: tx.phone_number || "",
+            user_id: tx.user_id,
+            player: tx.player || tx.first_name || (tx.username ? `@${tx.username}` : (tx.phone || tx.phone_number || "Player")),
+            phone: tx.phone || tx.phone_number || "",
             type: tx.type,
             method: tx.method || "Telebirr",
             amount: Number(tx.amount) || 0,
-            requested: tx.created_at || "Recent",
+            requested: tx.requested || tx.created_at || "Recent",
             status: (tx.status === "completed" || tx.status === "approved") ? "approved" : tx.status,
+            heldFromBalance: Boolean(tx.heldFromBalance),
+            deducted: Boolean(tx.deducted),
           }));
           renderTransactions();
           renderFinanceSummary();
@@ -1539,15 +1559,18 @@ function _startAdminDataPoll() {
     if (Array.isArray(data.transactions)) {
       state.transactions = data.transactions.map((tx) => ({
         id: tx.id,
-        playerId: `LB-${String(tx.user_id).slice(-5)}`,
+        playerId: tx.playerId || `LB-${String(tx.user_id).slice(-5)}`,
         userId: tx.user_id,
-        player: tx.first_name || (tx.username ? `@${tx.username}` : (tx.phone_number || "Player")),
-        phone: tx.phone_number || "",
+        user_id: tx.user_id,
+        player: tx.player || tx.first_name || (tx.username ? `@${tx.username}` : (tx.phone || tx.phone_number || "Player")),
+        phone: tx.phone || tx.phone_number || "",
         type: tx.type,
         method: tx.method || "Telebirr",
         amount: Number(tx.amount) || 0,
-        requested: tx.created_at || "Recent",
+        requested: tx.requested || tx.created_at || "Recent",
         status: (tx.status === "completed" || tx.status === "approved") ? "approved" : tx.status,
+        heldFromBalance: Boolean(tx.heldFromBalance),
+        deducted: Boolean(tx.deducted),
       }));
       renderTransactions();
       renderFinanceSummary();

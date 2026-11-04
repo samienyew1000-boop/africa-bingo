@@ -4566,12 +4566,19 @@ function handleWithdrawSubmit(event) {
     return;
   }
 
+  // Deduct from player balance immediately
+  balance = Math.max(0, balance - amount);
+  saveBalance();
+  renderBalance();
+  updatePickInfo();
+
   const transaction = saveWalletRequest({
     type: "withdraw",
     method,
     amount,
     phone,
     heldFromBalance: true,
+    deducted: true,
   });
 
   showWalletFeedback(
@@ -4583,7 +4590,20 @@ function handleWithdrawSubmit(event) {
 
   if (typeof LuckyBingoAPI !== "undefined") {
     LuckyBingoAPI.withdraw(amount, method, phone).then((res) => {
-      syncProfileWithServer();
+      if (res && res.error) {
+        // Rollback balance on failure
+        balance += amount;
+        saveBalance();
+        renderBalance();
+        updatePickInfo();
+        showWalletFeedback("withdraw", res.error || "Failed to submit withdrawal", true);
+        toast("WITHDRAW FAILED", "lose");
+      } else if (res && res.balance !== undefined) {
+        balance = Number(res.balance);
+        saveBalance();
+        renderBalance();
+        updatePickInfo();
+      }
     }).catch(() => {});
   }
 }
