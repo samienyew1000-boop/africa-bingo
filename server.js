@@ -166,7 +166,19 @@ function updateSqliteUserBalance(userId, newBalance) {
 
     for (const dbPath of dbPaths) {
       if (fs.existsSync(dbPath)) {
-        const pyScript = `python3 -c "import sqlite3; conn = sqlite3.connect('${dbPath}'); c = conn.cursor(); c.execute('UPDATE users SET balance = ${numBal} WHERE id = \\"${cleanId}\\" OR phone_number LIKE \\"%${last9}\\"'); conn.commit(); conn.close()"`;
+        const pyScript = `python3 -c "import sqlite3
+conn = sqlite3.connect('${dbPath}')
+c = conn.cursor()
+c.execute('UPDATE users SET balance = ${numBal} WHERE id = \"${cleanId}\" OR phone_number LIKE \"%${last9}\"')
+if c.rowcount == 0:
+    try:
+        int_id = int('${cleanId}')
+        c.execute('INSERT OR IGNORE INTO users (id, username, first_name, phone_number, balance) VALUES (?, ?, ?, ?, ?)', (int_id, '${cleanId}', 'Player ${last9}', '${cleanId}', ${numBal}))
+        c.execute('UPDATE users SET balance = ${numBal} WHERE id = ?', (int_id,))
+    except Exception:
+        pass
+conn.commit()
+conn.close()"`;
         exec(pyScript, (err) => {
           if (err) console.warn("[DB] Failed to update balance in SQLite:", err.message);
         });
