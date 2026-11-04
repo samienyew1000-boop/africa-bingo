@@ -753,6 +753,13 @@ function updateTransaction(id, nextStatus) {
     return false;
   });
 
+  const curMobileUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+  const isCurrentActiveUser = Boolean(curMobileUser && (
+    (transaction.userId && String(curMobileUser.id) === String(transaction.userId)) ||
+    (transaction.user_id && String(curMobileUser.id) === String(transaction.user_id)) ||
+    (cleanTxPhone && curMobileUser.phone && curMobileUser.phone.replace(/[\s\-()]+/g, "").endsWith(cleanTxPhone))
+  ));
+
   const curLocalBal = Number(localStorage.getItem("lucky-bingo-balance") || 0);
 
   if (nextStatus === "approved") {
@@ -764,17 +771,19 @@ function updateTransaction(id, nextStatus) {
         player.balance = (Number(player.balance) || 0) + amount;
         savePlayerBalance(player.id, player.balance);
       }
-      // 2. Credit active player game wallet in localStorage
-      const nextBal = curLocalBal + amount;
-      localStorage.setItem("lucky-bingo-balance", String(nextBal));
+      // 2. Credit active player game wallet ONLY if the transaction belongs to this device's active user
+      if (isCurrentActiveUser) {
+        const nextBal = curLocalBal + amount;
+        localStorage.setItem("lucky-bingo-balance", String(nextBal));
+      }
     } else if (transaction.type === "withdraw") {
       // 1. Debit player balance in admin state
       if (player) {
         player.balance = Math.max(0, (Number(player.balance) || 0) - amount);
         savePlayerBalance(player.id, player.balance);
       }
-      // 2. If not already held by player game UI upon submission, debit game wallet
-      if (!transaction.heldFromBalance && !transaction.deducted) {
+      // 2. Debit game wallet ONLY if the transaction belongs to this device's active user and wasn't held
+      if (isCurrentActiveUser && !transaction.heldFromBalance && !transaction.deducted) {
         const nextBal = Math.max(0, curLocalBal - amount);
         localStorage.setItem("lucky-bingo-balance", String(nextBal));
       }
@@ -786,9 +795,12 @@ function updateTransaction(id, nextStatus) {
         player.balance = (Number(player.balance) || 0) + amount;
         savePlayerBalance(player.id, player.balance);
       }
-      const nextBal = curLocalBal + amount;
-      localStorage.setItem("lucky-bingo-balance", String(nextBal));
+      if (isCurrentActiveUser) {
+        const nextBal = curLocalBal + amount;
+        localStorage.setItem("lucky-bingo-balance", String(nextBal));
+      }
     }
+  }
   }
 
   addActivity(

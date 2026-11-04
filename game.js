@@ -385,9 +385,14 @@ function updatePickLiveTracker(sState) {
   }
 }
 
+let lobbyPollSyncCounter = 0;
 function startServerLobbySync() {
   if (typeof LuckyBingoAPI === "undefined") return;
   LuckyBingoAPI.startLobbyPoll((data) => {
+    lobbyPollSyncCounter++;
+    if (lobbyPollSyncCounter % 3 === 0) {
+      syncProfileWithServer();
+    }
     if (!data || data.error || !Array.isArray(data.rooms)) return;
     for (const sRoom of data.rooms) {
       const rid = String(sRoom.room_id || sRoom.id);
@@ -2214,9 +2219,10 @@ function setupSideDrawerEvents() {
     setAuthMode("register");
     showMobileAuthModal(true);
   });
-  $("header-refresh-btn")?.addEventListener("click", () => {
-    syncProfileWithServer();
+  $("header-refresh-btn")?.addEventListener("click", async () => {
+    await syncProfileWithServer();
     renderRooms();
+    renderBalance();
     toast("REFRESHED", "win");
   });
 
@@ -4348,6 +4354,7 @@ function setWalletTab(tab) {
 
 function openWallet(tab = "deposit") {
   const activeTab = tab === "withdraw" ? "withdraw" : "deposit";
+  syncProfileWithServer();
   renderBalance();
   updateDepositAccount();
   updateProviderButtons("deposit");
@@ -4591,18 +4598,23 @@ function handleWithdrawSubmit(event) {
   if (typeof LuckyBingoAPI !== "undefined") {
     LuckyBingoAPI.withdraw(amount, method, phone).then((res) => {
       if (res && res.error) {
-        // Rollback balance on failure
-        balance += amount;
+        // If server provided authoritative balance, sync directly; otherwise rollback
+        if (res.balance !== undefined && !isNaN(Number(res.balance))) {
+          balance = Number(res.balance);
+        } else {
+          balance += amount;
+        }
         saveBalance();
         renderBalance();
         updatePickInfo();
         showWalletFeedback("withdraw", res.error || "Failed to submit withdrawal", true);
-        toast("WITHDRAW FAILED", "lose");
+        toast(res.error || "WITHDRAW FAILED", "lose");
       } else if (res && res.balance !== undefined) {
         balance = Number(res.balance);
         saveBalance();
         renderBalance();
         updatePickInfo();
+        toast("WITHDRAWAL REQUEST SENT", "win");
       }
     }).catch(() => {});
   }
@@ -4723,9 +4735,11 @@ function bind() {
   $("wallet-panel").addEventListener("click", (event) => {
     if (event.target === $("wallet-panel")) closeWallet();
   });
-  $("refresh-rooms").addEventListener("click", () => {
+  $("refresh-rooms")?.addEventListener("click", async () => {
+    await syncProfileWithServer();
     renderRooms();
-    toast("ROOMS REFRESHED", "win");
+    renderBalance();
+    toast("REFRESHED", "win");
   });
   document.querySelectorAll("[data-wallet-tab]").forEach((button) => {
     button.addEventListener("click", () => setWalletTab(button.dataset.walletTab));
