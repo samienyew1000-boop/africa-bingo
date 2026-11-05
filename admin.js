@@ -782,15 +782,17 @@ function updateTransaction(id, nextStatus) {
         localStorage.setItem("lucky-bingo-balance", String(nextBal));
       }
     } else if (transaction.type === "withdraw") {
-      // 1. Debit player balance in admin state
-      if (player) {
-        player.balance = Math.max(0, (Number(player.balance) || 0) - amount);
-        savePlayerBalance(player.id, player.balance);
-      }
-      // 2. Debit game wallet ONLY if the transaction belongs to this device's active user and wasn't held
-      if (isCurrentActiveUser && !transaction.heldFromBalance && !transaction.deducted) {
-        const nextBal = Math.max(0, curLocalBal - amount);
-        localStorage.setItem("lucky-bingo-balance", String(nextBal));
+      // 1. Debit player balance in admin state ONLY if not already deducted upon request
+      if (!transaction.heldFromBalance && !transaction.deducted) {
+        if (player) {
+          player.balance = Math.max(0, (Number(player.balance) || 0) - amount);
+          savePlayerBalance(player.id, player.balance);
+        }
+        // 2. Debit game wallet ONLY if the transaction belongs to this device's active user and wasn't held
+        if (isCurrentActiveUser) {
+          const nextBal = Math.max(0, curLocalBal - amount);
+          localStorage.setItem("lucky-bingo-balance", String(nextBal));
+        }
       }
     }
   } else if (nextStatus === "rejected") {

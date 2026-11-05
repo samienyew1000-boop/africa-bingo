@@ -1536,14 +1536,38 @@ function updateGameUserInfo() {
 
   // Update Global Header Actions
   const ghActions = $("global-header-actions");
+  const isUserAdmin = Boolean(
+    displayName.toLowerCase() === "admin" ||
+    (user && (user.role === "admin" || user.isAdmin)) ||
+    sessionStorage.getItem("lb_admin_auth") === "true" ||
+    localStorage.getItem("lb_admin_auth") === "true"
+  );
+
+  const lobbyAdminBanner = $("lobby-admin-banner");
+  if (lobbyAdminBanner) {
+    lobbyAdminBanner.style.display = isUserAdmin ? "flex" : "none";
+  }
+
   if (ghActions) {
     if (isLoggedIn) {
-      ghActions.innerHTML = `
-        <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-profile" style="background:#2e1065;color:#fff;">
-          👤 ${escapeHTML(displayName.length > 10 ? displayName.slice(0, 8) + '..' : displayName)}
-        </button>
-      `;
-      $("btn-header-profile")?.addEventListener("click", () => openSideDrawer());
+      if (isUserAdmin) {
+        ghActions.innerHTML = `
+          <a href="admin.html" class="lb-gh-btn" id="btn-header-admin-console" style="background:#f59e0b;color:#1e1b4b;font-weight:bold;display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:20px;text-decoration:none;box-shadow:0 0 10px rgba(245,158,11,0.5);font-size:12px;">
+            ⚙️ Admin
+          </a>
+          <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-profile" style="background:#2e1065;color:#fff;">
+            👤 Admin
+          </button>
+        `;
+        $("btn-header-profile")?.addEventListener("click", () => openSideDrawer());
+      } else {
+        ghActions.innerHTML = `
+          <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-profile" style="background:#2e1065;color:#fff;">
+            👤 ${escapeHTML(displayName.length > 10 ? displayName.slice(0, 8) + '..' : displayName)}
+          </button>
+        `;
+        $("btn-header-profile")?.addEventListener("click", () => openSideDrawer());
+      }
     } else {
       ghActions.innerHTML = `
         <button type="button" class="lb-gh-btn lb-gh-login" id="btn-header-login">ግባ</button>
@@ -4610,11 +4634,11 @@ function handleWithdrawSubmit(event) {
   if (typeof LuckyBingoAPI !== "undefined") {
     LuckyBingoAPI.withdraw(amount, method, phone).then((res) => {
       if (res && res.error) {
-        // If server provided authoritative balance, sync directly; otherwise rollback
+        // If server provided authoritative balance, sync directly; otherwise re-sync from server
         if (res.balance !== undefined && !isNaN(Number(res.balance))) {
           balance = Number(res.balance);
         } else {
-          balance += amount;
+          syncProfileWithServer();
         }
         saveBalance();
         renderBalance();
@@ -4626,6 +4650,7 @@ function handleWithdrawSubmit(event) {
         saveBalance();
         renderBalance();
         updatePickInfo();
+        syncProfileWithServer();
         toast("WITHDRAWAL REQUEST SENT", "win");
       }
     }).catch(() => {});
@@ -4784,7 +4809,18 @@ function bind() {
   });
   $("game-wallet-trigger")?.addEventListener("click", () => openWallet("deposit"));
   $("game-user-trigger")?.addEventListener("click", () => openMobilePanel("profile"));
-  $("lobby-user-chip")?.addEventListener("click", () => openMobilePanel("profile"));
+  $("lobby-user-chip")?.addEventListener("click", () => {
+    const isUserAdmin = sessionStorage.getItem("lb_admin_auth") === "true" ||
+                        localStorage.getItem("lb_admin_auth") === "true" ||
+                        $("lobby-user-name")?.textContent?.trim().toLowerCase() === "admin";
+    if (isUserAdmin) {
+      if (confirm("👑 ወደ Admin Console መግባት ይፈልጋሉ? (Open Admin Console?)")) {
+        window.location.href = "admin.html";
+        return;
+      }
+    }
+    openMobilePanel("profile");
+  });
   $("install-app-btn")?.addEventListener("click", handleInstallClick);
   setupMobileAuthEvents();
   setupSideDrawerEvents();

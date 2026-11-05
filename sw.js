@@ -1,10 +1,13 @@
 // Africa Bingo Service Worker
-const CACHE_NAME = "africa-bingo-pwa-v1";
+const CACHE_NAME = "africa-bingo-pwa-v2";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
+  "./admin.html",
   "./style.css",
+  "./admin.css",
   "./game.js",
+  "./admin.js",
   "./api-client.js",
   "./card-data.js",
   "./manifest.json",

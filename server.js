@@ -151,41 +151,41 @@ function cleanPhone(p) {
 }
 
 function updateSqliteUserBalance(userId, newBalance) {
-  const dbPaths = [
-    "/var/www/africa-bingo/data/africa_bingo.db",
-    "/var/www/lucky-bingo/data/lucky_bingo.db",
-    path.join(__dirname, "data", "africa_bingo.db"),
-    path.join(__dirname, "data", "lucky_bingo.db"),
-  ];
-
   try {
-    const { exec } = require("child_process");
+    const { execFile } = require("child_process");
     const numBal = Math.max(0, Math.round(Number(newBalance) * 100) / 100);
-    const cleanId = String(userId).replace(/['"\\;]/g, "");
-    const last9 = cleanId.slice(-9);
+    const cleanId = String(userId).trim();
+    const helperPath = path.join(__dirname, "db_helper.py");
 
-    for (const dbPath of dbPaths) {
-      if (fs.existsSync(dbPath)) {
-        const pyScript = `python3 -c "import sqlite3
-conn = sqlite3.connect('${dbPath}')
-c = conn.cursor()
-c.execute('UPDATE users SET balance = ${numBal} WHERE id = \"${cleanId}\" OR phone_number LIKE \"%${last9}\"')
-if c.rowcount == 0:
-    try:
-        int_id = int('${cleanId}')
-        c.execute('INSERT OR IGNORE INTO users (id, username, first_name, phone_number, balance) VALUES (?, ?, ?, ?, ?)', (int_id, '${cleanId}', 'Player ${last9}', '${cleanId}', ${numBal}))
-        c.execute('UPDATE users SET balance = ${numBal} WHERE id = ?', (int_id,))
-    except Exception:
-        pass
-conn.commit()
-conn.close()"`;
-        exec(pyScript, (err) => {
-          if (err) console.warn("[DB] Failed to update balance in SQLite:", err.message);
-        });
-      }
-    }
+    execFile("python3", [helperPath, "update_balance", cleanId, String(numBal)], (err, stdout) => {
+      if (err) console.warn("[DB] Failed to update balance in SQLite:", err.message);
+    });
   } catch (e) {
     console.warn("[DB] SQLite balance update error:", e.message);
+  }
+}
+
+function recordSqliteTransaction(txId, userId, type, method, amount, phone, status = "pending") {
+  try {
+    const { execFile } = require("child_process");
+    const helperPath = path.join(__dirname, "db_helper.py");
+    execFile("python3", [helperPath, "insert_transaction", String(txId), String(userId), String(type), String(method), String(amount), String(phone), String(status)], (err, stdout) => {
+      if (err) console.warn("[DB] Failed to insert transaction into SQLite:", err.message);
+    });
+  } catch (e) {
+    console.warn("[DB] SQLite transaction insert error:", e.message);
+  }
+}
+
+function updateSqliteTransactionStatus(txId, status) {
+  try {
+    const { execFile } = require("child_process");
+    const helperPath = path.join(__dirname, "db_helper.py");
+    execFile("python3", [helperPath, "update_tx_status", String(txId), String(status)], (err, stdout) => {
+      if (err) console.warn("[DB] Failed to update transaction status in SQLite:", err.message);
+    });
+  } catch (e) {
+    console.warn("[DB] SQLite transaction status update error:", e.message);
   }
 }
 
@@ -1043,7 +1043,8 @@ const server = http.createServer(async (req, res) => {
       if (targetUser && (Number(targetUser.balance) || 0) < amount) {
         return sendJson(res, {
           ok: false,
-          error: `ያለዎት ቀሪ ሂሳብ ${targetUser.balance} ETB ነው። ${amount} ETB ማውጣት አይቻልም። (Insufficient balance)`
+          error: `ያለዎት ቀሪ ሂሳብ ${targetUser.balance} ETB ነው። ${amount} ETB ማውጣት አይቻልም። (Insufficient balance)`,
+          balance: targetUser.balance
         }, 400);
       }
 
@@ -1077,6 +1078,9 @@ const server = http.createServer(async (req, res) => {
 
       gameState.transactions.unshift(newTx);
       saveGameState();
+
+      // Record transaction into SQLite database so Telegram bot & admin see it
+      recordSqliteTransaction(txId, newTx.user_id, "withdraw", method, amount, newTx.phone, "pending");
 
       notifyTelegramAdmin(`📤 *የገንዘብ ማውጣት ጥያቄ (New Withdrawal Request)*\n\n👤 *ተጫዋች:* ${newTx.player}\n💰 *መጠን:* \`${amount} ETB\`\n📱 *ስልክ:* \`${newTx.phone}\`\n🏦 *መንገድ:* ${method}\n\n✅ ለማጽደቅ: ${WEB_APP_URL}admin.html`);
 
@@ -1167,6 +1171,7 @@ const server = http.createServer(async (req, res) => {
               }).catch(() => {});
             }
           }
+          updateSqliteTransactionStatus(txId, "approved");
         }
 
         // WITHDRAW APPROVAL: Ensure balance is deducted from user
@@ -1179,6 +1184,7 @@ const server = http.createServer(async (req, res) => {
             }
             tx.deducted = true;
           }
+          updateSqliteTransactionStatus(txId, "approved");
           if (targetUser && targetUser.id && /^\d+$/.test(targetUser.id) && !String(targetUser.id).startsWith("09")) {
             telegramApi("sendMessage", {
               chat_id: targetUser.id,
@@ -1199,6 +1205,7 @@ const server = http.createServer(async (req, res) => {
             tx.deducted = false;
             tx.refunded = true;
           }
+          updateSqliteTransactionStatus(txId, "rejected");
           if (targetUser && targetUser.id && /^\d+$/.test(targetUser.id) && !String(targetUser.id).startsWith("09")) {
             telegramApi("sendMessage", {
               chat_id: targetUser.id,

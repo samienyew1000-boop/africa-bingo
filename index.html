@@ -194,6 +194,18 @@
               </button>
             </div>
 
+            <!-- Admin Quick Access Banner (Visible when logged in as admin) -->
+            <div id="lobby-admin-banner" style="display: none; margin: 0 10px 10px 10px; background: linear-gradient(135deg, #1e1b4b, #311042); border: 2px solid #f59e0b; border-radius: 12px; padding: 10px 14px; align-items: center; justify-content: space-between; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">👑</span>
+                <div>
+                  <div style="color: #fde047; font-weight: bold; font-size: 13px;">አድሚን ኮንሶል (Admin Console)</div>
+                  <div style="color: #cbd5e1; font-size: 11px;">የተጫዋቾች እና የገንዘብ ማውጣት መቆጣጠሪያ</div>
+                </div>
+              </div>
+              <a href="admin.html" style="background: #f59e0b; color: #1e1b4b; font-weight: bold; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-size: 12px; white-space: nowrap;">ክፈት (Open) →</a>
+            </div>
+
             <div class="lb-lobby-toolbar">
               <button
                 type="button"
@@ -1120,6 +1132,17 @@
 
             <!-- 4. Settings & Menu List -->
             <div class="lb-drawer-menu">
+              <a href="admin.html" class="lb-menu-item" id="drawer-admin-btn" style="display:flex; background: linear-gradient(135deg, #1e1b4b, #3b0764); border: 1.5px solid #f59e0b; border-radius: 10px; margin-bottom: 12px; color: #fde047; font-weight: bold; text-decoration: none; padding: 12px 14px; box-shadow: 0 4px 12px rgba(245,158,11,0.25);">
+                <div class="lb-mi-left">
+                  <span class="lb-mi-icon" style="font-size: 20px;">⚙️</span>
+                  <div class="lb-mi-text">
+                    <strong style="color: #fde047; font-size: 15px;">Admin Console</strong>
+                    <small style="color: #cbd5e1;">የአድሚን መቆጣጠሪያ ሰሌዳ</small>
+                  </div>
+                </div>
+                <span class="lb-mi-arrow" style="color: #f59e0b; font-size: 18px;">›</span>
+              </a>
+
               <div class="lb-menu-row">
                 <div class="lb-menu-row-label">
                   <span class="lb-mr-icon">🔔</span>
@@ -1152,17 +1175,6 @@
                 </div>
                 <span class="lb-mi-arrow">›</span>
               </button>
-
-              <a href="admin.html" class="lb-menu-item" id="drawer-admin-btn" style="display:flex; color: #f59e0b; font-weight: bold; text-decoration: none;">
-                <div class="lb-mi-left">
-                  <span class="lb-mi-icon">⚙️</span>
-                  <div class="lb-mi-text">
-                    <strong>Admin Console</strong>
-                    <small>መቆጣጠሪያ ሰሌዳ</small>
-                  </div>
-                </div>
-                <span class="lb-mi-arrow">›</span>
-              </a>
 
               <div class="lb-menu-group">
                 <div class="lb-mg-title">
@@ -1224,10 +1236,10 @@
         <div class="lb-toast" id="toast" hidden></div>
       </div>
     </div>
-    <script src="card-data.js?v=20261103_01"></script>
-    <script src="app-config.js?v=20261103_01"></script>
-    <script src="api-client.js?v=20261103_01"></script>
-    <script src="../shared-balance.js?v=20261103_01"></script>
-    <script src="game.js?v=20261103_01"></script>
+    <script src="card-data.js?v=20261105_02"></script>
+    <script src="app-config.js?v=20261105_02"></script>
+    <script src="api-client.js?v=20261105_02"></script>
+    <script src="../shared-balance.js?v=20261105_02"></script>
+    <script src="game.js?v=20261105_02"></script>
   </body>
 </html>
