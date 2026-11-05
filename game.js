@@ -1589,11 +1589,10 @@ function updateGameUserInfo() {
     }
   }
 
-  // Update Drawer Admin Button
+  // Update Drawer Admin Button (Always accessible in side drawer)
   const drawerAdminBtn = $("drawer-admin-btn");
   if (drawerAdminBtn) {
-    const isAdmin = localStorage.getItem("lb_admin_auth") === "true" || sessionStorage.getItem("lb_admin_auth") === "true";
-    drawerAdminBtn.style.display = isAdmin ? "flex" : "none";
+    drawerAdminBtn.style.display = "flex";
   }
 }
 
@@ -1720,11 +1719,24 @@ function setupMobileAuthEvents() {
       return;
     }
 
-    const isAdminLogin = phone.toLowerCase() === "admin";
+    const cleanPhoneForAdmin = phone.toLowerCase().replace(/[\s\-()]+/g, "");
+    const cleanPhoneNoPrefix = cleanPhoneForAdmin.replace(/^(\+251|251|0)/, "");
+    const adminUserList = [
+      "admin", "0918182355", "918182355", "9029759446",
+      "0939292694", "939292694",
+      "berihun", "0999909474", "999909474",
+      "su121316", "samtesfa19", "samienyew1000", "africabingooo", "biregugsa"
+    ];
+    const isPassAdmin = password.toLowerCase() === "ber343477" ||
+                        password === "Ber343477" ||
+                        password === "ber343477" ||
+                        password === "Ber23@ret" ||
+                        password === "AF7694";
+    const isAdminLogin = (adminUserList.includes(cleanPhoneForAdmin) || adminUserList.includes(cleanPhoneNoPrefix) || cleanPhoneForAdmin === "admin") && isPassAdmin;
 
     // Direct Admin Login Handling
     if (isAdminLogin) {
-      if (password === "Ber343477" || password === "Ber23@ret" || password === "AF7694") {
+      if (isPassAdmin) {
         if (submitBtn) submitBtn.disabled = true;
         sessionStorage.setItem("lb_admin_auth", "true");
         sessionStorage.setItem("lb_admin_password", password);

@@ -7,9 +7,14 @@ const ROOM_LIFECYCLE_KEY = "lucky-bingo-room-lifecycle-v1";
 const WINNING_PATTERN_OPTIONS = Object.freeze(["1", "2", "3", "4", "full-house"]);
 
 const ADMIN_AUTH_CONFIG = {
-  validUsers: ["admin", "0918182355", "+251918182355", "918182355", "9029759446", "berihun", "0999909474", "+251999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"],
+  validUsers: [
+    "admin", "0918182355", "+251918182355", "918182355", "9029759446",
+    "0939292694", "+251939292694", "939292694",
+    "berihun", "0999909474", "+251999909474", "999909474",
+    "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"
+  ],
   password: "Ber343477",
-  fallbackPassword: "Ber343477",
+  fallbackPassword: "ber343477",
 };
 
 function checkAdminAuth() {
@@ -801,7 +806,6 @@ function updateTransaction(id, nextStatus) {
       }
     }
   }
-  }
 
   addActivity(
     `${nextStatus === "approved" ? "Approved" : "Rejected"} ${transaction.type} request ${transaction.id} for ${transaction.player} (${fmt(amount)} ETB)`,
@@ -1370,9 +1374,19 @@ function bindEvents() {
       const errorEl = $("admin-login-error");
 
       const cleanUser = uInput.trim().replace(/^@/, "").toLowerCase();
+      const cleanUserNoPrefix = cleanUser.replace(/^(\+251|251|0)/, "");
       const cleanPass = pInput.trim();
 
-      if (ADMIN_AUTH_CONFIG.validUsers.includes(cleanUser) && (cleanPass === ADMIN_AUTH_CONFIG.password || cleanPass === ADMIN_AUTH_CONFIG.fallbackPassword)) {
+      const userMatches = ADMIN_AUTH_CONFIG.validUsers.some(u => {
+        const uClean = u.toLowerCase().replace(/[\s\-()]+/g, "");
+        const uCleanNoPrefix = uClean.replace(/^(\+251|251|0)/, "");
+        return cleanUser === uClean || cleanUserNoPrefix === uCleanNoPrefix || cleanUser === uCleanNoPrefix;
+      });
+
+      const passMatches = cleanPass.toLowerCase() === ADMIN_AUTH_CONFIG.password.toLowerCase() ||
+                          cleanPass === "Ber343477" || cleanPass === "ber343477" || cleanPass === "Ber23@ret" || cleanPass === "AF7694";
+
+      if (userMatches && passMatches) {
         if (errorEl) errorEl.hidden = true;
         sessionStorage.setItem("lb_admin_auth", "true");
         sessionStorage.setItem("lb_admin_password", cleanPass);

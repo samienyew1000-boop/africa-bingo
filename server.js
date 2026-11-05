@@ -894,41 +894,52 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, { ok: false, error: "invalid_phone", message: "ስልክ ቁጥር ወይም Username ያስገቡ" }, 400);
       }
 
-      // Check for Admin Login
-      if (phone.toLowerCase() === "admin") {
-        if (password === ADMIN_PASSWORD || password === "Ber343477" || password === "Ber23@ret") {
-          let adminUser = gameState.users["admin-1"];
-          if (!adminUser) {
-            adminUser = {
-              id: "admin-1",
-              username: "admin",
-              phone: "admin",
-              first_name: "Admin",
-              role: "admin",
-              balance: 200,
-              bonus_balance: 0,
-              bonus_claimed: 1,
-              is_verified: 1,
-              created_at: new Date().toISOString(),
-            };
-            gameState.users["admin-1"] = adminUser;
-          } else {
-            adminUser.role = "admin";
-            adminUser.username = "admin";
-            if (typeof adminUser.balance !== "number") {
-              adminUser.balance = 200;
-            }
-          }
-          saveGameState();
-          return sendJson(res, {
-            ok: true,
-            isAdmin: true,
-            token: "admin-auth-token-valid",
-            user: adminUser,
-          });
+      // Check for Admin Login (by 'admin' or admin phone numbers + password)
+      const cleanPhoneForAdmin = phone.toLowerCase();
+      const cleanPhoneNoPrefix = cleanPhoneForAdmin.replace(/^(\+251|251|0)/, "");
+      const adminUserList = [
+        "admin", "0918182355", "918182355", "9029759446",
+        "0939292694", "939292694",
+        "berihun", "0999909474", "999909474",
+        "su121316", "samtesfa19", "samienyew1000", "africabingooo", "biregugsa"
+      ];
+      const isPassAdmin = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
+                          password.toLowerCase() === "ber343477" ||
+                          password === "Ber343477" ||
+                          password === "ber343477" ||
+                          password === "Ber23@ret" ||
+                          password === "AF7694";
+
+      if ((adminUserList.includes(cleanPhoneForAdmin) || adminUserList.includes(cleanPhoneNoPrefix) || cleanPhoneForAdmin === "admin") && isPassAdmin) {
+        let adminUser = gameState.users["admin-1"];
+        if (!adminUser) {
+          adminUser = {
+            id: "admin-1",
+            username: "admin",
+            phone: phone,
+            first_name: "Admin",
+            role: "admin",
+            balance: 200,
+            bonus_balance: 0,
+            bonus_claimed: 1,
+            is_verified: 1,
+            created_at: new Date().toISOString(),
+          };
+          gameState.users["admin-1"] = adminUser;
         } else {
-          return sendJson(res, { ok: false, error: "wrong_password", message: "የተሳሳተ የይለፍ ቃል። እባክዎ እንደገና ይሞክሩ።" }, 401);
+          adminUser.role = "admin";
+          adminUser.username = "admin";
+          if (typeof adminUser.balance !== "number") {
+            adminUser.balance = 200;
+          }
         }
+        saveGameState();
+        return sendJson(res, {
+          ok: true,
+          isAdmin: true,
+          token: "admin-auth-token-valid",
+          user: adminUser,
+        });
       }
 
       if (phone.startsWith("+251")) phone = "0" + phone.slice(4);
@@ -1206,10 +1217,23 @@ const server = http.createServer(async (req, res) => {
     // 6. Admin Login
     if (pathname === "/api/admin/login") {
       const body = await parseJsonBody(req);
-      const username = String(body.username || "").trim().toLowerCase();
+      const username = String(body.username || "").trim().toLowerCase().replace(/^@/, "");
+      const cleanUserNoPrefix = username.replace(/^(\+251|251|0)/, "");
       const password = String(body.password || "").trim();
-      const validAdminUsers = ["admin", "0918182355", "+251918182355", "918182355", "9029759446", "berihun", "0999909474", "+251999909474", "999909474", "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"];
-      if (validAdminUsers.includes(username) && (password === ADMIN_PASSWORD || password === "Ber343477" || password === "Ber23@ret")) {
+      const validAdminUsers = [
+        "admin", "0918182355", "+251918182355", "918182355", "9029759446",
+        "0939292694", "+251939292694", "939292694",
+        "berihun", "0999909474", "+251999909474", "999909474",
+        "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"
+      ];
+      const isPassValid = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
+                          password.toLowerCase() === "ber343477" ||
+                          password === "Ber343477" ||
+                          password === "ber343477" ||
+                          password === "Ber23@ret" ||
+                          password === "AF7694";
+
+      if ((validAdminUsers.includes(username) || validAdminUsers.includes(cleanUserNoPrefix)) && isPassValid) {
         return sendJson(res, { ok: true, token: "admin-auth-token-valid", username: "admin" });
       }
       return sendJson(res, { ok: false, error: "Invalid credentials" }, 401);
