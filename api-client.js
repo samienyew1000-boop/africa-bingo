@@ -55,6 +55,14 @@ const LuckyBingoAPI = (() => {
     localStorage.removeItem("lb_mobile_user");
     localStorage.removeItem("lb_tg_user");
     localStorage.removeItem("lb_device_player_id");
+    localStorage.removeItem("lb_admin_auth");
+    localStorage.removeItem("lb_admin_token");
+    localStorage.removeItem("lb_admin_user");
+    localStorage.removeItem("lb_admin_password");
+    sessionStorage.removeItem("lb_admin_auth");
+    sessionStorage.removeItem("lb_admin_token");
+    sessionStorage.removeItem("lb_admin_user");
+    sessionStorage.removeItem("lb_admin_password");
   }
 
   async function mobileRegister(phone, fullName = "", password = "", avatar = "") {
@@ -140,7 +148,7 @@ const LuckyBingoAPI = (() => {
     if (adminToken) {
       headers["X-Admin-Token"] = adminToken;
     }
-    const adminPwd = sessionStorage.getItem("lb_admin_password") || localStorage.getItem("lb_admin_password") || "Ber343477";
+    const adminPwd = sessionStorage.getItem("lb_admin_password") || localStorage.getItem("lb_admin_password");
     if (adminPwd) {
       headers["X-Admin-Password"] = adminPwd;
     }

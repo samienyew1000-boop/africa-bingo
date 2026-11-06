@@ -8,9 +8,9 @@ const PUBLIC_DIR = __dirname;
 const STATE_FILE = path.join(__dirname, "game-state.json");
 const BACKUP_STATE_FILE = path.join(__dirname, "game-state.backup.json");
 const ROOT_BACKUP_FILE = "/var/backups/africa-bingo-state.json";
-const BOT_TOKEN = process.env.BOT_TOKEN || "8882887936:AAEXtkABLYGWPSC-r4tXRMAOzET9Jp21NUQ";
+const BOT_TOKEN = process.env.BOT_TOKEN || "8882887936:AAELmxQJieLfEfxzf9D5bZj9BPz37kvRa3w";
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://africa-bingo.ethiodeploy.com/").replace(/\/+$/, "") + "/";
-const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0918182355,9029759446,berihun,admin,0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,Biregugsa";
+const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0918182355,9029759446,berihun,admin,0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,Biregugsa,ber63781,Ber63781";
 const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
 const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "9029759446,5663531258,0918182355,0999909474";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Ber343477";
@@ -901,7 +901,7 @@ const server = http.createServer(async (req, res) => {
         "admin", "0918182355", "918182355", "9029759446",
         "0939292694", "939292694",
         "berihun", "0999909474", "999909474",
-        "su121316", "samtesfa19", "samienyew1000", "africabingooo", "biregugsa"
+        "su121316", "samtesfa19", "samienyew1000", "africabingooo", "biregugsa", "ber63781"
       ];
       const isPassAdmin = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
                           password.toLowerCase() === "ber343477" ||
@@ -1231,7 +1231,7 @@ const server = http.createServer(async (req, res) => {
         "admin", "0918182355", "+251918182355", "918182355", "9029759446",
         "0939292694", "+251939292694", "939292694",
         "berihun", "0999909474", "+251999909474", "999909474",
-        "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"
+        "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa", "ber63781"
       ];
       const isPassValid = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
                           password.toLowerCase() === "ber343477" ||
@@ -1490,7 +1490,8 @@ async function notifyTelegramAdmin(text) {
     }
   }
   for (const u of Object.values(gameState.users || {})) {
-    if ((u.role === "admin" || u.phone === "0918182355" || u.id === "9029759446") && u.id && !String(u.id).startsWith("09") && !String(u.id).startsWith("admin")) {
+    const isUnameAdmin = u.username && ADMIN_USERNAMES.includes(String(u.username).toLowerCase().replace(/^@/, ""));
+    if ((u.role === "admin" || isUnameAdmin || u.phone === "0918182355" || u.id === "9029759446") && u.id && !String(u.id).startsWith("09") && !String(u.id).startsWith("admin")) {
       targetIds.add(String(u.id));
     }
   }
@@ -1517,6 +1518,11 @@ async function startTelegramBot() {
     });
   } catch (e) {}
 
+  try {
+    await telegramApi("deleteWebhook", { drop_pending_updates: true });
+    console.log("[INFO] Successfully deleted any active Telegram webhook.");
+  } catch (e) {}
+
   let offset = 0;
   async function poll() {
     try {
@@ -1533,32 +1539,76 @@ async function startTelegramBot() {
             const chatId = msg.chat.id;
             const text = msg.text.trim();
             const firstName = msg.from.first_name || "Player";
+            const uname = msg.from && msg.from.username ? msg.from.username.toLowerCase().replace(/^@/, "") : "";
 
-            if (text.startsWith("/start") || text.toLowerCase() === "play") {
-              await telegramApi("sendMessage", {
-                chat_id: chatId,
-                text: `👋 ሰላም *${firstName}*! ወደ *Africa Bingo* እንኳን በደህና መጡ! 🎲\n\n🎁 *የ 10 ETB የመመዝገቢያ ቦነስ ተሰጥቷችኋል!*\n\nለመጫወት ከታች ያለውን **Play Africa Bingo 🎮** የሚለውን ቁልፍ ይጫኑ!`,
-                parse_mode: "Markdown",
-                reply_markup: {
-                  inline_keyboard: [
-                    [
-                      {
-                        text: "Play Africa Bingo 🎮 (10 ETB Bonus)",
-                        web_app: { url: WEB_APP_URL },
-                      },
-                    ],
-                  ],
-                },
-              });
-            } else if (text.startsWith("/admin")) {
-              const uname = msg.from && msg.from.username ? msg.from.username.toLowerCase() : "";
-              if (!gameState.settings.adminChatIds) gameState.settings.adminChatIds = [];
+            if (!gameState.settings.adminChatIds) gameState.settings.adminChatIds = [];
             const isBerihun = String(chatId) === "9029759446" || (msg.from && (msg.from.id === 9029759446 || (msg.from.first_name && msg.from.first_name.toLowerCase().includes("berihun"))));
             const isAdmin = isBerihun || ADMIN_IDS.includes(String(chatId)) || (uname && ADMIN_USERNAMES.includes(uname));
-            if (isAdmin && !gameState.settings.adminChatIds.includes(String(chatId))) {
-              gameState.settings.adminChatIds.push(String(chatId));
+
+            // Automatically register admin chat_id so notifications reach them
+            if (isAdmin) {
+              if (!gameState.settings.adminChatIds.includes(String(chatId))) {
+                gameState.settings.adminChatIds.push(String(chatId));
+                saveGameState();
+              }
+              if (!gameState.users[chatId]) {
+                gameState.users[chatId] = {
+                  id: String(chatId),
+                  username: msg.from.username || uname,
+                  first_name: firstName,
+                  role: "admin",
+                  is_verified: 1,
+                  created_at: new Date().toISOString(),
+                  source: "telegram",
+                };
+              } else {
+                gameState.users[chatId].role = "admin";
+                if (msg.from.username) gameState.users[chatId].username = msg.from.username;
+              }
               saveGameState();
             }
+
+            if (text.startsWith("/start") || text.toLowerCase() === "play") {
+              if (isAdmin) {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `👋 ሰላም *${firstName}* (@${msg.from.username || uname || "Admin"})! ወደ *Africa Bingo* እንኳን በደህና መጡ! 🎲\n\n🛡️ *የአስተዳዳሪ (Admin) መለያዎ ነቅቷል!*\n\nከአሁን በኋላ ማንኛውም አዲስ **የተቀማጭ (Deposit)** እና **የገንዘብ ማውጣት (Withdrawal)** ጥያቄ ሲቀርብ እዚህ ማሳወቂያ (Notification) ይደርስዎታል!`,
+                  parse_mode: "Markdown",
+                  reply_markup: {
+                    inline_keyboard: [
+                      [
+                        {
+                          text: "Play Africa Bingo 🎮",
+                          web_app: { url: WEB_APP_URL },
+                        },
+                      ],
+                      [
+                        {
+                          text: "🌐 Admin Panel (Web Console)",
+                          web_app: { url: `${WEB_APP_URL}admin.html?role=admin&u=${chatId}` },
+                        },
+                      ],
+                    ],
+                  },
+                });
+              } else {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `👋 ሰላም *${firstName}*! ወደ *Africa Bingo* እንኳን በደህና መጡ! 🎲\n\n🎁 *የ 10 ETB የመመዝገቢያ ቦነስ ተሰጥቷችኋል!*\n\nለመጫወት ከታች ያለውን **Play Africa Bingo 🎮** የሚለውን ቁልፍ ይጫኑ!`,
+                  parse_mode: "Markdown",
+                  reply_markup: {
+                    inline_keyboard: [
+                      [
+                        {
+                          text: "Play Africa Bingo 🎮 (10 ETB Bonus)",
+                          web_app: { url: WEB_APP_URL },
+                        },
+                      ],
+                    ],
+                  },
+                });
+              }
+            } else if (text.startsWith("/admin")) {
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,

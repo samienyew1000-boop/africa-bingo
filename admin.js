@@ -11,7 +11,7 @@ const ADMIN_AUTH_CONFIG = {
     "admin", "0918182355", "+251918182355", "918182355", "9029759446",
     "0939292694", "+251939292694", "939292694",
     "berihun", "0999909474", "+251999909474", "999909474",
-    "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa"
+    "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa", "ber63781"
   ],
   password: "Ber343477",
   fallbackPassword: "ber343477",
@@ -1397,6 +1397,15 @@ function bindEvents() {
         const formattedUser = /^\+?\d+$/.test(uInput.trim()) ? uInput.trim() : (uInput.trim().startsWith("@") ? uInput.trim() : "@" + uInput.trim());
         sessionStorage.setItem("lb_admin_user", formattedUser);
         localStorage.setItem("lb_admin_user", formattedUser);
+        const adminUserObj = {
+          id: "admin-1",
+          username: "admin",
+          first_name: "Admin",
+          role: "admin",
+          balance: 100000,
+        };
+        localStorage.setItem("lb_mobile_user", JSON.stringify(adminUserObj));
+        localStorage.setItem("lb_tg_user", JSON.stringify(adminUserObj));
         updateAdminUIAuth(true, formattedUser);
         if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.adminLogin) {
           LuckyBingoAPI.adminLogin(cleanUser, cleanPass).then((res) => {
@@ -1441,6 +1450,14 @@ function bindEvents() {
   $("admin-signout").addEventListener("click", () => {
     sessionStorage.removeItem("lb_admin_auth");
     sessionStorage.removeItem("lb_admin_user");
+    sessionStorage.removeItem("lb_admin_token");
+    sessionStorage.removeItem("lb_admin_password");
+    localStorage.removeItem("lb_admin_auth");
+    localStorage.removeItem("lb_admin_user");
+    localStorage.removeItem("lb_admin_token");
+    localStorage.removeItem("lb_admin_password");
+    localStorage.removeItem("lb_mobile_user");
+    localStorage.removeItem("lb_tg_user");
     updateAdminUIAuth(false);
     showToast("Signed out of the admin console.");
   });

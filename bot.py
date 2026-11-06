@@ -73,7 +73,7 @@ def load_dotenv(filepath=".env"):
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8882887936:AAEXtkABLYGWPSC-r4tXRMAOzET9Jp21NUQ")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8882887936:AAELmxQJieLfEfxzf9D5bZj9BPz37kvRa3w")
 raw_web_url = os.getenv("WEB_APP_URL", "https://africa-bingo.ethiodeploy.com/").strip()
 WEB_APP_URL = raw_web_url if raw_web_url.endswith("/") else f"{raw_web_url}/"
 GROUP_URL = os.getenv("GROUP_URL", "https://t.me/Africa1bingo_bot")
@@ -108,7 +108,7 @@ def get_game_web_url(subpath: str = "", extra_query: str = "", is_admin_user: bo
     return base
 
 # Authorized Administrators (comma-separated in .env or set here)
-raw_usernames = os.getenv("ADMIN_USERNAMES", "admin,0918182355,9029759446,berihun,0999909474,su121316,samTesfa19,samienyew1000,Africabingooo,Biregugsa")
+raw_usernames = os.getenv("ADMIN_USERNAMES", "admin,0918182355,9029759446,berihun,0999909474,su121316,samTesfa19,samienyew1000,Africabingooo,Biregugsa,ber63781,Ber63781")
 ADMIN_USERNAMES = [u.strip().lstrip("@").lower() for u in raw_usernames.split(",") if u.strip()]
 raw_phones = os.getenv("ADMIN_PHONES", "+251918182355,0918182355,0999909474,+251999909474,+251939292694")
 ADMIN_PHONES = [p.strip() for p in raw_phones.split(",") if p.strip()]
@@ -210,6 +210,23 @@ def notify_admins_transaction(tx_id: str, tx_type: str, amount: float, method: s
     admin_targets = set(ADMIN_TELEGRAM_IDS)
     admin_targets.add(9029759446)
     admin_targets.add(5663531258)
+    try:
+        state_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "game-state.json")
+        if os.path.exists(state_file):
+            import json
+            with open(state_file, "r", encoding="utf-8") as f:
+                sdata = json.load(f)
+                for cid in sdata.get("settings", {}).get("adminChatIds", []):
+                    if cid and str(cid).isdigit() and not str(cid).startswith("09"):
+                        admin_targets.add(int(cid))
+                for u in sdata.get("users", {}).values():
+                    uname = (u.get("username") or "").lstrip("@").lower()
+                    if u.get("role") == "admin" or uname in ADMIN_USERNAMES:
+                        uid = u.get("id")
+                        if uid and str(uid).isdigit() and not str(uid).startswith("09"):
+                            admin_targets.add(int(uid))
+    except Exception:
+        pass
     try:
         with get_db_connection() as conn:
             c = conn.cursor()

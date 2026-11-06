@@ -164,6 +164,17 @@ async function syncProfileWithServer() {
     const user = await LuckyBingoAPI.getProfile();
     if (!user || user.error) return;
 
+    if (user && user.role) {
+      if (user.role !== "admin") {
+        clearAdminAuthStorage();
+      }
+      const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
+      if (mUser && mUser.role !== user.role) {
+        mUser.role = user.role;
+        localStorage.setItem("lb_mobile_user", JSON.stringify(mUser));
+      }
+    }
+
     if (typeof user.balance === "number") {
       balance = Number(user.balance);
       // Cache only the last server value for paint-time fallback. It is never
@@ -1507,6 +1518,49 @@ function toast(text, kind) {
   toast._t = setTimeout(() => (el.hidden = true), 1800);
 }
 
+function clearAdminAuthStorage() {
+  try {
+    sessionStorage.removeItem("lb_admin_auth");
+    sessionStorage.removeItem("lb_admin_token");
+    sessionStorage.removeItem("lb_admin_user");
+    sessionStorage.removeItem("lb_admin_password");
+    localStorage.removeItem("lb_admin_auth");
+    localStorage.removeItem("lb_admin_token");
+    localStorage.removeItem("lb_admin_user");
+    localStorage.removeItem("lb_admin_password");
+  } catch (e) {}
+}
+
+function checkIsUserAdmin() {
+  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser)
+    ? LuckyBingoAPI.getMobileUser()
+    : null;
+  const tgUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getTelegramUser)
+    ? LuckyBingoAPI.getTelegramUser()
+    : null;
+
+  const user = mUser || tgUser;
+
+  // 1. If a user profile is logged in:
+  if (user) {
+    const isRoleAdmin = user.role === "admin" || user.isAdmin === true;
+    const isUsernameAdmin = Boolean(user.username && user.username.toLowerCase() === "admin");
+    const hasAdminCreds = (sessionStorage.getItem("lb_admin_auth") === "true" || localStorage.getItem("lb_admin_auth") === "true");
+
+    // Must be explicitly an admin account with active admin authentication
+    if ((isRoleAdmin || isUsernameAdmin) && hasAdminCreds) {
+      return true;
+    }
+
+    // Normal player logged in: Clean up any stale admin credentials left on device
+    clearAdminAuthStorage();
+    return false;
+  }
+
+  // 2. Unauthenticated / Guest: Admin UI must NEVER be shown
+  return false;
+}
+
 function updateGameUserInfo() {
   const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser)
     ? LuckyBingoAPI.getMobileUser()
@@ -1536,12 +1590,7 @@ function updateGameUserInfo() {
 
   // Update Global Header Actions
   const ghActions = $("global-header-actions");
-  const isUserAdmin = Boolean(
-    displayName.toLowerCase() === "admin" ||
-    (user && (user.role === "admin" || user.isAdmin)) ||
-    sessionStorage.getItem("lb_admin_auth") === "true" ||
-    localStorage.getItem("lb_admin_auth") === "true"
-  );
+  const isUserAdmin = checkIsUserAdmin();
 
   const lobbyAdminBanner = $("lobby-admin-banner");
   if (lobbyAdminBanner) {
@@ -1613,10 +1662,10 @@ function updateGameUserInfo() {
     }
   }
 
-  // Update Drawer Admin Button (Always accessible in side drawer)
+  // Update Drawer Admin Button (Only accessible if logged in as admin)
   const drawerAdminBtn = $("drawer-admin-btn");
   if (drawerAdminBtn) {
-    drawerAdminBtn.style.display = "flex";
+    drawerAdminBtn.style.display = isUserAdmin ? "flex" : "none";
   }
 }
 
@@ -1749,7 +1798,7 @@ function setupMobileAuthEvents() {
       "admin", "0918182355", "918182355", "9029759446",
       "0939292694", "939292694",
       "berihun", "0999909474", "999909474",
-      "su121316", "samtesfa19", "samienyew1000", "africabingooo", "biregugsa"
+      "su121316", "samtesfa19", "samienyew1000", "africabingooo", "biregugsa", "ber63781"
     ];
     const isPassAdmin = password.toLowerCase() === "ber343477" ||
                         password === "Ber343477" ||
@@ -1838,6 +1887,7 @@ function setupMobileAuthEvents() {
       }
 
       if (res && res.ok && res.user) {
+        clearAdminAuthStorage();
         const modal = $("mobile-auth-modal");
         if (modal) modal.hidden = true;
 
@@ -1943,6 +1993,7 @@ function setupMobileAuthEvents() {
       const res = await LuckyBingoAPI.mobileRegister(phone, name, password, avatar);
 
       if (res && res.ok && res.user) {
+        clearAdminAuthStorage();
         const modal = $("mobile-auth-modal");
         if (modal) modal.hidden = true;
 
@@ -4810,9 +4861,7 @@ function bind() {
   $("game-wallet-trigger")?.addEventListener("click", () => openWallet("deposit"));
   $("game-user-trigger")?.addEventListener("click", () => openMobilePanel("profile"));
   $("lobby-user-chip")?.addEventListener("click", () => {
-    const isUserAdmin = sessionStorage.getItem("lb_admin_auth") === "true" ||
-                        localStorage.getItem("lb_admin_auth") === "true" ||
-                        $("lobby-user-name")?.textContent?.trim().toLowerCase() === "admin";
+    const isUserAdmin = checkIsUserAdmin();
     if (isUserAdmin) {
       if (confirm("👑 ወደ Admin Console መግባት ይፈልጋሉ? (Open Admin Console?)")) {
         window.location.href = "admin.html";
