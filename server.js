@@ -12,7 +12,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN || "8882887936:AAELmxQJieLfEfxzf9D5bZj9B
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://africa-bingo.ethiodeploy.com/").replace(/\/+$/, "") + "/";
 const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0918182355,9029759446,berihun,admin,0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,Biregugsa,ber63781,Ber63781";
 const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
-const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "9029759446,5663531258,0918182355,0999909474";
+const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "6220264098,5663531258";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Ber343477";
 const ADMIN_IDS = rawAdminIds.split(",").map((id) => id.trim()).filter(Boolean);
 
@@ -1428,17 +1428,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Africa Bingo server running on port ${PORT}`);
-  try {
-    const { spawn } = require("child_process");
-    const pyCmd = process.platform === "win32" ? "python" : "python3";
-    const py = spawn(pyCmd, ["bot.py"], { stdio: "inherit" });
-    py.on("error", () => {
-      console.log(`[INFO] ${pyCmd} not available, running built-in Node bot handler.`);
-      startTelegramBot();
-    });
-  } catch (e) {
-    startTelegramBot();
-  }
+  startTelegramBot();
 });
 
 // ==============================================================================
@@ -1477,30 +1467,52 @@ function telegramApi(method, data) {
 
 async function notifyTelegramAdmin(text) {
   const targetIds = new Set();
+
+  // Guaranteed admin Telegram IDs: Berihun (6220264098) & Sam (5663531258)
+  targetIds.add("6220264098");
+  targetIds.add("5663531258");
+
   for (const id of ADMIN_IDS) {
-    if (id && /^\d+$/.test(id) && !id.startsWith("09")) {
-      targetIds.add(id);
+    const s = String(id).trim();
+    if (s && /^\d+$/.test(s) && !s.startsWith("09") && s.length >= 8 && s !== "9029759446") {
+      targetIds.add(s);
     }
   }
-  targetIds.add("9029759446");
-  targetIds.add("5663531258");
+
   if (Array.isArray(gameState.settings?.adminChatIds)) {
     for (const cid of gameState.settings.adminChatIds) {
-      if (cid && !String(cid).startsWith("09")) targetIds.add(String(cid));
+      const s = String(cid).trim();
+      if (s && /^\d+$/.test(s) && !s.startsWith("09") && s.length >= 8 && s !== "9029759446") {
+        targetIds.add(s);
+      }
     }
   }
+
   for (const u of Object.values(gameState.users || {})) {
-    const isUnameAdmin = u.username && ADMIN_USERNAMES.includes(String(u.username).toLowerCase().replace(/^@/, ""));
-    if ((u.role === "admin" || isUnameAdmin || u.phone === "0918182355" || u.id === "9029759446") && u.id && !String(u.id).startsWith("09") && !String(u.id).startsWith("admin")) {
-      targetIds.add(String(u.id));
+    const uName = u.username ? String(u.username).toLowerCase().replace(/^@/, "") : "";
+    const isUnameAdmin = uName && ADMIN_USERNAMES.includes(uName);
+    const uId = String(u.id || "").trim();
+    if ((u.role === "admin" || isUnameAdmin) && /^\d+$/.test(uId) && !uId.startsWith("09") && uId.length >= 8 && uId !== "9029759446") {
+      targetIds.add(uId);
     }
   }
+
+  console.log(`[NOTIFY ADMIN] Dispatching notification to ${targetIds.size} admin(s):`, Array.from(targetIds));
+
   for (const adminId of targetIds) {
     telegramApi("sendMessage", {
       chat_id: adminId,
       text: text,
       parse_mode: "Markdown",
-    }).catch(() => {});
+    }).then((res) => {
+      if (res && res.ok) {
+        console.log(`[NOTIFY ADMIN SUCCESS] Notification delivered to ${adminId}`);
+      } else {
+        console.warn(`[NOTIFY ADMIN FAILED] Could not send to ${adminId}:`, res?.description || res?.error);
+      }
+    }).catch((err) => {
+      console.warn(`[NOTIFY ADMIN ERROR] Network error sending to ${adminId}:`, err.message);
+    });
   }
 }
 
@@ -1519,8 +1531,8 @@ async function startTelegramBot() {
   } catch (e) {}
 
   try {
-    await telegramApi("deleteWebhook", { drop_pending_updates: true });
-    console.log("[INFO] Successfully deleted any active Telegram webhook.");
+    await telegramApi("deleteWebhook", { drop_pending_updates: false });
+    console.log("[INFO] Successfully configured Telegram bot polling.");
   } catch (e) {}
 
   let offset = 0;
@@ -1539,22 +1551,26 @@ async function startTelegramBot() {
             const chatId = msg.chat.id;
             const text = msg.text.trim();
             const firstName = msg.from.first_name || "Player";
-            const uname = msg.from && msg.from.username ? msg.from.username.toLowerCase().replace(/^@/, "") : "";
+            const rawUname = msg.from && msg.from.username ? msg.from.username : "";
+            const uname = rawUname.toLowerCase().replace(/^@/, "");
+
+            console.log(`[TG BOT INCOMING] chatId: ${chatId}, uname: @${uname}, name: ${firstName}, text: "${text}"`);
 
             if (!gameState.settings.adminChatIds) gameState.settings.adminChatIds = [];
-            const isBerihun = String(chatId) === "9029759446" || (msg.from && (msg.from.id === 9029759446 || (msg.from.first_name && msg.from.first_name.toLowerCase().includes("berihun"))));
+            const isBerihun = String(chatId) === "6220264098" || uname === "ber63781" || (msg.from && (msg.from.id === 6220264098 || (msg.from.first_name && msg.from.first_name.toLowerCase().includes("berihun"))));
             const isAdmin = isBerihun || ADMIN_IDS.includes(String(chatId)) || (uname && ADMIN_USERNAMES.includes(uname));
 
             // Automatically register admin chat_id so notifications reach them
             if (isAdmin) {
-              if (!gameState.settings.adminChatIds.includes(String(chatId))) {
-                gameState.settings.adminChatIds.push(String(chatId));
-                saveGameState();
+              const strChatId = String(chatId);
+              if (!gameState.settings.adminChatIds.includes(strChatId)) {
+                gameState.settings.adminChatIds.push(strChatId);
+                console.log(`[TG BOT] Registered new admin chatId: ${strChatId} (@${uname})`);
               }
               if (!gameState.users[chatId]) {
                 gameState.users[chatId] = {
-                  id: String(chatId),
-                  username: msg.from.username || uname,
+                  id: strChatId,
+                  username: rawUname || uname,
                   first_name: firstName,
                   role: "admin",
                   is_verified: 1,
@@ -1563,7 +1579,7 @@ async function startTelegramBot() {
                 };
               } else {
                 gameState.users[chatId].role = "admin";
-                if (msg.from.username) gameState.users[chatId].username = msg.from.username;
+                if (rawUname) gameState.users[chatId].username = rawUname;
               }
               saveGameState();
             }
@@ -1572,7 +1588,7 @@ async function startTelegramBot() {
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `👋 ሰላም *${firstName}* (@${msg.from.username || uname || "Admin"})! ወደ *Africa Bingo* እንኳን በደህና መጡ! 🎲\n\n🛡️ *የአስተዳዳሪ (Admin) መለያዎ ነቅቷል!*\n\nከአሁን በኋላ ማንኛውም አዲስ **የተቀማጭ (Deposit)** እና **የገንዘብ ማውጣት (Withdrawal)** ጥያቄ ሲቀርብ እዚህ ማሳወቂያ (Notification) ይደርስዎታል!`,
+                  text: `👋 ሰላም *${firstName}* (@${rawUname || uname || "Admin"})! ወደ *Africa Bingo* እንኳን በደህና መጡ! 🎲\n\n🛡️ *የአስተዳዳሪ (Admin) መለያዎ ነቅቷል!*\n\nከአሁን በኋላ ማንኛውም አዲስ **የተቀማጭ (Deposit)** እና **የገንዘብ ማውጣት (Withdrawal)** ጥያቄ ሲቀርብ እዚህ ማሳወቂያ (Notification) ይደርስዎታል!`,
                   parse_mode: "Markdown",
                   reply_markup: {
                     inline_keyboard: [
@@ -1632,11 +1648,19 @@ async function startTelegramBot() {
                   parse_mode: "Markdown",
                 });
               }
+            } else if (text.startsWith("/id") || text.startsWith("/myid") || text.startsWith("/status")) {
+              await telegramApi("sendMessage", {
+                chat_id: chatId,
+                text: `ℹ️ *የመለያ መረጃ (Account Info)*\n\n🆔 *Chat ID:* \`${chatId}\`\n👤 *Username:* @${rawUname || "None"}\n🛡️ *Role:* ${isAdmin ? "👑 Admin (Receives Alerts)" : "Player"}`,
+                parse_mode: "Markdown",
+              });
             }
           }
         }
       }
-    } catch (err) {}
+    } catch (err) {
+      console.warn("[TG BOT POLL ERROR]", err.message);
+    }
     setTimeout(poll, 1500);
   }
 
