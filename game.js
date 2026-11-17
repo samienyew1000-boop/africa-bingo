@@ -1147,12 +1147,8 @@ function nextDemoPattern() {
 }
 
 function showView(name) {
-  const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
-  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
-  if (!mUser && !isTg && name !== "landing") {
-    name = "landing";
-    setAuthMode("register");
-    showMobileAuthModal(true);
+  if (name === "landing") {
+    name = "lobby";
   }
 
   Object.entries(views).forEach(([key, el]) => {
@@ -1369,7 +1365,7 @@ function renderMobilePanelContent(tab) {
       </div>
       <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
         <button type="button" class="lb-mobile-action-button" style="background:#0284c7;color:#fff;" id="profile-install-btn">📲 Install Mobile App</button>
-        <button type="button" class="lb-mobile-action-button lb-mobile-logout-btn" id="profile-logout-btn">🚪 Switch Account / መለያ ቀይር</button>
+        <button type="button" class="lb-mobile-action-button" style="background:#2e1065;color:#fff;" id="profile-refresh-btn">🔄 መለያ አድስ / Refresh Profile</button>
       </div>
     `;
     $("profile-deposit-btn")?.addEventListener("click", () => {
@@ -1383,12 +1379,10 @@ function renderMobilePanelContent(tab) {
     $("profile-install-btn")?.addEventListener("click", () => {
       handleInstallClick();
     });
-    $("profile-logout-btn")?.addEventListener("click", () => {
+    $("profile-refresh-btn")?.addEventListener("click", async () => {
       closeMobilePanel();
-      if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.logoutMobile) {
-        LuckyBingoAPI.logoutMobile();
-      }
-      showMobileAuthModal(true);
+      await syncProfileWithServer();
+      toast("መለያ ታድሷል (Profile refreshed)", "win");
     });
     return;
   }
@@ -1468,14 +1462,6 @@ function renderMobilePanelContent(tab) {
 }
 
 function openMobilePanel(tab) {
-  const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
-  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
-  if (!mUser && !isTg && (tab === "history" || tab === "wallet" || tab === "deposit" || tab === "profile" || tab === "settings")) {
-    setAuthMode("login");
-    showMobileAuthModal(true);
-    toast("እባክዎ መጀመሪያ ይግቡ (Please login)", "win");
-    return;
-  }
   mobilePanelTab = tab;
   const panel = $("mobile-panel");
   const title = $("mobile-panel-title");
@@ -1570,7 +1556,7 @@ function updateGameUserInfo() {
     : null;
 
   const user = mUser || tgUser;
-  const isLoggedIn = Boolean(mUser || (tgUser && !String(tgUser.id).startsWith("8")));
+  const isLoggedIn = true;
   const displayName = user?.first_name || user?.name || user?.username || (user?.phone ? `09...${user.phone.slice(-4)}` : "Waliya Player");
   const phoneDisplay = user?.phone || user?.username || (user?.id ? `ID: ${user.id}` : "");
 
@@ -1598,68 +1584,48 @@ function updateGameUserInfo() {
   }
 
   if (ghActions) {
-    if (isLoggedIn) {
-      if (isUserAdmin) {
-        ghActions.innerHTML = `
-          <a href="admin.html" class="lb-gh-btn" id="btn-header-admin-console" style="background:#f59e0b;color:#1e1b4b;font-weight:bold;display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:20px;text-decoration:none;box-shadow:0 0 10px rgba(245,158,11,0.5);font-size:12px;">
-            ⚙️ Admin
-          </a>
-          <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-profile" style="background:#2e1065;color:#fff;">
-            👤 Admin
-          </button>
-        `;
-        $("btn-header-profile")?.addEventListener("click", () => openSideDrawer());
-      } else {
-        ghActions.innerHTML = `
-          <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-profile" style="background:#2e1065;color:#fff;">
-            👤 ${escapeHTML(displayName.length > 10 ? displayName.slice(0, 8) + '..' : displayName)}
-          </button>
-        `;
-        $("btn-header-profile")?.addEventListener("click", () => openSideDrawer());
-      }
+    if (isUserAdmin) {
+      ghActions.innerHTML = `
+        <a href="admin.html" class="lb-gh-btn" id="btn-header-admin-console" style="background:#f59e0b;color:#1e1b4b;font-weight:bold;display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:20px;text-decoration:none;box-shadow:0 0 10px rgba(245,158,11,0.5);font-size:12px;">
+          ⚙️ Admin
+        </a>
+        <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-profile" style="background:#2e1065;color:#fff;">
+          👤 Admin
+        </button>
+      `;
+      $("btn-header-profile")?.addEventListener("click", () => openSideDrawer());
     } else {
       ghActions.innerHTML = `
-        <button type="button" class="lb-gh-btn lb-gh-login" id="btn-header-login">ግባ</button>
-        <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-register">ተመዝገብ</button>
+        <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-profile" style="background:#2e1065;color:#fff;">
+          👤 ${escapeHTML(displayName.length > 10 ? displayName.slice(0, 8) + '..' : displayName)}
+        </button>
       `;
-      $("btn-header-login")?.addEventListener("click", () => {
-        setAuthMode("login");
-        showMobileAuthModal(true);
-      });
-      $("btn-header-register")?.addEventListener("click", () => {
-        setAuthMode("register");
-        showMobileAuthModal(true);
-      });
+      $("btn-header-profile")?.addEventListener("click", () => openSideDrawer());
     }
   }
 
   // Update Drawer Welcome Card
   const welcomeCard = $("drawer-welcome-card");
   if (welcomeCard) {
-    if (isLoggedIn) {
-      welcomeCard.innerHTML = `
-        <strong>👋 እንኳን ደህና መጡ፣ ${escapeHTML(displayName)}!</strong>
-        <p>ስልክ: ${escapeHTML(phoneDisplay)} · ቦርሳ: <b>${Number(balance).toFixed(2)} ETB</b></p>
-      `;
-    } else {
-      welcomeCard.innerHTML = `
-        <strong>ለመጫወት እና ካርቴላ ለመመዝገብ ግባ</strong>
-        <p>ካርቴላ ለመመዝገብ እና ቦርሳህን ለማስተዳደር መለያ ፍጠር።</p>
-      `;
-    }
+    welcomeCard.innerHTML = `
+      <strong>👋 ሰላም፣ ${escapeHTML(displayName)}!</strong>
+      <p>${phoneDisplay ? `መለያ: ${escapeHTML(phoneDisplay)} · ` : ""}ቦርሳ: <b>${Number(balance).toFixed(2)} ETB</b></p>
+    `;
   }
 
   // Update Drawer Bottom Actions
   const drawerLoginBtn = $("drawer-login-btn");
   const drawerRegisterBtn = $("drawer-register-btn");
-  if (drawerLoginBtn && drawerRegisterBtn) {
-    if (isLoggedIn) {
-      drawerLoginBtn.textContent = "ወደ ጨዋታ ክፍሎች ግባ";
-      drawerRegisterBtn.textContent = "መለያ ቀይር / ውጣ";
-    } else {
-      drawerLoginBtn.textContent = "ግባ";
-      drawerRegisterBtn.textContent = "ተመዝገብ";
-    }
+  if (drawerLoginBtn) drawerLoginBtn.style.display = "none";
+  if (drawerRegisterBtn) drawerRegisterBtn.style.display = "none";
+
+  const drawerPlayBtn = $("drawer-play-btn");
+  if (drawerPlayBtn) {
+    drawerPlayBtn.style.display = "block";
+    drawerPlayBtn.onclick = () => {
+      closeSideDrawer();
+      showView("lobby");
+    };
   }
 
   // Update Drawer Admin Button (Only accessible if logged in as admin)
@@ -1694,15 +1660,10 @@ function setAuthMode(mode) {
 
 function showMobileAuthModal(force = false) {
   const modal = $("mobile-auth-modal");
-  if (!modal) return;
-  const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
-  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
-  if (!force && (mUser || isTg)) {
+  if (modal) {
     modal.hidden = true;
-    return;
+    modal.style.display = "none";
   }
-  modal.hidden = false;
-  setAuthMode(authMode || "register");
 }
 
 function setupPasswordToggle(btnId, inputId) {
@@ -2096,8 +2057,8 @@ const TRANSLATIONS = {
     landingKicker: "ፈጣን ምዝገባ:: የቀጣይ ዙር መደለል:: የቀጥታ ቢንጎ ኃይል::",
     landingStartCta: "🎁 በ 10 ብር ነፃ ቦነስ ጀምር (Start)",
     landingLobbyCta: "ወደ ጨዋታ ክፍሎች ግባ (Lobby)",
-    welcomeCardTitle: "ለመጫወት እና ካርቴላ ለመመዝገብ ግባ",
-    welcomeCardDesc: "ካርቴላ ለመመዝገብ እና ቦርሳህን ለማስተዳደር መለያ ፍጠር።",
+    welcomeCardTitle: "👋 እንኳን ደህና መጡ ወደ ዋሊያ ቢንጎ!",
+    welcomeCardDesc: "የቀጥታ ቢንጎ ጨዋታ መድረክ",
     notifications: "Notifications",
     sounds: "ድምፆች",
     bigGame: "Big Game",
@@ -2131,8 +2092,8 @@ const TRANSLATIONS = {
     landingKicker: "Quick registration :: Instant matchmaking :: Live bingo power.",
     landingStartCta: "🎁 Start with 10 ETB Free Bonus",
     landingLobbyCta: "Enter Game Rooms (Lobby)",
-    welcomeCardTitle: "Login to play & select cards",
-    welcomeCardDesc: "Create an account to pick cards and manage your wallet balance.",
+    welcomeCardTitle: "👋 Welcome to Waliya Bingo!",
+    welcomeCardDesc: "Live bingo gaming platform",
     notifications: "Notifications",
     sounds: "Sounds",
     bigGame: "Big Game",
@@ -2213,18 +2174,7 @@ function setLanguage(lang) {
   const elLandingLobbyCta = document.querySelector("#btn-landing-enter-lobby span");
   if (elLandingLobbyCta) elLandingLobbyCta.textContent = t.landingLobbyCta;
 
-  const elWelcomeTitle = document.querySelector("#drawer-welcome-card strong");
-  if (elWelcomeTitle) elWelcomeTitle.textContent = t.welcomeCardTitle;
-
-  const elWelcomeDesc = document.querySelector("#drawer-welcome-card p");
-  if (elWelcomeDesc) elWelcomeDesc.textContent = t.welcomeCardDesc;
-
-  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
-  const elDrawerLogin = $("drawer-login-btn");
-  if (elDrawerLogin) elDrawerLogin.textContent = t.login;
-
-  const elDrawerReg = $("drawer-register-btn");
-  if (elDrawerReg) elDrawerReg.textContent = mUser ? t.logout : t.register;
+  updateGameUserInfo();
 
   const elSoundsLabel = document.querySelector("#drawer-sound-toggle")?.closest(".lb-menu-row")?.querySelector(".lb-menu-row-label span:last-child");
   if (elSoundsLabel) elSoundsLabel.textContent = t.sounds;
@@ -2298,13 +2248,8 @@ function setupSideDrawerEvents() {
   $("drawer-lang-toggle")?.addEventListener("click", toggleLanguage);
 
   // Top header actions
-  $("btn-header-login")?.addEventListener("click", () => {
-    setAuthMode("login");
-    showMobileAuthModal(true);
-  });
-  $("btn-header-register")?.addEventListener("click", () => {
-    setAuthMode("register");
-    showMobileAuthModal(true);
+  $("btn-header-profile")?.addEventListener("click", () => {
+    openSideDrawer();
   });
   $("header-refresh-btn")?.addEventListener("click", async () => {
     await syncProfileWithServer();
@@ -2314,14 +2259,8 @@ function setupSideDrawerEvents() {
   });
 
   // Landing page actions
-  $("landing-login-btn")?.addEventListener("click", () => {
-    setAuthMode("login");
-    showMobileAuthModal(true);
-  });
-  $("landing-register-btn")?.addEventListener("click", () => {
-    setAuthMode("register");
-    showMobileAuthModal(true);
-  });
+  $("landing-login-btn")?.addEventListener("click", () => showView("lobby"));
+  $("landing-register-btn")?.addEventListener("click", () => showView("lobby"));
   $("llt-info-btn")?.addEventListener("click", (e) => {
     e.stopPropagation();
     const box = $("llt-info-box");
@@ -2336,15 +2275,8 @@ function setupSideDrawerEvents() {
     const banner = $("plt-banner");
     if (banner) banner.classList.toggle("is-collapsed");
   });
-  $("landing-live-tracker")?.addEventListener("click", () => {
-    setAuthMode("register");
-    showMobileAuthModal(true);
-    toast("ለመጫወት እና ካርቴላ ለመምረጥ ይመዝገቡ (Register to play & get 10 ETB free)", "win");
-  });
-  $("btn-landing-cta-start")?.addEventListener("click", () => {
-    setAuthMode("register");
-    showMobileAuthModal(true);
-  });
+  $("landing-live-tracker")?.addEventListener("click", () => showView("lobby"));
+  $("btn-landing-cta-start")?.addEventListener("click", () => showView("lobby"));
   $("demo-diagonal-btn")?.addEventListener("click", () => {
     nextDemoPattern();
     startDemoCardAnimation();
@@ -2355,42 +2287,13 @@ function setupSideDrawerEvents() {
   });
 
   // Drawer buttons
-  $("drawer-login-btn")?.addEventListener("click", () => {
+  $("drawer-play-btn")?.addEventListener("click", () => {
     closeSideDrawer();
-    const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
-    if (mUser) {
-      showView("lobby");
-    } else {
-      setAuthMode("login");
-      showMobileAuthModal(true);
-    }
-  });
-  $("drawer-register-btn")?.addEventListener("click", () => {
-    closeSideDrawer();
-    const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
-    if (mUser) {
-      if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.logoutMobile) {
-        LuckyBingoAPI.logoutMobile();
-      }
-      updateGameUserInfo();
-      showView("landing");
-      toast("ተሰናብተዋል (Logged out)", "win");
-    } else {
-      setAuthMode("register");
-      showMobileAuthModal(true);
-    }
+    showView("lobby");
   });
   $("drawer-big-game-btn")?.addEventListener("click", () => {
     closeSideDrawer();
-    const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
-    const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
-    if (!mUser && !isTg) {
-      setAuthMode("login");
-      showMobileAuthModal(true);
-      toast("እባክዎ መጀመሪያ ይግቡ (Please login)", "win");
-    } else {
-      showView("lobby");
-    }
+    showView("lobby");
   });
   $("drawer-install-app-btn")?.addEventListener("click", () => {
     closeSideDrawer();
@@ -2398,29 +2301,13 @@ function setupSideDrawerEvents() {
   });
   $("drawer-tx-history-btn")?.addEventListener("click", () => {
     closeSideDrawer();
-    const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
-    const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
-    if (!mUser && !isTg) {
-      setAuthMode("login");
-      showMobileAuthModal(true);
-      toast("እባክዎ መጀመሪያ ይግቡ (Please login)", "win");
-    } else {
-      historyFilter = "deposit";
-      openMobilePanel("history");
-    }
+    historyFilter = "deposit";
+    openMobilePanel("history");
   });
   $("drawer-game-history-btn")?.addEventListener("click", () => {
     closeSideDrawer();
-    const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
-    const isTg = Boolean(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
-    if (!mUser && !isTg) {
-      setAuthMode("login");
-      showMobileAuthModal(true);
-      toast("እባክዎ መጀመሪያ ይግቡ (Please login)", "win");
-    } else {
-      historyFilter = "game";
-      openMobilePanel("history");
-    }
+    historyFilter = "game";
+    openMobilePanel("history");
   });
   $("drawer-contact-btn")?.addEventListener("click", () => {
     window.open("tel:0939292694");
@@ -4930,12 +4817,7 @@ if (window.location.hash === "#game" || window.location.search.includes("view=ga
   showView("game");
   showWinnerOverlay("win", "RAS", 3800, 440, "LINE");
 } else {
-  const mUser = (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMobileUser) ? LuckyBingoAPI.getMobileUser() : null;
-  if (mUser) {
-    showView("lobby");
-  } else {
-    showView("landing");
-  }
+  showView("lobby");
 }
 
 checkAdminAccess();

@@ -48,6 +48,15 @@ const LuckyBingoAPI = (() => {
         if (parsed && (parsed.id || parsed.phone)) return parsed;
       }
     } catch (e) {}
+    const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (tg?.id) return tg;
+    const cached = localStorage.getItem("lb_tg_user");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.id) return parsed;
+      } catch (e) {}
+    }
     return null;
   }
 
@@ -126,7 +135,7 @@ const LuckyBingoAPI = (() => {
       const deviceUser = {
         id: Number(deviceId),
         username: `Player_${deviceId.slice(-4)}`,
-        first_name: "Lucky Player",
+        first_name: "Waliya Player",
       };
       localStorage.setItem("lb_tg_user", JSON.stringify(deviceUser));
       return deviceUser;

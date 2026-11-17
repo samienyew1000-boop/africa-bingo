@@ -12,9 +12,9 @@
     <meta name="apple-mobile-web-app-title" content="Waliya Bingo" />
     <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=20261103_01" />
+    <link rel="stylesheet" href="style.css?v=20261117_03" />
     <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
-    <script src="players-data.js?v=20261103_01"></script>
+    <script src="players-data.js?v=20261117_03"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
@@ -44,14 +44,15 @@
             <span class="lb-header-status-badge" id="header-status-badge">ቀጥታ</span>
           </div>
           <div class="lb-gh-right" id="global-header-actions">
-            <button type="button" class="lb-gh-btn lb-gh-login" id="btn-header-login">ግባ</button>
-            <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-register">ተመዝገብ</button>
+            <button type="button" class="lb-gh-btn lb-gh-register" id="btn-header-profile" style="background:#2e1065;color:#fff;">
+              👤 <span id="header-user-label">Profile</span>
+            </button>
           </div>
         </header>
 
         <main class="lb-main">
           <!-- 0. LANDING / GUEST DEMONSTRATION VIEW (Exact Screenshot 1 Match) -->
-          <section class="lb-view lb-landing-view is-on" id="view-landing">
+          <section class="lb-view lb-landing-view" id="view-landing" style="display: none !important;">
             <!-- Top Live Tracker Card (Matches Screenshot 1 & 2) -->
             <div class="lb-landing-live-tracker" id="landing-live-tracker" style="display: none;">
               <div class="lb-llt-top-row">
@@ -182,7 +183,7 @@
           </section>
 
           <!-- LOBBY: stake rooms -->
-          <section class="lb-view lb-lobby" id="view-lobby">
+          <section class="lb-view lb-lobby is-on" id="view-lobby">
             <!-- Mobile App Top Bar: User Chip + Install App Button -->
             <div class="lb-mobile-bar" id="mobile-lobby-bar">
               <button type="button" class="lb-user-chip" id="lobby-user-chip" aria-label="Player profile">
@@ -835,7 +836,7 @@
         </div>
 
         <!-- MOBILE AUTH MODAL: Register / Login Screens (Exact Match to Screenshots) -->
-        <div class="lb-overlay lb-auth-overlay" id="mobile-auth-modal" hidden>
+        <div class="lb-overlay lb-auth-overlay" id="mobile-auth-modal" hidden style="display: none !important;">
           <div class="lb-auth-screen-container">
             <!-- Top Bar with Back Arrow -->
             <div class="lb-auth-top-bar">
@@ -1124,10 +1125,10 @@
               <button type="button" class="lb-dc-close" id="btn-close-drawer" aria-label="Close menu">✕</button>
             </div>
 
-            <!-- 3. Welcome / Guest Box -->
+            <!-- 3. Welcome / Player Box -->
             <div class="lb-drawer-card lb-welcome-card" id="drawer-welcome-card">
-              <strong>ለመጫወት እና ካርቴላ ለመመዝገብ ግባ</strong>
-              <p>ካርቴላ ለመመዝገብ እና ቦርሳህን ለማስተዳደር መለያ ፍጠር።</p>
+              <strong id="drawer-user-title">👋 ዋሊያ ቢንጎ እንኳን በደህና መጡ!</strong>
+              <p id="drawer-user-subtitle">የቀጥታ ቢንጎ ጨዋታ መድረክ</p>
             </div>
 
             <!-- 4. Settings & Menu List -->
@@ -1216,13 +1217,10 @@
               </button>
             </div>
 
-            <!-- 5. Bottom Action Buttons: Login / Register -->
+            <!-- 5. Bottom Action Button: Go to Game Lobby -->
             <div class="lb-drawer-bottom-actions">
-              <button type="button" class="lb-drawer-btn lb-drawer-login-btn" id="drawer-login-btn">
-                ግባ
-              </button>
-              <button type="button" class="lb-drawer-btn lb-drawer-register-btn" id="drawer-register-btn">
-                ተመዝገብ
+              <button type="button" class="lb-drawer-btn" id="drawer-play-btn" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-weight: bold; border: none; border-radius: 10px; padding: 12px; font-size: 15px; cursor: pointer;">
+                🎮 ወደ ጨዋታ ክፍሎች (Play Bingo)
               </button>
             </div>
 
@@ -1236,10 +1234,10 @@
         <div class="lb-toast" id="toast" hidden></div>
       </div>
     </div>
-    <script src="card-data.js?v=20261105_02"></script>
-    <script src="app-config.js?v=20261105_02"></script>
-    <script src="api-client.js?v=20261105_02"></script>
-    <script src="../shared-balance.js?v=20261105_02"></script>
-    <script src="game.js?v=20261105_02"></script>
+    <script src="card-data.js?v=20261117_03"></script>
+    <script src="app-config.js?v=20261117_03"></script>
+    <script src="api-client.js?v=20261117_03"></script>
+    <script src="../shared-balance.js?v=20261117_03"></script>
+    <script src="game.js?v=20261117_03"></script>
   </body>
 </html>

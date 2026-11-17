@@ -1,5 +1,5 @@
 // Waliya Bingo Service Worker
-const CACHE_NAME = "waliya-bingo-pwa-v1";
+const CACHE_NAME = "waliya-bingo-v20261117_03";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -18,13 +18,6 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn("Pre-cache warning:", err);
-      });
-    })
-  );
   self.skipWaiting();
 });
 
@@ -46,19 +39,35 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // Network-first for API requests
+  // Network-only for API requests
   if (url.pathname.startsWith("/api/") || event.request.method !== "GET") {
+    return;
+  }
+
+  // Network-first for HTML, JS, CSS and page navigation
+  if (
+    event.request.mode === "navigate" ||
+    url.pathname.endsWith(".html") ||
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".css") ||
+    url.pathname === "/" ||
+    url.pathname === ""
+  ) {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return new Response(JSON.stringify({ error: "Offline" }), {
-          headers: { "Content-Type": "application/json" }
-        });
-      })
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
 
-  // Stale-while-revalidate for static files
+  // Stale-while-revalidate for static media assets
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)
