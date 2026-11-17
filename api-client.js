@@ -10,6 +10,9 @@ const LuckyBingoAPI = (() => {
   let _baseUrl = "";
 
   function getBaseUrl() {
+    if (window.location.pathname.startsWith("/waliya")) {
+      return window.location.origin + "/waliya";
+    }
     if (window.location.pathname.startsWith("/bingo")) {
       return window.location.origin + "/bingo";
     }

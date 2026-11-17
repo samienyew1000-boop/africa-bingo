@@ -738,6 +738,10 @@ const server = http.createServer(async (req, res) => {
     pathname = pathname.slice(6);
   } else if (pathname === "/bingo") {
     pathname = "/";
+  } else if (pathname.startsWith("/waliya/")) {
+    pathname = pathname.slice(7);
+  } else if (pathname === "/waliya") {
+    pathname = "/";
   }
 
   // Health checks

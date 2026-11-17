@@ -6,10 +6,11 @@
   const apiParam = params.get("api");
 
   // Dynamically resolve backend origin + path
+  const isWaliyaPath = window.location.pathname.startsWith("/waliya");
   const isBingoPath = window.location.pathname.startsWith("/bingo");
-  const DEFAULT_BACKEND_URL = isBingoPath
-    ? (window.location.origin + "/bingo")
-    : (window.location.origin || "");
+  const DEFAULT_BACKEND_URL = isWaliyaPath
+    ? (window.location.origin + "/waliya")
+    : (isBingoPath ? (window.location.origin + "/bingo") : (window.location.origin || ""));
 
   if (apiParam) {
     try {
