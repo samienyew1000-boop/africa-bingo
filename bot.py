@@ -74,7 +74,7 @@ def load_dotenv(filepath=".env"):
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "9258237799:AAESEjWTqN137dJppOaQUQGTqc_F1DzBKGU")
-raw_web_url = os.getenv("WEB_APP_URL", "https://africa-bingo.ethiodeploy.com/").strip()
+raw_web_url = os.getenv("WEB_APP_URL", "https://konjobetcom.et/bingo/").strip()
 WEB_APP_URL = raw_web_url if raw_web_url.endswith("/") else f"{raw_web_url}/"
 GROUP_URL = os.getenv("GROUP_URL", "https://t.me/waliyabingo1_bot")
 CONTACT_URL = os.getenv("CONTACT_URL", "https://t.me/su121316")
@@ -90,7 +90,7 @@ def get_game_web_url(subpath: str = "", extra_query: str = "", is_admin_user: bo
         fragment = extra_query
         extra_query = ""
 
-    tunnel_url = os.getenv("TUNNEL_API_URL") or os.getenv("PUBLIC_API_URL", "https://africa-bingo.ethiodeploy.com")
+    tunnel_url = os.getenv("TUNNEL_API_URL") or os.getenv("PUBLIC_API_URL", "https://konjobetcom.et/bingo")
     params = []
     params.append(f"v={int(time.time())}")
     if tunnel_url and "api=" not in base:
