@@ -2388,13 +2388,12 @@ button {
 }
 
 .lb-cell.is-callable {
-  cursor: pointer;
-  outline: 2px dashed rgba(255, 225, 122, 0.8);
-  outline-offset: -4px;
+  cursor: pointer !important;
+  outline: none !important;
 }
 
 .lb-cell.is-callable:hover {
-  background: linear-gradient(150deg, #b9bdff, #6260f2 65%, #322f9d);
+  filter: brightness(1.05) !important;
 }
 
 .lb-cell.is-win {
@@ -4439,6 +4438,71 @@ body.is-game-active #view-game {
   flex-shrink: 0 !important;
   box-sizing: border-box !important;
   transition: transform 0.15s ease, background 0.15s ease !important;
+}
+
+.lb-call-bar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  flex-shrink: 0 !important;
+}
+
+.lb-auto-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  padding: 0 7px !important;
+  width: auto !important;
+  min-width: 48px !important;
+  height: 30px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+  transition: all 0.18s ease !important;
+}
+
+.lb-auto-btn.is-active {
+  background: #15803d !important;
+  border: 1.5px solid #22c55e !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.45) !important;
+}
+
+.lb-auto-btn.is-off,
+.lb-auto-btn:not(.is-active) {
+  background: #1e2433 !important;
+  border: 1.5px solid #334155 !important;
+  color: #94a3b8 !important;
+  opacity: 0.8 !important;
+  box-shadow: none !important;
+}
+
+.lb-auto-label {
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.6px !important;
+  line-height: 1 !important;
+}
+
+.lb-auto-dot {
+  display: inline-block !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  transition: all 0.18s ease !important;
+}
+
+.lb-auto-btn.is-active .lb-auto-dot {
+  background: #4ade80 !important;
+  box-shadow: 0 0 5px #4ade80 !important;
+}
+
+.lb-auto-btn.is-off .lb-auto-dot,
+.lb-auto-btn:not(.is-active) .lb-auto-dot {
+  background: #ef4444 !important;
+  box-shadow: none !important;
 }
 
 .lb-call-bar-btn:active {

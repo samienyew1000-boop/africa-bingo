@@ -96,7 +96,11 @@ let cardsReady = false;
 let cardsLoadError = false;
 let called = [];
 let manualMarked = new Set();
-let autoMarkingEnabled = false;
+const AUTO_MARK_STORAGE_KEY = "waliya-bingo-auto-mark";
+let autoMarkingEnabled = (() => {
+  const saved = localStorage.getItem(AUTO_MARK_STORAGE_KEY);
+  return saved !== null ? saved === "1" : true;
+})();
 let lastCalledNumber = null;
 let lastCallBlinkTimeout = null;
 let soundEffectsEnabled = localStorage.getItem("lucky-bingo-sound-enabled") !== "0";
@@ -1192,6 +1196,8 @@ function showView(name) {
     paintBoard();
     renderMineCards();
     updateGameSummary();
+    updateAutoToggleUI();
+    updateVoiceToggleUI();
   }
 }
 
@@ -2612,23 +2618,55 @@ function updateBingoButton() {
   return ready;
 }
 
+function updateAutoToggleUI() {
+  const btn = $("auto-toggle");
+  if (!btn) return;
+  btn.classList.toggle("is-active", autoMarkingEnabled);
+  btn.classList.toggle("is-off", !autoMarkingEnabled);
+  btn.setAttribute("aria-pressed", autoMarkingEnabled ? "true" : "false");
+  btn.setAttribute("title", autoMarkingEnabled ? "Auto: ON (tap to turn off)" : "Auto: OFF (tap to turn on)");
+  const dot = btn.querySelector(".lb-auto-dot");
+  if (dot) {
+    dot.style.background = autoMarkingEnabled ? "#4ade80" : "#ef4444";
+  }
+}
+
 function setAutoMarking(enabled, announce = false) {
   autoMarkingEnabled = Boolean(enabled);
-  manualMarked = new Set();
+  localStorage.setItem(AUTO_MARK_STORAGE_KEY, autoMarkingEnabled ? "1" : "0");
+
+  if (autoMarkingEnabled) {
+    called.forEach((n) => manualMarked.add(n));
+  }
+
+  updateAutoToggleUI();
+
   const toggle = $("auto-mark-toggle");
   if (toggle) toggle.checked = autoMarkingEnabled;
+  const mobileToggle = $("mobile-auto-mark");
+  if (mobileToggle) mobileToggle.checked = autoMarkingEnabled;
+
+  paintBoard();
   renderMineCards();
 
   if (playing && !claimed) {
     const ready = updateBingoButton();
     if (announce) {
+      toast(autoMarkingEnabled ? "AUTO: ON" : "AUTO: OFF", "info");
       $("game-status").textContent = ready
         ? "You have BINGO — claim now!"
         : autoMarkingEnabled
           ? "Auto marking enabled — called numbers mark automatically"
           : "Manual marking enabled — tap called numbers on your card";
     }
+    if (playerHasBingo(true)) {
+      claimBingo();
+    }
   }
+}
+
+function handleAutoToggle() {
+  setAutoMarking(!autoMarkingEnabled, true);
 }
 
 function handleAutoMarkToggle(event) {
@@ -3850,7 +3888,7 @@ function onBoardNumberClick(n) {
     : `${wasMarked ? "Unmarked" : "Marked"} ${letterFor(n)}-${n}`;
 
   // Automatically declare Bingo if any card completed!
-  if (playerHasBingo() && !claimed && playing) {
+  if (playerHasBingo(true) && !claimed && playing) {
     claimBingo();
   }
 }
@@ -3990,17 +4028,14 @@ function renderMineCards() {
           cell.textContent = "★";
         } else {
           const hasHit = hit.has(value);
-          const hasBeenCalled = calledSet.has(value);
           cell.textContent = String(value);
           if (hasHit) {
             cell.classList.add("is-hit");
-          } else if (value === lastCalledNumber) {
-            cell.classList.add("is-hint-blink");
           }
-          if (playing && !claimed && hasBeenCalled && !hasHit) {
-            cell.classList.add("is-callable");
-            cell.title = `Tap to mark ${letterFor(value)}-${value}`;
-          }
+          // Per user request:
+          // When Auto is OFF: give NO mark or hint at all ("minm milket sayset").
+          // Player taps the number themselves, turning it into .is-hit (solid orange like 66).
+          // When Auto is ON: called numbers are in `hit` (activeHitSet) so they are automatically .is-hit upon arrival.
           cell.addEventListener("click", () => toggleManualMark(value));
         }
         cells.appendChild(cell);
@@ -4033,7 +4068,7 @@ function toggleManualMark(value) {
     : `${wasMarked ? "Unmarked" : "Marked"} ${letterFor(value)}-${value}`;
 
   // Automatically declare Bingo if any card completed!
-  if (playerHasBingo() && !claimed && playing) {
+  if (playerHasBingo(true) && !claimed && playing) {
     claimBingo();
   }
 }
@@ -4167,7 +4202,7 @@ function handleSingleCall(n) {
   }
 
   // Automatically declare Bingo if any card completed!
-  if (playerHasBingo() && !claimed && playing) {
+  if (playerHasBingo(true) && !claimed && playing) {
     claimBingo();
   }
 }
@@ -4755,12 +4790,22 @@ function bind() {
   $("random-two").addEventListener("click", () => randomPick(2));
   $("bingo-btn").addEventListener("click", claimBingo);
   $("leave-game").addEventListener("click", leaveGame);
+  const autoBtn = $("auto-toggle");
+  if (autoBtn) {
+    autoBtn.addEventListener("click", handleAutoToggle);
+    updateAutoToggleUI();
+  }
   const autoToggle = $("auto-mark-toggle");
   if (autoToggle) {
-    autoToggle.checked = false;
-    autoMarkingEnabled = false;
+    autoToggle.checked = autoMarkingEnabled;
     autoToggle.addEventListener("change", handleAutoMarkToggle);
   }
+  const mobileAutoToggle = $("mobile-auto-mark");
+  if (mobileAutoToggle) {
+    mobileAutoToggle.checked = autoMarkingEnabled;
+    mobileAutoToggle.addEventListener("change", (e) => setAutoMarking(e.target.checked, true));
+  }
+  updateAutoToggleUI();
   const voiceToggle = $("voice-toggle");
   if (voiceToggle) {
     voiceToggle.addEventListener("click", handleVoiceToggle);
