@@ -1,6 +1,6 @@
 {
-  "name": "Africa Bingo - አፍሪካ ቢንጎ",
-  "short_name": "AfricaBingo",
+  "name": "Waliya Bingo - ዋሊያ ቢንጎ",
+  "short_name": "WaliyaBingo",
   "description": "የኢትዮጵያ ምርጡ የቢንጎ ጨዋታ በስልክዎ ይጫወቱ!",
   "start_url": "/?source=pwa",
   "scope": "/",

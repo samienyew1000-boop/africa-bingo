@@ -1,6 +1,6 @@
 {
-  "appId": "com.africabingo.app",
-  "appName": "Africa Bingo",
+  "appId": "com.waliyabingo.app",
+  "appName": "Waliya Bingo",
   "webDir": ".",
   "bundledWebRuntime": false,
   "server": {

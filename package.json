@@ -1,7 +1,7 @@
 {
-  "name": "africa-bingo",
+  "name": "waliya-bingo",
   "version": "1.0.0",
-  "description": "Africa Bingo Web App",
+  "description": "Waliya Bingo Web App",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

@@ -7,10 +7,12 @@ const PORT = parseInt(process.env.PORT || "3000", 10);
 const PUBLIC_DIR = __dirname;
 const STATE_FILE = path.join(__dirname, "game-state.json");
 const BACKUP_STATE_FILE = path.join(__dirname, "game-state.backup.json");
-const ROOT_BACKUP_FILE = "/var/backups/africa-bingo-state.json";
-const BOT_TOKEN = process.env.BOT_TOKEN || "8882887936:AAELmxQJieLfEfxzf9D5bZj9BPz37kvRa3w";
+const ROOT_BACKUP_FILE = fs.existsSync("/var/backups/waliya-bingo-state.json")
+  ? "/var/backups/waliya-bingo-state.json"
+  : (fs.existsSync("/var/backups/africa-bingo-state.json") ? "/var/backups/africa-bingo-state.json" : "/var/backups/waliya-bingo-state.json");
+const BOT_TOKEN = process.env.BOT_TOKEN || "9258237799:AAESEjWTqN137dJppOaQUQGTqc_F1DzBKGU";
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://africa-bingo.ethiodeploy.com/").replace(/\/+$/, "") + "/";
-const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0918182355,9029759446,berihun,admin,0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,Biregugsa,ber63781,Ber63781";
+const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0918182355,9029759446,berihun,admin,0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,waliyabingooo,waliyabingo,waliyabingo1_bot,Biregugsa,ber63781,Ber63781";
 const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
 const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "6220264098,5663531258";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Ber343477";
@@ -39,9 +41,9 @@ const MIME_TYPES = {
 // Initial state with 10 ETB default starting bonus
 const DEFAULT_STATE = {
   rooms: [
-    { id: "10", stake: 10, players: 0, status: "waiting", roundId: "#AB-101", prizePool: 0, called: [] },
-    { id: "20", stake: 20, players: 0, status: "waiting", roundId: "#AB-102", prizePool: 0, called: [] },
-    { id: "50", stake: 50, players: 0, status: "waiting", roundId: "#AB-103", prizePool: 0, called: [] },
+    { id: "10", stake: 10, players: 0, status: "waiting", roundId: "#WB-101", prizePool: 0, called: [] },
+    { id: "20", stake: 20, players: 0, status: "waiting", roundId: "#WB-102", prizePool: 0, called: [] },
+    { id: "50", stake: 50, players: 0, status: "waiting", roundId: "#WB-103", prizePool: 0, called: [] },
   ],
   settings: {
     countdown: 120,
@@ -56,7 +58,7 @@ const DEFAULT_STATE = {
     depositCbeBirrPhone: "1000076108653",
     depositCbeBirrName: "Berihun",
     depositMpesaPhone: "0700 000 000",
-    depositMpesaName: "Africa Bingo M-Pesa",
+    depositMpesaName: "Waliya Bingo M-Pesa",
   },
   metrics: {
     totalPlayers: 0,
@@ -210,7 +212,11 @@ function syncFromSQLite(force = false) {
 
   // 2. Read lucky_bingo.db via python
   const dbPaths = [
+    "/var/www/waliya-bingo/data/waliya_bingo.db",
+    "/var/www/africa-bingo/data/waliya_bingo.db",
+    "/var/www/africa-bingo/data/africa_bingo.db",
     "/var/www/lucky-bingo/data/lucky_bingo.db",
+    path.join(__dirname, "data", "waliya_bingo.db"),
     path.join(__dirname, "data", "africa_bingo.db"),
     path.join(__dirname, "data", "lucky_bingo.db"),
   ];
@@ -219,7 +225,9 @@ function syncFromSQLite(force = false) {
   if (dbPath) {
     try {
       const { execSync } = require("child_process");
-      const pyCmd = `python3 -c "import sqlite3, json; conn = sqlite3.connect('${dbPath}'); conn.row_factory = sqlite3.Row; c = conn.cursor(); rows = [dict(r) for r in c.execute('SELECT * FROM users').fetchall()]; print(json.dumps(rows))"`;
+      const pyExec = process.platform === "win32" ? "python" : "python3";
+      const safeDbPath = dbPath.replace(/\\/g, "/");
+      const pyCmd = `${pyExec} -c "import sqlite3, json; conn = sqlite3.connect('${safeDbPath}'); conn.row_factory = sqlite3.Row; c = conn.cursor(); rows = [dict(r) for r in c.execute('SELECT * FROM users').fetchall()]; print(json.dumps(rows))"`;
       const out = execSync(pyCmd, { encoding: "utf-8", timeout: 4000 });
       const dbUsers = JSON.parse(out);
 
@@ -714,7 +722,7 @@ function parseJsonBody(req) {
 function getUserFromHeaders(req, body = null) {
   const uid = (body && body.user_id) || req.headers["x-mobile-user-id"] || req.headers["x-telegram-user-id"] || "LB-PLAYER";
   const uname = (body && body.username) || req.headers["x-mobile-phone"] || req.headers["x-telegram-user-name"] || "";
-  const name = uname ? (uname.startsWith("09") || uname.startsWith("+") || uname.startsWith("07") ? uname : `@${uname}`) : (uid !== "LB-PLAYER" ? `Player ${String(uid).slice(-4)}` : "Africa Player");
+  const name = uname ? (uname.startsWith("09") || uname.startsWith("+") || uname.startsWith("07") ? uname : `@${uname}`) : (uid !== "LB-PLAYER" ? `Player ${String(uid).slice(-4)}` : "Waliya Player");
   return { id: uid, username: uname, name };
 }
 
@@ -901,7 +909,7 @@ const server = http.createServer(async (req, res) => {
         "admin", "0918182355", "918182355", "9029759446",
         "0939292694", "939292694",
         "berihun", "0999909474", "999909474",
-        "su121316", "samtesfa19", "samienyew1000", "africabingooo", "biregugsa", "ber63781"
+        "su121316", "samtesfa19", "samienyew1000", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781"
       ];
       const isPassAdmin = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
                           password.toLowerCase() === "ber343477" ||
@@ -1231,7 +1239,7 @@ const server = http.createServer(async (req, res) => {
         "admin", "0918182355", "+251918182355", "918182355", "9029759446",
         "0939292694", "+251939292694", "939292694",
         "berihun", "0999909474", "+251999909474", "999909474",
-        "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa", "ber63781"
+        "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781"
       ];
       const isPassValid = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
                           password.toLowerCase() === "ber343477" ||
@@ -1427,7 +1435,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Africa Bingo server running on port ${PORT}`);
+  console.log(`Waliya Bingo server running on port ${PORT}`);
   startTelegramBot();
 });
 
@@ -1588,13 +1596,13 @@ async function startTelegramBot() {
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `👋 ሰላም *${firstName}* (@${rawUname || uname || "Admin"})! ወደ *Africa Bingo* እንኳን በደህና መጡ! 🎲\n\n🛡️ *የአስተዳዳሪ (Admin) መለያዎ ነቅቷል!*\n\nከአሁን በኋላ ማንኛውም አዲስ **የተቀማጭ (Deposit)** እና **የገንዘብ ማውጣት (Withdrawal)** ጥያቄ ሲቀርብ እዚህ ማሳወቂያ (Notification) ይደርስዎታል!`,
+                  text: `👋 ሰላም *${firstName}* (@${rawUname || uname || "Admin"})! ወደ *Waliya Bingo* እንኳን በደህና መጡ! 🎲\n\n🛡️ *የአስተዳዳሪ (Admin) መለያዎ ነቅቷል!*\n\nከአሁን በኋላ ማንኛውም አዲስ **የተቀማጭ (Deposit)** እና **የገንዘብ ማውጣት (Withdrawal)** ጥያቄ ሲቀርብ እዚህ ማሳወቂያ (Notification) ይደርስዎታል!`,
                   parse_mode: "Markdown",
                   reply_markup: {
                     inline_keyboard: [
                       [
                         {
-                          text: "Play Africa Bingo 🎮",
+                          text: "Play Waliya Bingo 🎮",
                           web_app: { url: WEB_APP_URL },
                         },
                       ],
@@ -1610,13 +1618,13 @@ async function startTelegramBot() {
               } else {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `👋 ሰላም *${firstName}*! ወደ *Africa Bingo* እንኳን በደህና መጡ! 🎲\n\n🎁 *የ 10 ETB የመመዝገቢያ ቦነስ ተሰጥቷችኋል!*\n\nለመጫወት ከታች ያለውን **Play Africa Bingo 🎮** የሚለውን ቁልፍ ይጫኑ!`,
+                  text: `👋 ሰላም *${firstName}*! ወደ *Waliya Bingo* እንኳን በደህና መጡ! 🎲\n\n🎁 *የ 10 ETB የመመዝገቢያ ቦነስ ተሰጥቷችኋል!*\n\nለመጫወት ከታች ያለውን **Play Waliya Bingo 🎮** የሚለውን ቁልፍ ይጫኑ!`,
                   parse_mode: "Markdown",
                   reply_markup: {
                     inline_keyboard: [
                       [
                         {
-                          text: "Play Africa Bingo 🎮 (10 ETB Bonus)",
+                          text: "Play Waliya Bingo 🎮 (10 ETB Bonus)",
                           web_app: { url: WEB_APP_URL },
                         },
                       ],
@@ -1628,7 +1636,7 @@ async function startTelegramBot() {
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `🛡️ *Africa Bingo — Admin Control Center*\n\nየአስተዳዳሪ ፓነልን ለመክፈት ከታች ያለውን ይጫኑ:`,
+                  text: `🛡️ *Waliya Bingo — Admin Control Center*\n\nየአስተዳዳሪ ፓነልን ለመክፈት ከታች ያለውን ይጫኑ:`,
                   parse_mode: "Markdown",
                   reply_markup: {
                     inline_keyboard: [

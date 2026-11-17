@@ -11,7 +11,7 @@ const ADMIN_AUTH_CONFIG = {
     "admin", "0918182355", "+251918182355", "918182355", "9029759446",
     "0939292694", "+251939292694", "939292694",
     "berihun", "0999909474", "+251999909474", "999909474",
-    "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "biregugsa", "ber63781", "6220264098"
+    "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781", "6220264098"
   ],
   password: "Ber343477",
   fallbackPassword: "ber343477",
@@ -138,7 +138,7 @@ const DEFAULT_SETTINGS = {
   depositCbeBirrPhone: "1000076108653",
   depositCbeBirrName: "Berihun",
   depositMpesaPhone: "0700 000 000",
-  depositMpesaName: "Africa Bingo M-Pesa",
+  depositMpesaName: "Waliya Bingo M-Pesa",
 };
 
 let state = loadState();
@@ -334,7 +334,7 @@ function saveSettings() {
       accountNumber: settings.depositCbeBirrPhone || "1000076108653",
     },
     "M-Pesa": {
-      accountName: settings.depositMpesaName || "Africa Bingo M-Pesa",
+      accountName: settings.depositMpesaName || "Waliya Bingo M-Pesa",
       accountNumber: settings.depositMpesaPhone || "0700 000 000",
     },
   };

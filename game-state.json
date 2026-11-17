@@ -41,7 +41,7 @@
     "depositCbeBirrPhone": "1000076108653",
     "depositCbeBirrName": "Berihun",
     "depositMpesaPhone": "0700 000 000",
-    "depositMpesaName": "Africa Bingo M-Pesa",
+    "depositMpesaName": "Waliya Bingo M-Pesa",
     "commission": 20,
     "threshold": 10,
     "winningPattern": "1",
@@ -53,7 +53,8 @@
     "winning_pattern": "1",
     "call_interval": 3.6,
     "adminChatIds": [
-      "9029759446"
+      "9029759446",
+      "5663531258"
     ]
   },
   "metrics": {
@@ -94,6 +95,57 @@
       "is_verified": 1,
       "status": "active",
       "created_at": "2026-10-02 03:42:31",
+      "source": "telegram"
+    },
+    "88880001": {
+      "id": "88880001",
+      "phone": null,
+      "username": "Africabingooo",
+      "first_name": "Admin Africabingooo",
+      "name": "Admin Africabingooo",
+      "password": "",
+      "avatar": "TG",
+      "balance": 0,
+      "bonus_balance": 0,
+      "bonus_claimed": 1,
+      "role": "admin",
+      "is_verified": 1,
+      "status": "active",
+      "created_at": "2026-10-09 19:28:02",
+      "source": "telegram"
+    },
+    "88880002": {
+      "id": "88880002",
+      "phone": null,
+      "username": "Biregugsa",
+      "first_name": "Admin Biregugsa",
+      "name": "Admin Biregugsa",
+      "password": "",
+      "avatar": "TG",
+      "balance": 0,
+      "bonus_balance": 0,
+      "bonus_claimed": 1,
+      "role": "admin",
+      "is_verified": 1,
+      "status": "active",
+      "created_at": "2026-10-11 05:37:44",
+      "source": "telegram"
+    },
+    "88880003": {
+      "id": "88880003",
+      "phone": null,
+      "username": "Ber63781",
+      "first_name": "Admin Ber63781",
+      "name": "Admin Ber63781",
+      "password": "",
+      "avatar": "TG",
+      "balance": 0,
+      "bonus_balance": 0,
+      "bonus_claimed": 1,
+      "role": "admin",
+      "is_verified": 1,
+      "status": "active",
+      "created_at": "2026-11-05 16:44:53",
       "source": "telegram"
     },
     "376179083": {
@@ -541,7 +593,7 @@
     "LB-PLAYER": {
       "id": "LB-PLAYER",
       "username": "",
-      "first_name": "Africa Player",
+      "first_name": "Waliya Player",
       "balance": 10,
       "bonus_balance": 10,
       "bonus_claimed": 1,

@@ -1,4 +1,4 @@
-// Africa Bingo API Configuration
+// Waliya Bingo API Configuration
 // Authoritative backend URL for multi-device sync
 (function () {
   "use strict";

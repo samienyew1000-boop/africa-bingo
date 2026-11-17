@@ -4,10 +4,13 @@ import json
 import os
 
 DB_PATHS = [
-    "/var/www/lucky-bingo/data/lucky_bingo.db",
+    "/var/www/waliya-bingo/data/waliya_bingo.db",
+    "/var/www/africa-bingo/data/waliya_bingo.db",
     "/var/www/africa-bingo/data/africa_bingo.db",
-    os.path.join(os.path.dirname(__file__), "data", "lucky_bingo.db"),
+    "/var/www/lucky-bingo/data/lucky_bingo.db",
+    os.path.join(os.path.dirname(__file__), "data", "waliya_bingo.db"),
     os.path.join(os.path.dirname(__file__), "data", "africa_bingo.db"),
+    os.path.join(os.path.dirname(__file__), "data", "lucky_bingo.db"),
 ]
 
 def get_connection():

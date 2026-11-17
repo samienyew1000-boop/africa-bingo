@@ -22,11 +22,11 @@ const ROOM_STATUS_UPDATE_MS = 1000;
 const COMMISSION_RATE = 0.2;
 const MIN_WALLET_AMOUNT = 50;
 const PLAYER_ID = "LB-PLAYER";
-const PLAYER_NAME = "Africa Bingo Player";
+const PLAYER_NAME = "Waliya Bingo Player";
 const PAYMENT_METHODS = Object.freeze({
   Telebirr: { accountName: "Berihun", accountNumber: "0918182355" },
   "CBE Birr": { accountName: "Berihun", accountNumber: "1000076108653" },
-  "M-Pesa": { accountName: "Africa Bingo M-Pesa", accountNumber: "0700 000 000" },
+  "M-Pesa": { accountName: "Waliya Bingo M-Pesa", accountNumber: "0700 000 000" },
 });
 
 const ROOMS = [
@@ -949,7 +949,7 @@ function checkAdminAccess() {
   const adminBtn = $("admin-link") || document.querySelector(".lb-admin-link");
   if (!adminBtn) return;
 
-  const ADMIN_USERNAMES = ["samtesfa19", "su121316", "africabingooo", "biregugsa", "ber63781"];
+  const ADMIN_USERNAMES = ["samtesfa19", "su121316", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781"];
   const ADMIN_UIDS = ["6220264098", "5663531258"];
 
   let isAdmin = false;
@@ -1346,7 +1346,7 @@ function renderMobilePanelContent(tab) {
       ? LuckyBingoAPI.getMobileUser()
       : ((typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getTelegramUser) ? LuckyBingoAPI.getTelegramUser() : null);
 
-    const displayName = user?.first_name || user?.name || user?.username || "Africa Player";
+    const displayName = user?.first_name || user?.name || user?.username || "Waliya Player";
     const phoneDisplay = user?.phone || user?.username || PLAYER_ID;
 
     content.innerHTML = `
@@ -1397,7 +1397,7 @@ function renderMobilePanelContent(tab) {
     content.innerHTML = `
       <div class="lb-mobile-action-card">
         <div>
-          <strong style="font-size:16px;">Africa Bingo Wallet</strong>
+          <strong style="font-size:16px;">Waliya Bingo Wallet</strong>
           <p>Top up your balance instantly using mobile money (Telebirr, CBE Birr, M-Pesa).</p>
         </div>
         <div class="lb-mobile-info-list" style="margin:0;">
@@ -1571,7 +1571,7 @@ function updateGameUserInfo() {
 
   const user = mUser || tgUser;
   const isLoggedIn = Boolean(mUser || (tgUser && !String(tgUser.id).startsWith("8")));
-  const displayName = user?.first_name || user?.name || user?.username || (user?.phone ? `09...${user.phone.slice(-4)}` : "Africa Player");
+  const displayName = user?.first_name || user?.name || user?.username || (user?.phone ? `09...${user.phone.slice(-4)}` : "Waliya Player");
   const phoneDisplay = user?.phone || user?.username || (user?.id ? `ID: ${user.id}` : "");
 
   const lobbyUserName = $("lobby-user-name");
@@ -1798,7 +1798,7 @@ function setupMobileAuthEvents() {
       "admin", "0918182355", "918182355", "9029759446",
       "0939292694", "939292694",
       "berihun", "0999909474", "999909474",
-      "su121316", "samtesfa19", "samienyew1000", "africabingooo", "biregugsa", "ber63781"
+      "su121316", "samtesfa19", "samienyew1000", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781"
     ];
     const isPassAdmin = password.toLowerCase() === "ber343477" ||
                         password === "Ber343477" ||
@@ -2056,7 +2056,7 @@ function handleInstallClick() {
       alert("አፑን ወደ ስልክዎ ለመጫን:\nከስር ያለውን የ Share ምልክት [⎋] ተጭነው 'Add to Home Screen' የሚለውን ይምረጡ።");
     } else {
       toast("የአንድሮይድ መተግበሪያ (APK) በማውረድ ላይ ነው...", "win");
-      window.location.href = "AfricaBingo.apk";
+      window.location.href = "WaliyaBingo.apk";
     }
   }
 }
@@ -4475,9 +4475,9 @@ function getDepositPaymentAccount(method) {
   try {
     const adminSettings = JSON.parse(localStorage.getItem(ADMIN_SETTINGS_KEY) || "{}");
     if (adminSettings.depositTelebirrPhone === "0981247219") adminSettings.depositTelebirrPhone = "0918182355";
-    if (adminSettings.depositTelebirrName === "Africa Bingo") adminSettings.depositTelebirrName = "Berihun";
+    if (adminSettings.depositTelebirrName === "Africa Bingo" || adminSettings.depositTelebirrName === "Waliya Bingo") adminSettings.depositTelebirrName = "Berihun";
     if (adminSettings.depositCbeBirrPhone === "0981247219") adminSettings.depositCbeBirrPhone = "1000076108653";
-    if (adminSettings.depositCbeBirrName === "Africa Bingo CBE Birr") adminSettings.depositCbeBirrName = "Berihun";
+    if (adminSettings.depositCbeBirrName === "Africa Bingo CBE Birr" || adminSettings.depositCbeBirrName === "Waliya Bingo CBE Birr") adminSettings.depositCbeBirrName = "Berihun";
 
     if (method === "Telebirr") {
       return {
@@ -4493,7 +4493,7 @@ function getDepositPaymentAccount(method) {
     }
     if (method === "M-Pesa" && adminSettings.depositMpesaPhone) {
       return {
-        accountName: adminSettings.depositMpesaName || "Africa Bingo M-Pesa",
+        accountName: adminSettings.depositMpesaName || "Waliya Bingo M-Pesa",
         accountNumber: adminSettings.depositMpesaPhone || "0700 000 000",
       };
     }

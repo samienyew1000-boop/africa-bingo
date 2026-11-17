@@ -1,5 +1,5 @@
-// Africa Bingo Service Worker
-const CACHE_NAME = "africa-bingo-pwa-v2";
+// Waliya Bingo Service Worker
+const CACHE_NAME = "waliya-bingo-pwa-v1";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
