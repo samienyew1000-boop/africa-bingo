@@ -39,9 +39,10 @@ const MIME_TYPES = {
 // Initial state with 10 ETB default starting bonus
 const DEFAULT_STATE = {
   rooms: [
-    { id: "10", stake: 10, players: 0, status: "waiting", roundId: "#WB-101", prizePool: 0, called: [] },
-    { id: "20", stake: 20, players: 0, status: "waiting", roundId: "#WB-102", prizePool: 0, called: [] },
-    { id: "50", stake: 50, players: 0, status: "waiting", roundId: "#WB-103", prizePool: 0, called: [] },
+    { id: "10", stake: 10, name: "10 No 1", players: 0, status: "waiting", roundId: "#WB-101", prizePool: 0, called: [] },
+    { id: "10-2", stake: 10, name: "10 No 2", players: 0, status: "waiting", roundId: "#WB-102", prizePool: 0, called: [] },
+    { id: "20", stake: 20, name: "20 No 1", players: 0, status: "waiting", roundId: "#WB-103", prizePool: 0, called: [] },
+    { id: "50", stake: 50, name: "50 No 1", players: 0, status: "waiting", roundId: "#WB-104", prizePool: 0, called: [] },
   ],
   settings: {
     countdown: 120,
@@ -391,7 +392,7 @@ class LiveBingoRoom {
     this.id = String(id);
     this.stake = Number(stake);
     this.status = "open"; // "open", "countdown", "live", "ended"
-    this.roundId = 100 + Number(id);
+    this.roundId = 100 + (parseInt(id) || 10) + (String(id).includes("-2") ? 1 : 0);
     this.patternIndex = 0;
     this.players = []; // [{ user_id, username, first_name, card_ids: [1, 2], joined_at }]
     this.calls = []; // [14, 55, ...]
@@ -682,6 +683,7 @@ class LiveBingoRoom {
 
 const activeRooms = {
   "10": new LiveBingoRoom("10", 10),
+  "10-2": new LiveBingoRoom("10-2", 10),
   "20": new LiveBingoRoom("20", 20),
   "50": new LiveBingoRoom("50", 50),
 };

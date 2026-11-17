@@ -12,9 +12,9 @@
     <meta name="apple-mobile-web-app-title" content="Waliya Bingo" />
     <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=20261117_07" />
+    <link rel="stylesheet" href="style.css?v=20261117_08" />
     <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
-    <script src="players-data.js?v=20261117_07"></script>
+    <script src="players-data.js?v=20261117_08"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
@@ -184,83 +184,120 @@
 
           <!-- LOBBY: stake rooms -->
           <section class="lb-view lb-lobby is-on" id="view-lobby">
-            <!-- Mobile App Top Bar: User Chip + Install App Button -->
-            <div class="lb-mobile-bar" id="mobile-lobby-bar">
-              <button type="button" class="lb-user-chip" id="lobby-user-chip" aria-label="Player profile">
-                <span class="lb-chip-icon">👤</span>
-                <span class="lb-chip-name" id="lobby-user-name">Waliya Player</span>
-              </button>
-              <button type="button" class="lb-app-install-btn" id="install-app-btn">
-                <span>📲 አፑን ይጫኑ</span>
-              </button>
-            </div>
+            <div class="wb-home-container">
+              <!-- 1. Top Rounded Welcome Card -->
+              <div class="wb-welcome-card">
+                <div class="wb-welcome-title">Welcome</div>
+                <div class="wb-welcome-sub">to</div>
+                <div class="wb-welcome-brand">Waliya Bingo</div>
+              </div>
 
-            <!-- Admin Quick Access Banner (Visible when logged in as admin) -->
-            <div id="lobby-admin-banner" style="display: none; margin: 0 10px 10px 10px; background: linear-gradient(135deg, #1e1b4b, #311042); border: 2px solid #f59e0b; border-radius: 12px; padding: 10px 14px; align-items: center; justify-content: space-between; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 20px;">👑</span>
-                <div>
-                  <div style="color: #fde047; font-weight: bold; font-size: 13px;">አድሚን ኮንሶል (Admin Console)</div>
-                  <div style="color: #cbd5e1; font-size: 11px;">የተጫዋቾች እና የገንዘብ ማውጣት መቆጣጠሪያ</div>
+              <!-- 2. Centered Balance Pill Capsule -->
+              <div class="wb-balance-pill-wrap">
+                <button type="button" class="wb-balance-pill" id="wb-balance-pill-btn" aria-label="Wallet balance">
+                  <span class="wb-pill-wallet-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="6" width="20" height="13" rx="2"></rect>
+                      <path d="M18 12h.01"></path>
+                      <path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </span>
+                  <span class="wb-pill-amount" id="wb-balance-text">••••••</span>
+                  <span class="wb-pill-eye" id="wb-toggle-eye" role="button" aria-label="Toggle balance visibility">
+                    <svg id="wb-eye-icon-masked" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                    <svg id="wb-eye-icon-visible" style="display:none;" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="7" r="3"></circle>
+                    </svg>
+                  </span>
+                </button>
+              </div>
+
+              <!-- Admin Quick Access Banner (Visible when logged in as admin) -->
+              <div id="lobby-admin-banner" style="display: none; margin: 0 0 14px 0; background: linear-gradient(135deg, #1e1b4b, #311042); border: 2px solid #f59e0b; border-radius: 16px; padding: 10px 14px; align-items: center; justify-content: space-between; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 20px;">👑</span>
+                  <div>
+                    <div style="color: #fde047; font-weight: bold; font-size: 13px;">አድሚን ኮንሶል (Admin Console)</div>
+                    <div style="color: #cbd5e1; font-size: 11px;">የተጫዋቾች እና የገንዘብ ማውጣት መቆጣጠሪያ</div>
+                  </div>
                 </div>
+                <a href="admin.html" style="background: #f59e0b; color: #1e1b4b; font-weight: bold; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-size: 12px; white-space: nowrap;">ክፈት (Open) →</a>
               </div>
-              <a href="admin.html" style="background: #f59e0b; color: #1e1b4b; font-weight: bold; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-size: 12px; white-space: nowrap;">ክፈት (Open) →</a>
+
+              <!-- 3. Choose Your Stake Framed Box -->
+              <div class="wb-stake-box">
+                <h2 class="wb-stake-title">Choose Your Stake</h2>
+                <div class="wb-stake-rooms" id="rooms"></div>
+              </div>
+
+              <!-- Developer Promo Banner -->
+              <div class="lb-dev-promo-box" id="lobby-dev-promo-box" style="margin-top: 10px;">
+                <a href="tel:+251939292694" class="lb-dev-promo-link" title="ይደውሉ: +251939292694">
+                  <span class="lb-dev-promo-icon">📞</span>
+                  <span class="lb-dev-promo-text">እንደዚህ ዓይነት የቢንጎ ወይም የቤቲንግ ሲስተም ማሰራት ከፈለጉ ይደውሉ፡</span>
+                  <strong class="lb-dev-promo-phone">+251939292694</strong>
+                </a>
+              </div>
+
+              <!-- Hidden compatibility elements to prevent JS errors -->
+              <div style="display:none;" aria-hidden="true">
+                <span id="balance">10</span>
+                <button type="button" id="balance-trigger"></button>
+                <div id="mobile-lobby-bar"></div>
+                <button type="button" id="lobby-user-chip"></button>
+                <span id="lobby-user-name"></span>
+                <button type="button" id="install-app-btn"></button>
+                <select id="lobby-voice-select"><option value="amharic">Amharic</option></select>
+                <button type="button" id="refresh-rooms"></button>
+              </div>
             </div>
 
-            <div class="lb-lobby-toolbar">
-              <button
-                type="button"
-                class="lb-balance-card"
-                id="balance-trigger"
-                aria-haspopup="dialog"
-                aria-controls="wallet-panel"
-              >
-                <span class="lb-wallet-icon" aria-hidden="true">
-                  <svg viewBox="0 0 32 28" role="img">
-                    <path d="M4 5.5h19a4 4 0 0 1 4 4v12a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-13a3 3 0 0 1 2-3Z" />
-                    <path d="M2.5 9h21a3.5 3.5 0 0 1 3.5 3.5v2h-7a3.5 3.5 0 0 1 0-7h7" />
-                    <circle cx="20" cy="11" r="1.25" />
+            <!-- 4. Fixed Bottom Navigation Bar -->
+            <nav class="wb-bottom-nav" aria-label="Player navigation">
+              <button type="button" class="wb-nav-item is-active" data-mobile-nav="game" aria-current="page">
+                <div class="wb-nav-pill">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm3-3c-.83 0-1.5-.67-1.5-1.5S17.67 9 18.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
                   </svg>
-                </span>
-                <span class="lb-balance-value">
-                  <span id="balance">100</span>
-                  <span class="lb-currency">ETB</span>
-                </span>
-                <span class="lb-balance-arrow" aria-hidden="true">›</span>
+                  <span>Game</span>
+                </div>
               </button>
-              <div class="lb-lobby-actions">
-                <select class="lb-voice-select lb-lobby-voice-select" id="lobby-voice-select" aria-label="Select voice language">
-                  <option value="amharic">🗣️ አማርኛ</option>
-                  <option value="oromgna">🗣️ Oromoo</option>
-                  <option value="tigregna">🗣️ ትግርኛ</option>
-                </select>
-                <button type="button" class="lb-refresh" id="refresh-rooms">Refresh</button>
-              </div>
-            </div>
-
-            <section class="lb-room-list" aria-labelledby="rooms-heading">
-              <h1 id="rooms-heading" class="lb-sr-only">Waliya Bingo game rooms</h1>
-              <div class="lb-room-head" aria-hidden="true">
-                <span>Stake</span>
-                <span>Active</span>
-                <span>Players</span>
-                <span>Derash</span>
-                <span>Play</span>
-              </div>
-              <div class="lb-rooms" id="rooms"></div>
-            </section>
-
-                        <!-- Developer / System Sales Promo Banner -->
-            <div class="lb-dev-promo-box" id="lobby-dev-promo-box">
-              <a href="tel:+251939292694" class="lb-dev-promo-link" title="ይደውሉ: +251939292694">
-                <span class="lb-dev-promo-icon">📞</span>
-                <span class="lb-dev-promo-text">እንደዚህ ዓይነት የቢንጎ ወይም የቤቲንግ ሲስተም ማሰራት ከፈለጉ ይደውሉ፡</span>
-                <strong class="lb-dev-promo-phone">+251939292694</strong>
-              </a>
-            </div>
-
-            <footer class="lb-footer">© Waliya Bingo 2025</footer>
+              <button type="button" class="wb-nav-item" data-mobile-nav="history">
+                <div class="wb-nav-pill">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <polyline points="12 7 12 12 15 15"></polyline>
+                  </svg>
+                  <span>History</span>
+                </div>
+              </button>
+              <button type="button" class="wb-nav-item" data-mobile-nav="wallet">
+                <div class="wb-nav-pill">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="6" width="20" height="13" rx="2"></rect>
+                    <path d="M18 12h.01"></path>
+                    <path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  <span>Wallet</span>
+                </div>
+              </button>
+              <button type="button" class="wb-nav-item" data-mobile-nav="profile">
+                <div class="wb-nav-pill">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span>Profile</span>
+                </div>
+              </button>
+            </nav>
           </section>
+
+
 
           <!-- PICK CARDS -->
           <section class="lb-view lb-pick-view lb-selection-view" id="view-pick">
@@ -1234,10 +1271,10 @@
         <div class="lb-toast" id="toast" hidden></div>
       </div>
     </div>
-    <script src="card-data.js?v=20261117_07"></script>
-    <script src="app-config.js?v=20261117_07"></script>
-    <script src="api-client.js?v=20261117_07"></script>
-    <script src="../shared-balance.js?v=20261117_07"></script>
-    <script src="game.js?v=20261117_07"></script>
+    <script src="card-data.js?v=20261117_08"></script>
+    <script src="app-config.js?v=20261117_08"></script>
+    <script src="api-client.js?v=20261117_08"></script>
+    <script src="../shared-balance.js?v=20261117_08"></script>
+    <script src="game.js?v=20261117_08"></script>
   </body>
 </html>

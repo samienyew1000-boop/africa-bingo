@@ -51,9 +51,10 @@ const PAYMENT_METHODS = Object.freeze({
 });
 
 const ROOMS = [
-  { id: "10", stake: 10, players: 0, status: "waiting" },
-  { id: "20", stake: 20, players: 0, status: "waiting" },
-  { id: "50", stake: 50, players: 0, status: "waiting" },
+  { id: "10", stake: 10, displayName: "10 No 1", color: "green", players: 0, status: "waiting" },
+  { id: "10-2", stake: 10, displayName: "10 No 2", color: "orange", players: 0, status: "waiting" },
+  { id: "20", stake: 20, displayName: "20 No 1", color: "blue", players: 0, status: "waiting" },
+  { id: "50", stake: 50, displayName: "50 No 1", color: "purple", players: 0, status: "waiting" },
 ];
 
 const DEFAULT_LAST_WINNING_CARDS = Object.freeze([
@@ -747,7 +748,7 @@ function getLobbyRooms() {
       return {
         ...room,
         id,
-        stake: Math.max(1, Math.round(Number(room.stake) || Number(id) || 0)),
+        stake: Math.max(1, Math.round(Number(room.stake) || parseInt(id) || 0)),
         // Never use browser storage for authoritative room membership.
         players: server ? Math.max(0, Number(server.player_count) || 0) : 0,
         status: server?.status || "open",
@@ -1182,7 +1183,7 @@ function showView(name) {
 
   const globalHeader = $("global-header");
   if (globalHeader) {
-    globalHeader.style.display = name === "game" ? "none" : "";
+    globalHeader.style.display = (name === "game" || name === "lobby") ? "none" : "";
   }
   if (name === "landing") {
     startDemoCardAnimation();
@@ -1190,10 +1191,12 @@ function showView(name) {
     stopDemoCardAnimation();
   }
   if (name === "lobby") {
+    setMobileNavState("game");
     checkAdminAccess();
     startRoomUpdates();
     startRoomStatusUpdates();
     renderRooms();
+    updateBalancePillDisplay();
   } else {
     stopRoomUpdates();
     stopRoomStatusUpdates();
@@ -2339,6 +2342,48 @@ function setupSideDrawerEvents() {
   });
 }
 
+
+let isBalanceMasked = true;
+
+function updateBalancePillDisplay() {
+  const textEl = $("wb-balance-text");
+  const eyeMasked = $("wb-eye-icon-masked");
+  const eyeVisible = $("wb-eye-icon-visible");
+  if (!textEl) return;
+
+  if (isBalanceMasked) {
+    textEl.textContent = "••••••";
+    if (eyeMasked) eyeMasked.style.display = "block";
+    if (eyeVisible) eyeVisible.style.display = "none";
+  } else {
+    textEl.textContent = `${fmtBal(balance)} ETB`;
+    if (eyeMasked) eyeMasked.style.display = "none";
+    if (eyeVisible) eyeVisible.style.display = "block";
+  }
+}
+
+function initBalancePill() {
+  const pillBtn = $("wb-balance-pill-btn");
+  const eyeBtn = $("wb-toggle-eye");
+
+  if (eyeBtn) {
+    eyeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      isBalanceMasked = !isBalanceMasked;
+      updateBalancePillDisplay();
+    });
+  }
+
+  if (pillBtn) {
+    pillBtn.addEventListener("click", () => {
+      openWallet("deposit");
+    });
+  }
+
+  updateBalancePillDisplay();
+}
+
 function renderBalance() {
   const lobbyBalance = $("balance");
   if (lobbyBalance) lobbyBalance.textContent = fmtBal(balance);
@@ -2346,6 +2391,7 @@ function renderBalance() {
   if (pickBalance) pickBalance.textContent = String(Math.floor(balance));
   const gameWallet = $("game-wallet-amount");
   if (gameWallet) gameWallet.textContent = `${Number(balance).toFixed(2)} ETB`;
+  updateBalancePillDisplay();
   updateWalletBalances();
   renderRooms();
 }
@@ -2676,50 +2722,48 @@ function roomBalanceMessage(room, canPlay, state) {
 
 function renderRooms() {
   const wrap = $("rooms");
+  if (!wrap) return;
   const rooms = getLobbyRooms();
   if (!rooms.length) {
     wrap.innerHTML = '<p class="lb-empty-rooms">No rooms are available right now.</p>';
     return;
   }
 
+  const roomColors = ["green", "orange", "blue", "purple"];
+
   wrap.replaceChildren(
-    ...rooms.map((room) => {
+    ...rooms.map((room, index) => {
       const server = serverRoomStates[String(room.id)];
       const canPlay = canAfford(room.stake);
       const state = roomDisplayState(room);
-      const roomOpen = canPlay && (state.type === "open" || state.type === "countdown");
       const roomClosed = state.type === "live" || state.type === "paused";
-      const serverPlayers = server ? Number(server.player_count) || 0 : 0;
-      const serverCards = server ? Number(server.total_cards) || 0 : 0;
-      const activeCards = Math.max(serverCards, serverPlayers);
+      const color = room.color || roomColors[index % roomColors.length];
 
-      const derash = (server && Number(server.derash) > 0)
-        ? Math.round(Number(server.derash))
-        : (activeCards > 0
-            ? calculateDerash(activeCards, room.stake)
-            : Math.round(room.stake * 2 * (1 - COMMISSION_RATE)));
+      let displayName = room.displayName;
+      if (!displayName) {
+        if (String(room.id) === "10") displayName = "10 No 1";
+        else if (String(room.id) === "10-2") displayName = "10 No 2";
+        else if (String(room.id) === "20") displayName = "20 No 1";
+        else if (String(room.id) === "50") displayName = "50 No 1";
+        else displayName = `${room.stake} No 1`;
+      }
 
-      const displayPlayers = serverPlayers > 0
-        ? serverPlayers
-        : (state.type === "live" ? 2 : (state.type === "countdown" ? 1 : 0));
+      let bubbleText = "Play";
+      if (state.type === "countdown") {
+        bubbleText = "Play";
+      } else if (state.type === "live") {
+        bubbleText = "In Play";
+      }
 
-      const displayRoom = { ...room, players: displayPlayers };
-      const balanceMessage = roomBalanceMessage(displayRoom, canPlay, state);
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "lb-room" + (canPlay ? "" : " is-locked") + (roomClosed ? " is-closed" : "");
+      btn.className = `wb-room-capsule wb-room-${color}` + (canPlay ? "" : " is-locked") + (roomClosed ? " is-closed" : "");
       btn.disabled = roomClosed;
       btn.setAttribute("aria-disabled", String(roomClosed));
-      btn.setAttribute("aria-label", `${roomOpen ? "Play" : balanceMessage} ${room.stake} ETB room with ${displayPlayers} players and ${derash} ETB derash. ${state.ariaLabel}.`);
+      btn.setAttribute("aria-label", `Play ${displayName}, stake ${room.stake} ETB`);
       btn.innerHTML = `
-        <span class="lb-room-stake">${room.stake} ETB</span>
-        <span class="lb-room-active is-${state.type}" aria-live="polite">
-          ${roomStatusMarkup(state)}
-          <span class="lb-room-active-copy">${balanceMessage}</span>
-        </span>
-        <span class="lb-room-players">${fmt(displayPlayers)}</span>
-        <span class="lb-room-prize">${fmt(derash)} ETB</span>
-        <span class="lb-room-play${roomOpen ? " is-enabled" : " is-disabled"}">${roomOpen ? "Play" : roomClosed ? (state.type === "live" ? "In Play" : "Closed") : "Play"}</span>
+        <span class="wb-room-bubble">${bubbleText}</span>
+        <span class="wb-room-name">${displayName}</span>
       `;
       btn.addEventListener("click", () => enterRoom(room.id));
       wrap.appendChild(btn);
@@ -2727,7 +2771,6 @@ function renderRooms() {
     })
   );
 }
-
 function enterRoom(roomId) {
   const room = getLobbyRoom(roomId);
   if (!room) {
@@ -4846,6 +4889,7 @@ applyTheme(currentTheme);
 setLanguage(currentLang);
 window.addEventListener("DOMContentLoaded", () => {
   checkAdminAccess();
+  initBalancePill();
   applyTheme(currentTheme);
   setLanguage(currentLang);
 });
