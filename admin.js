@@ -1,9 +1,9 @@
 "use strict";
 
-const ADMIN_STATE_KEY = "lucky-bingo-admin-state-v1";
-const ADMIN_SETTINGS_KEY = "lucky-bingo-admin-settings-v1";
-const ROOM_CATALOG_KEY = "lucky-bingo-room-catalog-v1";
-const ROOM_LIFECYCLE_KEY = "lucky-bingo-room-lifecycle-v1";
+const ADMIN_STATE_KEY = "waliya-bingo-admin-state-v1";
+const ADMIN_SETTINGS_KEY = "waliya-bingo-admin-settings-v1";
+const ROOM_CATALOG_KEY = "waliya-bingo-room-catalog-v1";
+const ROOM_LIFECYCLE_KEY = "waliya-bingo-room-lifecycle-v1";
 const WINNING_PATTERN_OPTIONS = Object.freeze(["1", "2", "3", "4", "full-house"]);
 
 const ADMIN_AUTH_CONFIG = {
@@ -214,7 +214,7 @@ function loadRoomCatalog(legacyRooms = null) {
   return defaults;
 }
 
-const PLAYER_BALANCES_KEY = "lucky-bingo-player-balances-v1";
+const PLAYER_BALANCES_KEY = "waliya-bingo-player-balances-v1";
 
 function loadPlayerBalances() {
   try {
@@ -1198,14 +1198,14 @@ function downloadCSV(filename, rows) {
 }
 
 function exportTransactions() {
-  downloadCSV("lucky-bingo-transactions.csv", [
+  downloadCSV("waliya-bingo-transactions.csv", [
     ["Transaction ID", "Player ID", "Player", "Type", "Method", "Amount ETB", "Requested", "Status"],
     ...state.transactions.map((transaction) => [transaction.id, transaction.playerId, transaction.player, transaction.type, transaction.method, transaction.amount, transaction.requested, transaction.status]),
   ]);
 }
 
 function exportPlayers() {
-  downloadCSV("lucky-bingo-players.csv", [
+  downloadCSV("waliya-bingo-players.csv", [
     ["Player ID", "Name", "Email", "Phone", "Balance ETB", "Games", "Last active", "Status"],
     ...state.players.map((player) => [player.id, player.name, player.email, player.phone, player.balance, player.games, player.lastActive, player.status]),
   ]);

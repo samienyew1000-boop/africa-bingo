@@ -1,4 +1,12 @@
 
+// Purge legacy Lucky Bingo keys to ensure complete isolation
+try {
+  localStorage.removeItem("lucky-bingo-balance");
+  localStorage.removeItem("lucky-bingo-starting-bonus-claimed");
+  localStorage.removeItem("lucky-bingo-admin-state-v1");
+  localStorage.removeItem("lucky-bingo-admin-settings-v1");
+} catch (_) {}
+
 // Ensure brand header is always Waliya Bingo
 function ensureBrandTitle() {
   const bShort = document.querySelector(".lb-brand-short");
@@ -13,13 +21,13 @@ if (document.readyState === "loading") {
 }
 "use strict";
 
-const BALANCE_KEY = "lucky-bingo-balance";
-const STARTING_BONUS_CLAIMED_KEY = "lucky-bingo-starting-bonus-claimed";
-const ADMIN_STATE_KEY = "lucky-bingo-admin-state-v1";
-const ADMIN_SETTINGS_KEY = "lucky-bingo-admin-settings-v1";
-const ROOM_CATALOG_KEY = "lucky-bingo-room-catalog-v1";
-const ROOM_LIFECYCLE_KEY = "lucky-bingo-room-lifecycle-v1";
-const LAST_WINNING_CARDS_KEY = "lucky-bingo-last-winning-cards-v1";
+const BALANCE_KEY = "waliya-bingo-balance";
+const STARTING_BONUS_CLAIMED_KEY = "waliya-bingo-starting-bonus-claimed";
+const ADMIN_STATE_KEY = "waliya-bingo-admin-state-v1";
+const ADMIN_SETTINGS_KEY = "waliya-bingo-admin-settings-v1";
+const ROOM_CATALOG_KEY = "waliya-bingo-room-catalog-v1";
+const ROOM_LIFECYCLE_KEY = "waliya-bingo-room-lifecycle-v1";
+const LAST_WINNING_CARDS_KEY = "waliya-bingo-last-winning-cards-v1";
 const CARD_DATA_URL = "card%20number.json";
 const START_BALANCE = 0;
 const DEFAULT_STARTING_BONUS = 10;
@@ -91,7 +99,7 @@ let autoMarkingEnabled = false;
 let lastCalledNumber = null;
 let lastCallBlinkTimeout = null;
 let soundEffectsEnabled = localStorage.getItem("lucky-bingo-sound-enabled") !== "0";
-const VOICE_STORAGE_KEY = "lucky-bingo-selected-voice";
+const VOICE_STORAGE_KEY = "waliya-bingo-selected-voice";
 const SUPPORTED_VOICES = ["amharic", "oromgna", "tigregna"];
 let selectedVoice = (() => {
   const saved = localStorage.getItem(VOICE_STORAGE_KEY);

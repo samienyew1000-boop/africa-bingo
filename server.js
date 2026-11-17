@@ -7,9 +7,7 @@ const PORT = parseInt(process.env.PORT || "3000", 10);
 const PUBLIC_DIR = __dirname;
 const STATE_FILE = path.join(__dirname, "game-state.json");
 const BACKUP_STATE_FILE = path.join(__dirname, "game-state.backup.json");
-const ROOT_BACKUP_FILE = fs.existsSync("/var/backups/waliya-bingo-state.json")
-  ? "/var/backups/waliya-bingo-state.json"
-  : (fs.existsSync("/var/backups/africa-bingo-state.json") ? "/var/backups/africa-bingo-state.json" : "/var/backups/waliya-bingo-state.json");
+const ROOT_BACKUP_FILE = "/var/backups/waliya-bingo-state.json";
 const BOT_TOKEN = process.env.BOT_TOKEN || "9258237799:AAESEjWTqN137dJppOaQUQGTqc_F1DzBKGU";
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://konjobetcom.et/bingo/").replace(/\/+$/, "") + "/";
 const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0918182355,9029759446,berihun,admin,0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,waliyabingooo,waliyabingo,waliyabingo1_bot,Biregugsa,ber63781,Ber63781";
@@ -212,13 +210,8 @@ function syncFromSQLite(force = false) {
 
   // 2. Read lucky_bingo.db via python
   const dbPaths = [
-    "/var/www/waliya-bingo/data/waliya_bingo.db",
-    "/var/www/africa-bingo/data/waliya_bingo.db",
-    "/var/www/africa-bingo/data/africa_bingo.db",
-    "/var/www/lucky-bingo/data/lucky_bingo.db",
     path.join(__dirname, "data", "waliya_bingo.db"),
-    path.join(__dirname, "data", "africa_bingo.db"),
-    path.join(__dirname, "data", "lucky_bingo.db"),
+    "/var/www/africa-bingo/data/waliya_bingo.db",
   ];
   const dbPath = dbPaths.find((p) => fs.existsSync(p));
 
@@ -288,7 +281,6 @@ function syncFromSQLite(force = false) {
 
   // 3. Fallback: Also check players.json if present
   const playersJsonPaths = [
-    "/var/www/lucky-bingo/data/players.json",
     path.join(__dirname, "data", "players.json"),
   ];
   const pJsonPath = playersJsonPaths.find((p) => fs.existsSync(p));
