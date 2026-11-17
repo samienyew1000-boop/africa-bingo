@@ -74,10 +74,10 @@ const DEFAULT_STATE = {
     bonusThreshold: 100,
     startingBonus: 0,
     startingBonusEnabled: false,
-    depositTelebirrPhone: "0918182355",
-    depositTelebirrName: "Berihun",
-    depositCbeBirrPhone: "1000076108653",
-    depositCbeBirrName: "Berihun",
+    depositTelebirrPhone: "0939030118",
+    depositTelebirrName: "አደባባይ በእውቀት",
+    depositCbeBirrPhone: "1000263032997",
+    depositCbeBirrName: "አደባባይ በእውቀት",
     depositMpesaPhone: "0700 000 000",
     depositMpesaName: "Waliya Bingo M-Pesa",
   },
@@ -130,7 +130,15 @@ function loadGameState() {
     gameState = {
       ...DEFAULT_STATE,
       ...(fileData || {}),
-      settings: { ...DEFAULT_STATE.settings, ...(fileData?.settings || {}), countdown: 60 },
+      settings: {
+        ...DEFAULT_STATE.settings,
+        ...(fileData?.settings || {}),
+        countdown: 60,
+        depositTelebirrPhone: "0939030118",
+        depositTelebirrName: "አደባባይ በእውቀት",
+        depositCbeBirrPhone: "1000263032997",
+        depositCbeBirrName: "አደባባይ በእውቀት",
+      },
       users: mergedUsers,
       transactions: mergedTxns,
     };
@@ -1691,10 +1699,10 @@ async function startTelegramBot() {
                 });
               }
             } else if (text.includes("Deposit") || text.includes("ተቀማጭ") || text.includes("ዲፖዚት") || text === "/deposit") {
-              const telePhone = gameState.settings.depositTelebirrPhone || "0918182355";
-              const teleName = gameState.settings.depositTelebirrName || "Berihun";
-              const cbePhone = gameState.settings.depositCbeBirrPhone || "1000076108653";
-              const cbeName = gameState.settings.depositCbeBirrName || "Berihun";
+              const telePhone = gameState.settings.depositTelebirrPhone || "0939030118";
+              const teleName = gameState.settings.depositTelebirrName || "አደባባይ በእውቀት";
+              const cbePhone = gameState.settings.depositCbeBirrPhone || "1000263032997";
+              const cbeName = gameState.settings.depositCbeBirrName || "አደባባይ በእውቀት";
 
               await telegramApi("sendMessage", {
                 chat_id: chatId,

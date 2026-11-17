@@ -1111,16 +1111,16 @@ game_engine = GameEngine()
 PAYMENT_METHODS: Dict[str, Dict[str, Any]] = {
     "Telebirr": {
         "name": "Telebirr",
-        "account_name": "Berihun",
-        "account_number": "0918182355",
+        "account_name": "አደባባይ በእውቀት",
+        "account_number": "0939030118",
         "min_amount": 50,
         "bonus": "ከ 100 ETB በላይ 20% ተጨማሪ ቦነስ",
         "enabled": True,
     },
     "CBE Birr": {
         "name": "CBE Birr",
-        "account_name": "Berihun",
-        "account_number": "1000076108653",
+        "account_name": "አደባባይ በእውቀት",
+        "account_number": "1000263032997",
         "min_amount": 50,
         "bonus": "ከ 100 ETB በላይ 20% ተጨማሪ ቦነስ",
         "enabled": True,

@@ -137,10 +137,10 @@ const DEFAULT_SETTINGS = {
   transactionAlerts: true,
   largeWithdrawal: true,
   timeout: "60",
-  depositTelebirrPhone: "0918182355",
-  depositTelebirrName: "Berihun",
-  depositCbeBirrPhone: "1000076108653",
-  depositCbeBirrName: "Berihun",
+  depositTelebirrPhone: "0939030118",
+  depositTelebirrName: "አደባባይ በእውቀት",
+  depositCbeBirrPhone: "1000263032997",
+  depositCbeBirrName: "አደባባይ በእውቀት",
   depositMpesaPhone: "0700 000 000",
   depositMpesaName: "Waliya Bingo M-Pesa",
 };
@@ -330,12 +330,12 @@ function saveSettings() {
   localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(settings));
   window.LUCKY_BINGO_PAYMENT_METHODS = {
     Telebirr: {
-      accountName: settings.depositTelebirrName || "Berihun",
-      accountNumber: settings.depositTelebirrPhone || "0918182355",
+      accountName: settings.depositTelebirrName || "አደባባይ በእውቀት",
+      accountNumber: settings.depositTelebirrPhone || "0939030118",
     },
     "CBE Birr": {
-      accountName: settings.depositCbeBirrName || "Berihun",
-      accountNumber: settings.depositCbeBirrPhone || "1000076108653",
+      accountName: settings.depositCbeBirrName || "አደባባይ በእውቀት",
+      accountNumber: settings.depositCbeBirrPhone || "1000263032997",
     },
     "M-Pesa": {
       accountName: settings.depositMpesaName || "Waliya Bingo M-Pesa",
