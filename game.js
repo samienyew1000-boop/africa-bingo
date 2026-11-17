@@ -1,3 +1,16 @@
+
+// Ensure brand header is always Waliya Bingo
+function ensureBrandTitle() {
+  const bShort = document.querySelector(".lb-brand-short");
+  if (bShort) bShort.textContent = "Waliya";
+  const bDot = document.querySelector(".lb-brand-dot");
+  if (bDot) bDot.textContent = "";
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", ensureBrandTitle);
+} else {
+  ensureBrandTitle();
+}
 "use strict";
 
 const BALANCE_KEY = "lucky-bingo-balance";

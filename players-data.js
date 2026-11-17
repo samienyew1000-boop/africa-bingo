@@ -2,7 +2,7 @@
 "use strict";
 window.LUCKY_BINGO_ADMIN = {
   "name": "Admin Waliyabingo",
-  "username": "@waliyabingo1_bot",
+  "username": "@Waliyabingooo",
   "phone": "+251918182355",
   "role": "Super administrator"
 };

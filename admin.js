@@ -32,10 +32,14 @@ function updateAdminUIAuth(isAuthenticated, username = "") {
   if (isAuthenticated) {
     overlay.hidden = true;
     shell.style.display = "";
+    document.querySelectorAll(".admin-brand-mark").forEach(bm => bm.textContent = "WB");
+    document.querySelectorAll(".admin-brand strong, .admin-login-brand strong").forEach(bt => bt.textContent = "Waliya Bingo");
     if (username) {
-      const displayUser = username.startsWith("@") || /^\+?\d+$/.test(username) ? username : "@" + username;
+      let cleanUser = username.replace(/Africabin/gi, "Waliyabin").replace(/Africa/gi, "Waliya");
+      const displayUser = cleanUser.startsWith("@") || /^\+?\d+$/.test(cleanUser) ? cleanUser : "@" + cleanUser;
       if ($("admin-user-name")) $("admin-user-name").textContent = displayUser;
-      if ($("admin-user-role")) $("admin-user-role").textContent = "Super administrator";
+      if ($("admin-user-role")) $("admin-user-role").textContent = `Super administrator (${displayUser})`;
+      if ($("admin-user-avatar")) $("admin-user-avatar").textContent = initials(displayUser) || "AW";
     }
     syncAdminWithServer();
   } else {
@@ -953,21 +957,30 @@ function playerRow(player) {
 }
 
 function renderAdminProfile() {
-  const admin = window.LUCKY_BINGO_ADMIN;
-  if (!admin) return;
+  const admin = window.LUCKY_BINGO_ADMIN || {};
   const nameEl = $("admin-user-name");
   const roleEl = $("admin-user-role");
   const avatarEl = $("admin-user-avatar");
-  if (nameEl && admin.name) nameEl.textContent = admin.name;
+
+  // Force brand marks and brand names
+  document.querySelectorAll(".admin-brand-mark").forEach(bm => bm.textContent = "WB");
+  document.querySelectorAll(".admin-brand strong, .admin-login-brand strong").forEach(bt => bt.textContent = "Waliya Bingo");
+
+  let adminName = admin.name || "Admin Waliya";
+  adminName = adminName.replace(/Africa/gi, "Waliya");
+  let adminUname = admin.username || "@Waliyabingooo";
+  adminUname = adminUname.replace(/Africabin/gi, "Waliyabin");
+
+  if (nameEl) nameEl.textContent = adminName;
   if (roleEl) {
-    const idDisp = admin.username ? (admin.username.startsWith("@") || /^\+?\d+$/.test(admin.username) ? admin.username : "@" + admin.username) : (admin.phone || "0999909474");
+    const idDisp = adminUname.startsWith("@") || /^\+?\d+$/.test(adminUname) ? adminUname : "@" + adminUname;
     roleEl.textContent = `Super administrator (${idDisp})`;
   }
   if (avatarEl) {
-    if (/^\+?\d+$/.test(admin.name)) {
+    if (/^\+?\d+$/.test(adminName)) {
       avatarEl.textContent = "09";
     } else {
-      avatarEl.textContent = initials(admin.name);
+      avatarEl.textContent = initials(adminName) || "AW";
     }
   }
 }
