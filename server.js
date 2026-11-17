@@ -1604,68 +1604,155 @@ async function startTelegramBot() {
               saveGameState();
             }
 
-            if (text.startsWith("/start") || text.toLowerCase() === "play") {
+            // Persistent Main Keyboard matching user screenshot
+            const MAIN_REPLY_KEYBOARD = {
+              keyboard: [
+                [
+                  { text: "🎮 Play Game", web_app: { url: WEB_APP_URL } }
+                ],
+                [
+                  { text: "💰 Deposit" },
+                  { text: "💸 Withdraw" }
+                ],
+                [
+                  { text: "💳 Balance" }
+                ],
+                [
+                  { text: "📞 Support" },
+                  { text: "📖 Instructions" }
+                ],
+                [
+                  { text: "🎁 Invite Friends" }
+                ]
+              ],
+              resize_keyboard: true,
+              is_persistent: true
+            };
+
+            // Handle shared contact registration
+            if (msg && msg.contact && msg.contact.phone_number) {
+              const phone = String(msg.contact.phone_number).replace(/[\s\-\+]/g, "");
+              if (!gameState.users[chatId]) {
+                gameState.users[chatId] = {
+                  id: String(chatId),
+                  username: rawUname || uname,
+                  first_name: firstName,
+                  phone: phone,
+                  balance: 10,
+                  created_at: new Date().toISOString(),
+                  source: "telegram",
+                  is_verified: 1,
+                };
+              } else {
+                gameState.users[chatId].phone = phone;
+                gameState.users[chatId].is_verified = 1;
+              }
+              saveGameState();
+              const uBal = Number(gameState.users[chatId]?.balance != null ? gameState.users[chatId].balance : 10);
+              await telegramApi("sendMessage", {
+                chat_id: chatId,
+                text: `✅ *በተሳካ ሁኔታ ተመዝግበዋል*\nቦነስ: ${uBal}\nየሪፈራል ቦነስ: 10\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+              continue;
+            }
+
+            if (text.startsWith("/start") || text.toLowerCase() === "play" || text === "🎮 Play Game") {
+              let userRecord = gameState.users[chatId];
+              if (!userRecord) {
+                userRecord = {
+                  id: String(chatId),
+                  username: rawUname || uname,
+                  first_name: firstName,
+                  balance: 10,
+                  created_at: new Date().toISOString(),
+                  source: "telegram",
+                  is_verified: 1,
+                };
+                gameState.users[chatId] = userRecord;
+                saveGameState();
+              }
+              const uBal = Number(userRecord.balance != null ? userRecord.balance : 10);
+
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `👋 ሰላም *${firstName}* (@${rawUname || uname || "Admin"})! ወደ *Waliya Bingo* እንኳን በደህና መጡ! 🎲\n\n🛡️ *የአስተዳዳሪ (Admin) መለያዎ ነቅቷል!*\n\nከአሁን በኋላ ማንኛውም አዲስ **የተቀማጭ (Deposit)** እና **የገንዘብ ማውጣት (Withdrawal)** ጥያቄ ሲቀርብ እዚህ ማሳወቂያ (Notification) ይደርስዎታል!`,
+                  text: `👋 ሰላም *${firstName}* (@${rawUname || uname || "Admin"})! ወደ *Waliya Bingo* እንኳን በደህና መጡ! 🎲\n\n🛡️ *የአስተዳዳሪ (Admin) መለያዎ ነቅቷል!*\n\n✅ *በተሳካ ሁኔታ ተመዝግበዋል*\nቦነስ: ${uBal}\nየሪፈራል ቦነስ: 10\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
                   parse_mode: "Markdown",
-                  reply_markup: {
-                    inline_keyboard: [
-                      [
-                        {
-                          text: "Play Waliya Bingo 🎮",
-                          web_app: { url: WEB_APP_URL },
-                        },
-                      ],
-                      [
-                        {
-                          text: "🌐 Admin Panel (Web Console)",
-                          web_app: { url: `${WEB_APP_URL}admin.html?role=admin&u=${chatId}` },
-                        },
-                      ],
-                    ],
-                  },
+                  reply_markup: MAIN_REPLY_KEYBOARD,
                 });
               } else {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `👋 ሰላም *${firstName}*! ወደ *Waliya Bingo* እንኳን በደህና መጡ! 🎲\n\n🎁 *የ 10 ETB የመመዝገቢያ ቦነስ ተሰጥቷችኋል!*\n\nለመጫወት ከታች ያለውን **Play Waliya Bingo 🎮** የሚለውን ቁልፍ ይጫኑ!`,
+                  text: `✅ *በተሳካ ሁኔታ ተመዝግበዋል*\nቦነስ: ${uBal}\nየሪፈራል ቦነስ: 10\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
                   parse_mode: "Markdown",
-                  reply_markup: {
-                    inline_keyboard: [
-                      [
-                        {
-                          text: "Play Waliya Bingo 🎮 (10 ETB Bonus)",
-                          web_app: { url: WEB_APP_URL },
-                        },
-                      ],
-                    ],
-                  },
+                  reply_markup: MAIN_REPLY_KEYBOARD,
                 });
               }
+            } else if (text.includes("Deposit") || text.includes("ተቀማጭ") || text.includes("ዲፖዚት") || text === "/deposit") {
+              const telePhone = gameState.settings.depositTelebirrPhone || "0918182355";
+              const teleName = gameState.settings.depositTelebirrName || "Berihun";
+              const cbePhone = gameState.settings.depositCbeBirrPhone || "1000076108653";
+              const cbeName = gameState.settings.depositCbeBirrName || "Berihun";
+
+              await telegramApi("sendMessage", {
+                chat_id: chatId,
+                text: `💰 *የተቀማጭ ሂሳብ መሙያ (Deposit)*\n\nገንዘብ ለማስገባት ከታች ያሉትን የሂሳብ ቁጥሮች ይጠቀሙ:\n\n📱 *ቴሌብር (Telebirr):*\n• ስልክ: \`${telePhone}\`\n• ስም: *${teleName}*\n\n🏦 *ንግድ ባንክ (CBE / CBE Birr):*\n• አካውንት: \`${cbePhone}\`\n• ስም: *${cbeName}*\n\n💡 *ማሳሰቢያ:* ገንዘብ ካስተላለፉ በኋላ ከታች **🎮 Play Game** የሚለውን ተጭነው በጨዋታው ውስጥ *Deposit* የሚለውን በመንካት የደረሰኝ ስክሪንሾት ወይም የሂሳብ ቁጥርዎን ያስገቡ። ጥያቄዎ ፈጣን ምላሽ ያገኛል!`,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+            } else if (text.includes("Withdraw") || text.includes("ማውጣት") || text === "/withdraw") {
+              await telegramApi("sendMessage", {
+                chat_id: chatId,
+                text: `💸 *ገንዘብ ማውጣት (Withdraw)*\n\nያሸነፉትን ገንዘብ በቀላሉ ለማውጣት:\n1. ከታች **🎮 Play Game** የሚለውን ይጫኑ\n2. በጨዋታው ውስጥ የ **Wallet** ገጽ ይክፈቱ\n3. ማውጣት የሚፈልጉትን መጠን እና የቴሌብር ወይም የባንክ ሂሳብ ቁጥርዎን ያስገቡ\n\n📌 *ዝቅተኛው ማውጣት የሚቻለው:* \`50 ETB\`\n⚡ *ክፍያ:* በጥቂት ደቂቃዎች ውስጥ ይፈጸማል!`,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+            } else if (text.includes("Balance") || text.includes("ሂሳብ") || text === "/balance") {
+              const curUser = gameState.users[chatId] || {};
+              const curBal = Number(curUser.balance != null ? curUser.balance : 10);
+              await telegramApi("sendMessage", {
+                chat_id: chatId,
+                text: `💳 *የሂሳብዎ ቀሪ (Your Balance)*\n\n👤 *ተጠቃሚ:* ${firstName}\n💰 *የዋና ሂሳብ ቀሪ:* \`${curBal}\` ETB\n🎁 *የሪፈራል ቦነስ:* \`10\` ETB\n\n🎲 ለመጫወት ከታች **🎮 Play Game** የሚለውን ይጫኑ!`,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+            } else if (text.includes("Support") || text.includes("ድጋፍ") || text === "/support") {
+              await telegramApi("sendMessage", {
+                chat_id: chatId,
+                text: `📞 *የደንበኞች አገልግሎት እና ድጋፍ (Customer Support)*\n\nለማንኛውም አይነት ጥያቄ፣ አስተያየት ወይም የክፍያ እርዳታ አድሚኖችን ያግኙ:\n\n👉 *ቴሌግራም:* @su121316\n📞 *ስልክ:* \`+251918182355\`\n\nእርስዎን ለማገልገል 24/7 ዝግጁ ነን!`,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+            } else if (text.includes("Instructions") || text.includes("ህግ") || text.includes("መመሪያ") || text === "/help") {
+              await telegramApi("sendMessage", {
+                chat_id: chatId,
+                text: `📖 *የጨዋታ ህጎች እና መመሪያዎች (Instructions)*\n\n1. 🎮 *Play Game* የሚለውን ተጭነው ወደ ጨዋታው ይግቡ።\n2. የሚፈልጉትን ክፍል (10, 20 ወይም 50 ETB) ይምረጡ።\n3. የካርቴላ ቁጥር ይምረጡ (እስከ 50 ካርቴላ መምረጥ ይችላሉ)።\n4. የ 60 ሰከንድ የምዝገባ ቆጣሪው ሲያልቅ ጨዋታው በራሱ ይጀምራል።\n5. ኳሶች በድምጽ እና በስክሪኑ ላይ አንድ በአንድ ይወጣሉ።\n6. ማንኛውም 1 መስመር (አግድም፣ ቁልቁል ወይም ዲያጎናል) የሞላ ተጫዋች አሸናፊ ይሆናል!\n\nመልካም እድል! 🍀`,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+            } else if (text.includes("Invite Friends") || text.includes("መጋበዝ") || text === "/invite") {
+              await telegramApi("sendMessage", {
+                chat_id: chatId,
+                text: `🎁 *ጓደኞችዎን ይጋብዙ እና ቦነስ ያግኙ (Invite Friends)*\n\nየእርስዎን መጋበዣ ሊንክ ለጓደኞችዎ ያጋሩ:\n👉 \`https://t.me/waliyabingo1_bot?start=ref_${chatId}\`\n\nጓደኛዎ በእርስዎ ሊንክ ተመዝግቦ ሲጫወት የ 10 ETB ተጨማሪ ቦነስ ያገኛሉ!`,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
             } else if (text.startsWith("/admin")) {
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `🛡️ *Waliya Bingo — Admin Control Center*\n\nየአስተዳዳሪ ፓነልን ለመክፈት ከታች ያለውን ይጫኑ:`,
+                  text: `🛡️ *Waliya Bingo — Admin Control Center*\n\nየአስተዳዳሪ ፓነልን ለመክፈት ከታች ያለውን ይጫኑ:\n👉 [Admin Console መክፈቻ](${WEB_APP_URL}admin.html?role=admin&u=${chatId})`,
                   parse_mode: "Markdown",
-                  reply_markup: {
-                    inline_keyboard: [
-                      [
-                        {
-                          text: "🌐 Admin Panel (Web Console)",
-                          web_app: { url: `${WEB_APP_URL}admin.html?role=admin&u=${chatId}` },
-                        },
-                      ],
-                    ],
-                  },
+                  reply_markup: MAIN_REPLY_KEYBOARD,
                 });
               } else {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
                   text: `⛔ *ይቅርታ! ይህንን ትዕዛዝ ለመጠቀም የአስተዳዳሪ (Admin) ፈቃድ የለዎትም።*`,
                   parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
                 });
               }
             } else if (text.startsWith("/id") || text.startsWith("/myid") || text.startsWith("/status")) {
@@ -1673,6 +1760,13 @@ async function startTelegramBot() {
                 chat_id: chatId,
                 text: `ℹ️ *የመለያ መረጃ (Account Info)*\n\n🆔 *Chat ID:* \`${chatId}\`\n👤 *Username:* @${rawUname || "None"}\n🛡️ *Role:* ${isAdmin ? "👑 Admin (Receives Alerts)" : "Player"}`,
                 parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+            } else {
+              await telegramApi("sendMessage", {
+                chat_id: chatId,
+                text: `ለመቀጠል ከታች ያለውን ማውጫ ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
+                reply_markup: MAIN_REPLY_KEYBOARD,
               });
             }
           }
