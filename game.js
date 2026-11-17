@@ -1171,7 +1171,11 @@ function showView(name) {
   }
 
   Object.entries(views).forEach(([key, el]) => {
-    if (el) el.classList.toggle("is-on", key === name);
+    if (el) {
+      const isTarget = key === name;
+      el.classList.toggle("is-on", isTarget);
+      el.style.setProperty("display", isTarget ? "flex" : "none", "important");
+    }
   });
   document.body.classList.toggle("is-landing-active", name === "landing");
   document.body.classList.toggle("is-selection-active", name === "pick");

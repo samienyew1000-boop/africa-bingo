@@ -8152,12 +8152,16 @@ body.is-lobby-active .lb-frame {
   background: #ceb3de !important;
 }
 
-#view-lobby.lb-lobby {
+#view-lobby:not(.is-on) {
+  display: none !important;
+}
+
+#view-lobby.is-on {
+  display: flex !important;
   padding: 16px 14px 85px 14px !important;
   background: #ceb3de !important;
   min-height: 100dvh;
   box-sizing: border-box;
-  display: flex;
   flex-direction: column;
   align-items: center;
 }
