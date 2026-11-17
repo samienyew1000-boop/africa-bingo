@@ -739,27 +739,24 @@ function savePlayerRoomPlayers(roomId, players) {
 }
 
 function getLobbyRooms() {
-  const adminRooms = loadAdminRooms();
-  const rooms = adminRooms === null ? ROOMS : adminRooms;
-  return rooms
-    .map((room) => {
-      const id = String(room.id);
-      const server = serverRoomStates[id];
-      return {
-        ...room,
-        id,
-        stake: Math.max(1, Math.round(Number(room.stake) || parseInt(id) || 0)),
-        // Never use browser storage for authoritative room membership.
-        players: server ? Math.max(0, Number(server.player_count) || 0) : 0,
-        status: server?.status || "open",
-        roundId: server?.round_id ?? 0,
-      };
-    })
-    .filter((room) => room.stake > 0);
+  return ROOMS.map((room) => {
+    const id = String(room.id);
+    const server = serverRoomStates[id];
+    return {
+      ...room,
+      id,
+      stake: Math.max(1, Math.round(Number(room.stake) || parseInt(id) || 0)),
+      players: server ? Math.max(0, Number(server.player_count) || 0) : 0,
+      status: server?.status || "open",
+      roundId: server?.round_id ?? 0,
+    };
+  }).filter((room) => room.stake > 0);
 }
 
 function getLobbyRoom(roomId) {
-  return getLobbyRooms().find((room) => String(room.id) === String(roomId)) || null;
+  const rId = String(roomId);
+  return getLobbyRooms().find((room) => String(room.id) === rId) ||
+         ROOMS.find((room) => String(room.id) === rId) || null;
 }
 
 function roomSourceStatus(room) {
@@ -2362,7 +2359,22 @@ function updateBalancePillDisplay() {
   }
 }
 
+function setupLobbyRoomsDelegation() {
+  const roomsWrap = $("rooms");
+  if (roomsWrap && !roomsWrap._hasRoomDelegate) {
+    roomsWrap._hasRoomDelegate = true;
+    roomsWrap.addEventListener("click", (e) => {
+      const btn = e.target.closest(".wb-room-capsule");
+      if (btn && btn.dataset.roomId) {
+        e.preventDefault();
+        enterRoom(btn.dataset.roomId);
+      }
+    });
+  }
+}
+
 function initBalancePill() {
+  setupLobbyRoomsDelegation();
   const pillBtn = $("wb-balance-pill-btn");
   const eyeBtn = $("wb-toggle-eye");
 
@@ -2731,45 +2743,49 @@ function renderRooms() {
 
   const roomColors = ["green", "orange", "blue", "purple"];
 
-  wrap.replaceChildren(
-    ...rooms.map((room, index) => {
-      const server = serverRoomStates[String(room.id)];
-      const canPlay = canAfford(room.stake);
-      const state = roomDisplayState(room);
-      const roomClosed = state.type === "live" || state.type === "paused";
-      const color = room.color || roomColors[index % roomColors.length];
+  const buttons = rooms.map((room, index) => {
+    const server = serverRoomStates[String(room.id)];
+    const canPlay = canAfford(room.stake);
+    const state = roomDisplayState(room);
+    const roomClosed = state.type === "live" || state.type === "paused";
+    const color = room.color || roomColors[index % roomColors.length];
 
-      let displayName = room.displayName;
-      if (!displayName) {
-        if (String(room.id) === "10") displayName = "10 No 1";
-        else if (String(room.id) === "10-2") displayName = "10 No 2";
-        else if (String(room.id) === "20") displayName = "20 No 1";
-        else if (String(room.id) === "50") displayName = "50 No 1";
-        else displayName = `${room.stake} No 1`;
-      }
+    let displayName = room.displayName;
+    if (!displayName) {
+      if (String(room.id) === "10") displayName = "10 No 1";
+      else if (String(room.id) === "10-2") displayName = "10 No 2";
+      else if (String(room.id) === "20") displayName = "20 No 1";
+      else if (String(room.id) === "50") displayName = "50 No 1";
+      else displayName = `${room.stake} No 1`;
+    }
 
-      let bubbleText = "Play";
-      if (state.type === "countdown") {
-        bubbleText = "Play";
-      } else if (state.type === "live") {
-        bubbleText = "In Play";
-      }
+    let bubbleText = "Play";
+    if (state.type === "countdown") {
+      bubbleText = "Play";
+    } else if (state.type === "live") {
+      bubbleText = "In Play";
+    }
 
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = `wb-room-capsule wb-room-${color}` + (canPlay ? "" : " is-locked") + (roomClosed ? " is-closed" : "");
-      btn.disabled = roomClosed;
-      btn.setAttribute("aria-disabled", String(roomClosed));
-      btn.setAttribute("aria-label", `Play ${displayName}, stake ${room.stake} ETB`);
-      btn.innerHTML = `
-        <span class="wb-room-bubble">${bubbleText}</span>
-        <span class="wb-room-name">${displayName}</span>
-      `;
-      btn.addEventListener("click", () => enterRoom(room.id));
-      wrap.appendChild(btn);
-      return btn;
-    })
-  );
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `wb-room-capsule wb-room-${color}` + (canPlay ? "" : " is-locked") + (roomClosed ? " is-closed" : "");
+    btn.disabled = roomClosed;
+    btn.dataset.roomId = String(room.id);
+    btn.setAttribute("aria-disabled", String(roomClosed));
+    btn.setAttribute("aria-label", `Play ${displayName}, stake ${room.stake} ETB`);
+    btn.innerHTML = `
+      <span class="wb-room-bubble">${bubbleText}</span>
+      <span class="wb-room-name">${displayName}</span>
+    `;
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      enterRoom(room.id);
+    };
+    return btn;
+  });
+
+  wrap.replaceChildren(...buttons);
 }
 function enterRoom(roomId) {
   const room = getLobbyRoom(roomId);
@@ -2787,13 +2803,16 @@ function enterRoom(roomId) {
   }
 
   if (!cardsReady) {
-    toast(cardsLoadError ? "CARD DATA UNAVAILABLE" : "CARD DATA LOADING", "lose");
-    return;
+    if (window.LUCKY_BINGO_CARD_DATA) {
+      applyCardCatalog(window.LUCKY_BINGO_CARD_DATA);
+    }
+    if (!cardsReady) {
+      toast(cardsLoadError ? "CARD DATA UNAVAILABLE" : "CARD DATA LOADING", "lose");
+      return;
+    }
   }
   if (!canAfford(room.stake)) {
-    openWallet("deposit");
     toast("DEPOSIT TO PLAY", "lose");
-    return;
   }
 
   if (activeRoomId && activeRoomId !== String(room.id) && typeof LuckyBingoAPI !== "undefined") {

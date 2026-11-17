@@ -8421,3 +8421,16 @@ body.is-lobby-active .lb-frame {
 .wb-nav-item.is-active .wb-nav-pill span {
   color: #ffffff;
 }
+
+
+/* Ensure #global-header is completely hidden when on lobby */
+body.is-lobby-active #global-header,
+body.is-lobby-active .lb-global-header,
+#global-header.is-hidden-lobby {
+  display: none !important;
+}
+
+.wb-room-bubble,
+.wb-room-name {
+  pointer-events: none !important;
+}
