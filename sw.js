@@ -1,5 +1,5 @@
 // Waliya Bingo Service Worker
-const CACHE_NAME = "waliya-bingo-v20261117_10";
+const CACHE_NAME = "waliya-bingo-v20261117_11";
 const STATIC_ASSETS = [
   "./",
   "./index.html",

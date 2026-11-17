@@ -34,9 +34,9 @@ const DEFAULT_STARTING_BONUS = 10;
 const CARD_COUNT = 1000;
 const MAX_PICK = 50;
 const CALL_MS = 3200;
-const DEFAULT_PICK_SECS = 120;
+const DEFAULT_PICK_SECS = 60;
 const DEFAULT_WINNING_PATTERN = "1";
-const WINNING_PATTERNS = Object.freeze(["1", "2", "3", "4", "full-house"]);
+const WINNING_PATTERNS = Object.freeze(["1"]);
 const ROOM_GAME_MS = CALL_MS * 75;
 const ROOM_UPDATE_MS = 2400;
 const ROOM_STATUS_UPDATE_MS = 1000;
@@ -333,10 +333,11 @@ function updateLandingLiveTracker(rooms) {
 
 function updatePickLiveTracker(sState) {
   const tracker = $("pick-live-tracker");
-  if (!tracker) return;
+  if (tracker) tracker.style.setProperty("display", "none", "important");
+  return;
 
-  const currentPattern = sState?.pattern || { id: "3_lines", name: "3 መስመር", label: "3 መስመር ዝግ", targetLines: 3 };
-  const nextPattern = sState?.next_pattern || { id: "4_lines", name: "4 መስመር", label: "4 መስመር ዝግ", targetLines: 4 };
+  const currentPattern = sState?.pattern || { id: "1_line", name: "1 መስመር", label: "1 መስመር ዝግ", targetLines: 1 };
+  const nextPattern = sState?.next_pattern || { id: "1_line", name: "1 መስመር", label: "1 መስመር ዝግ", targetLines: 1 };
   const isLive = sState?.status === "live";
   const isCd = sState?.status === "countdown";
   const calls = Array.isArray(sState?.calls) ? sState.calls : [];
@@ -597,33 +598,15 @@ function loadInitialBalance() {
 }
 
 function getPickCountdownSeconds() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(ADMIN_SETTINGS_KEY) || "null");
-    const seconds = Number(saved?.countdown);
-    return Number.isFinite(seconds) ? Math.min(600, Math.max(10, Math.round(seconds))) : DEFAULT_PICK_SECS;
-  } catch (error) {
-    return DEFAULT_PICK_SECS;
-  }
+  return 60;
 }
 
 function normalizeWinningPattern(value) {
-  const pattern = String(value ?? DEFAULT_WINNING_PATTERN);
-  return WINNING_PATTERNS.includes(pattern) ? pattern : DEFAULT_WINNING_PATTERN;
+  return "1";
 }
 
 function getWinningPattern() {
-  if (activeRoomId && serverRoomStates[activeRoomId]?.pattern) {
-    const p = serverRoomStates[activeRoomId].pattern;
-    if (p.isFullHouse || p.id === "fullhouse") return "full-house";
-    if (p.targetLines) return String(p.targetLines);
-    if (typeof p === "string") return p;
-  }
-  try {
-    const saved = JSON.parse(localStorage.getItem(ADMIN_SETTINGS_KEY) || "null");
-    return normalizeWinningPattern(saved?.winningPattern);
-  } catch (error) {
-    return "3";
-  }
+  return "1";
 }
 
 function formatCountdown(seconds) {
@@ -2512,7 +2495,7 @@ function renderPickRoomSummary() {
   if (players) players.textContent = room ? fmt(playerCount) : "—";
   if (availableEl) availableEl.textContent = cardNumbers.length ? fmt(available) : "—";
   const isCounting = pickTimer !== null && pickLeft !== null && pickLeft > 0;
-  if (time) time.textContent = isCounting ? `${Math.max(0, pickLeft)}` : (selected.size > 0 ? (pickLeft ? `${pickLeft}` : "30") : "30");
+  if (time) time.textContent = isCounting ? `${Math.max(0, pickLeft)}` : (selected.size > 0 ? (pickLeft ? `${pickLeft}` : "60") : "60");
   const reservedStake = selected.size * roomStake;
   const isOnline = Boolean(activeRoomId && typeof LuckyBingoAPI !== "undefined");
   const availableBal = isOnline ? balance : Math.max(0, balance - reservedStake);
@@ -3066,7 +3049,7 @@ function setupPickWaitingState() {
   const timer = $("pick-timer");
   const banner = $("pick-banner-secs");
   const helper = $("pick-helper");
-  if (time) time.textContent = selected.size > 0 ? formatCountdown(pickLeft || 120) : "02:00";
+  if (time) time.textContent = selected.size > 0 ? (pickLeft ? `${pickLeft}` : "60") : "60";
   if (seconds) seconds.textContent = "Open";
   if (banner) banner.textContent = "Open";
   if (timer) timer.classList.remove("is-urgent");
@@ -3245,7 +3228,7 @@ function onCardSelectionChanged() {
       } else {
         if (!pickTimer && !opponentJoinTimeout) {
           const time = $("pick-time");
-          if (time) time.textContent = String(pickLeft || 30);
+          if (time) time.textContent = String(pickLeft || 60);
           const helper = $("pick-helper");
           if (helper) helper.textContent = `1 cartela selected! Pick up to ${MAX_PICK} or wait for opponents to join…`;
           scheduleOpponentJoin();
@@ -3263,7 +3246,7 @@ function updatePickCountdownDisplay() {
   const isCounting = pickLeft !== null && pickLeft > 0;
   const label = isCounting ? formatCountdown(pickLeft) : (selected.size > 0 ? "Waiting" : "Open");
   if (seconds) seconds.textContent = label;
-  if (time) time.textContent = isCounting ? formatCountdown(pickLeft) : (selected.size > 0 ? (pickLeft ? formatCountdown(pickLeft) : "02:00") : "02:00");
+  if (time) time.textContent = isCounting ? `${Math.max(0, pickLeft)}` : (selected.size > 0 ? (pickLeft ? `${pickLeft}` : "60") : "60");
   if (banner) banner.textContent = label;
   if (timer) timer.classList.toggle("is-urgent", isCounting && pickLeft <= 10);
   renderPickRoomSummary();
@@ -4222,14 +4205,10 @@ function cellHit(card, index, hit) {
 function bestWinKind(card, hit) {
   if (!card) return null;
 
-  const pattern = getWinningPattern();
-  const all = Array.from({ length: 25 }, (_, index) => index);
-  if (pattern === "full-house") return all.every((index) => cellHit(card, index, hit)) ? "FULL HOUSE" : null;
-
-  const requiredLines = Number(pattern);
+  // Always 1 line bingo rule as required
   const completedLines = completedBingoLines(card, hit).length;
-  if (completedLines < requiredLines) return null;
-  return `${requiredLines} ${requiredLines === 1 ? "LINE" : "LINES"}`;
+  if (completedLines < 1) return null;
+  return "1 LINE";
 }
 
 function playerHasBingo(useCalled = true) {

@@ -7822,17 +7822,10 @@ body.is-dark-theme .lb-bnav-btn.is-active {
 
 
 
-/* Pick Room Live Tracker embedded under Topbar */
-.lb-pick-live-tracker {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: #fbf8f2;
-  border: 1px solid #e5dcc5;
-  border-radius: 16px;
-  padding: 12px 14px;
-  margin: 6px 10px 10px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+/* Pick Room Live Tracker embedded under Topbar (Hidden as requested) */
+.lb-pick-live-tracker,
+#pick-live-tracker {
+  display: none !important;
 }
 
 .lb-plt-top-row {

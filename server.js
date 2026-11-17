@@ -67,7 +67,7 @@ const DEFAULT_STATE = {
     { id: "50", stake: 50, name: "50 No 1", players: 0, status: "waiting", roundId: "#WB-104", prizePool: 0, called: [] },
   ],
   settings: {
-    countdown: 120,
+    countdown: 60,
     commissionRate: 20,
     minDeposit: 50,
     depositBonus: 20,
@@ -130,7 +130,7 @@ function loadGameState() {
     gameState = {
       ...DEFAULT_STATE,
       ...(fileData || {}),
-      settings: { ...DEFAULT_STATE.settings, ...(fileData?.settings || {}) },
+      settings: { ...DEFAULT_STATE.settings, ...(fileData?.settings || {}), countdown: 60 },
       users: mergedUsers,
       transactions: mergedTxns,
     };
@@ -376,12 +376,7 @@ const WINNING_LINES = [
 ];
 
 const BINGO_PATTERNS = [
-  { id: "3_lines", name: "3 መስመር", targetLines: 3, label: "3 መስመር ዝግ", description: "3 መስመር ሲዘጋ" },
-  { id: "4_lines", name: "4 መስመር", targetLines: 4, label: "4 መስመር ዝግ", description: "4 መስመር ሲዘጋ" },
-  { id: "5_lines", name: "5 መስመር", targetLines: 5, label: "5 መስመር ዝግ", description: "5 መስመር ሲዘጋ" },
-  { id: "6_lines", name: "6 መስመር", targetLines: 6, label: "6 መስመር ዝግ", description: "6 መስመር ሲዘጋ" },
-  { id: "7_lines", name: "7 መስመር", targetLines: 7, label: "7 መስመር ዝግ", description: "7 መስመር ሲዘጋ" },
-  { id: "fullhouse", name: "ሙሉ ካርቴላ", targetLines: 24, isFullHouse: true, label: "ሙሉ ካርቴላ (Full House)", description: "ሙሉ ካርቴላ ሲዘጋ" },
+  { id: "1_line", name: "1 መስመር", targetLines: 1, label: "1 መስመር ዝግ", description: "1 መስመር ሲዘጋ" }
 ];
 
 function countCompletedLines(cardNumbers, calledSet) {
@@ -397,16 +392,8 @@ function countCompletedLines(cardNumbers, calledSet) {
 
 function checkCardBingo(cardNumbers, calledSet, pattern) {
   if (!Array.isArray(cardNumbers) || cardNumbers.length !== 25) return false;
-  if (!pattern) {
-    return countCompletedLines(cardNumbers, calledSet) >= 3;
-  }
-  if (pattern.isFullHouse || pattern.id === "fullhouse") {
-    return cardNumbers.every((val, idx) =>
-      idx === 12 || val === 0 || val === "FREE" || calledSet.has(Number(val))
-    );
-  }
-  const req = Number(pattern.targetLines || 3);
-  return countCompletedLines(cardNumbers, calledSet) >= req;
+  // Always 1 line bingo rule
+  return countCompletedLines(cardNumbers, calledSet) >= 1;
 }
 
 class LiveBingoRoom {
@@ -573,7 +560,7 @@ class LiveBingoRoom {
 
   startCountdown() {
     this.status = "countdown";
-    const durationSec = Math.max(10, Number(gameState.settings?.countdown || 120));
+    const durationSec = Math.max(10, Number(gameState.settings?.countdown || 60));
     this.countdownEndsAt = Date.now() + durationSec * 1000;
 
     if (this.countdownTimer) clearTimeout(this.countdownTimer);
@@ -682,7 +669,7 @@ class LiveBingoRoom {
       winner_name: winnerName,
       prize: prize,
       card_id: cardId,
-      pattern: this.currentPattern ? (this.currentPattern.label || this.currentPattern.name) : "3 መስመር",
+      pattern: this.currentPattern ? (this.currentPattern.label || this.currentPattern.name) : "1 መስመር",
       ended_at: Math.floor(Date.now() / 1000),
     };
 

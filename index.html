@@ -12,9 +12,9 @@
     <meta name="apple-mobile-web-app-title" content="Waliya Bingo" />
     <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=20261117_10" />
+    <link rel="stylesheet" href="style.css?v=20261117_11" />
     <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
-    <script src="players-data.js?v=20261117_10"></script>
+    <script src="players-data.js?v=20261117_11"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
@@ -315,7 +315,7 @@
               </button>
 
               <div class="lb-pick-pill lb-pick-timer-pill" aria-label="Countdown timer">
-                <span class="lb-pick-timer-val" id="pick-time">30</span>
+                <span class="lb-pick-timer-val" id="pick-time">60</span>
               </div>
 
               <div class="lb-pick-pill lb-pick-info-pill" aria-label="Wallet balance">
@@ -339,8 +339,8 @@
               </button>
             </header>
 
-            <!-- Embedded Live & Next Round Tracker matching live game state -->
-            <div class="lb-pick-live-tracker" id="pick-live-tracker">
+            <!-- Embedded Live & Next Round Tracker hidden as requested -->
+            <div class="lb-pick-live-tracker" id="pick-live-tracker" style="display: none !important;">
               <!-- Top row: Title and info button -->
               <div class="lb-plt-top-row">
                 <div class="lb-plt-title-wrap">
@@ -1271,9 +1271,9 @@
         <div class="lb-toast" id="toast" hidden></div>
       </div>
     </div>
-    <script src="card-data.js?v=20261117_10"></script>
-    <script src="app-config.js?v=20261117_10"></script>
-    <script src="api-client.js?v=20261117_10"></script>
-    <script src="game.js?v=20261117_10"></script>
+    <script src="card-data.js?v=20261117_11"></script>
+    <script src="app-config.js?v=20261117_11"></script>
+    <script src="api-client.js?v=20261117_11"></script>
+    <script src="game.js?v=20261117_11"></script>
   </body>
 </html>
