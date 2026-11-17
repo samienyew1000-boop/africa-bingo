@@ -3,6 +3,28 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 
+// Load .env file if present
+const envPath = path.join(__dirname, ".env");
+if (fs.existsSync(envPath)) {
+  try {
+    const envLines = fs.readFileSync(envPath, "utf-8").split(/\r?\n/);
+    for (const line of envLines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx !== -1) {
+        const key = trimmed.slice(0, eqIdx).trim();
+        const val = trimmed.slice(eqIdx + 1).trim();
+        if (key && !process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Could not read .env file:", e.message);
+  }
+}
+
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const PUBLIC_DIR = __dirname;
 const STATE_FILE = path.join(__dirname, "game-state.json");
