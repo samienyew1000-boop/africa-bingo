@@ -7,5 +7,8 @@ __pycache__/
 *.db
 data/
 game-state.backup.json
+.env
+.env*
+scratch/
 
 

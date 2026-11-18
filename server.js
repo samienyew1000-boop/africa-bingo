@@ -15,7 +15,7 @@ if (fs.existsSync(envPath)) {
       if (eqIdx !== -1) {
         const key = trimmed.slice(0, eqIdx).trim();
         const val = trimmed.slice(eqIdx + 1).trim();
-        if (key && !process.env[key]) {
+        if (key) {
           process.env[key] = val;
         }
       }
@@ -30,7 +30,7 @@ const PUBLIC_DIR = __dirname;
 const STATE_FILE = path.join(__dirname, "game-state.json");
 const BACKUP_STATE_FILE = path.join(__dirname, "game-state.backup.json");
 const ROOT_BACKUP_FILE = "/var/backups/waliya-bingo-state.json";
-const BOT_TOKEN = process.env.BOT_TOKEN || "9258237799:AAESEjWTqN137dJppOaQUQGTqc_F1DzBKGU";
+const BOT_TOKEN = process.env.BOT_TOKEN || "";
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://konjobetcom.et/waliya/").replace(/\/+$/, "") + "/";
 const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0918182355,9029759446,berihun,admin,0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,waliyabingooo,waliyabingo,waliyabingo1_bot,Biregugsa,ber63781,Ber63781";
 const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
@@ -1559,7 +1559,7 @@ async function startTelegramBot() {
   } catch (e) {}
 
   try {
-    await telegramApi("deleteWebhook", { drop_pending_updates: false });
+    await telegramApi("deleteWebhook", { drop_pending_updates: true });
     console.log("[INFO] Successfully configured Telegram bot polling.");
   } catch (e) {}
 
@@ -1736,7 +1736,7 @@ async function startTelegramBot() {
             } else if (text.includes("Instructions") || text.includes("ህግ") || text.includes("መመሪያ") || text === "/help") {
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `📖 *የጨዋታ ህጎች እና መመሪያዎች (Instructions)*\n\n1. 🎮 *Play Game* የሚለውን ተጭነው ወደ ጨዋታው ይግቡ።\n2. የሚፈልጉትን ክፍል (10, 20 ወይም 50 ETB) ይምረጡ።\n3. የካርቴላ ቁጥር ይምረጡ (እስከ 50 ካርቴላ መምረጥ ይችላሉ)።\n4. የ 60 ሰከንድ የምዝገባ ቆጣሪው ሲያልቅ ጨዋታው በራሱ ይጀምራል።\n5. ኳሶች በድምጽ እና በስክሪኑ ላይ አንድ በአንድ ይወጣሉ።\n6. ማንኛውም 1 መስመር (አግድም፣ ቁልቁል ወይም ዲያጎናል) የሞላ ተጫዋች አሸናፊ ይሆናል!\n\nመልካም እድል! 🍀`,
+                text: `📖 *የጨዋታ ህጎች እና መመሪያዎች (Instructions)*\n\n1. 🎮 *Play Game* የሚለውን ተጭነው ወደ ጨዋታው ይግቡ።\n2. የሚፈልጉትን ክፍል (10, 20 ወይም 50 ETB) ይምረጡ።\n3. የካርቴላ ቁጥር ይምረጡ (እስከ 50 ካርቴላ መምረጥ ይችላሉ)።\n4. የ 30 ሰከንድ የምዝገባ ቆጣሪው ሲያልቅ ጨዋታው በራሱ ይጀምራል።\n5. ኳሶች በድምጽ እና በስክሪኑ ላይ አንድ በአንድ ይወጣሉ።\n6. ማንኛውም 1 መስመር (አግድም፣ ቁልቁል ወይም ዲያጎናል) የሞላ ተጫዋች አሸናፊ ይሆናል!\n\nመልካም እድል! 🍀`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
