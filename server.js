@@ -74,10 +74,10 @@ const DEFAULT_STATE = {
     bonusThreshold: 100,
     startingBonus: 0,
     startingBonusEnabled: false,
-    depositTelebirrPhone: "0939030118",
-    depositTelebirrName: "አደባባይ በእውቀት",
-    depositCbeBirrPhone: "1000263032997",
-    depositCbeBirrName: "አደባባይ በእውቀት",
+    depositTelebirrPhone: "0975094812",
+    depositTelebirrName: "ቃልኪዳን እንየው",
+    depositCbeBirrPhone: "1000817750552",
+    depositCbeBirrName: "ቃልኪዳን እንየው",
     depositMpesaPhone: "0700 000 000",
     depositMpesaName: "Waliya Bingo M-Pesa",
   },
@@ -134,10 +134,10 @@ function loadGameState() {
         ...DEFAULT_STATE.settings,
         ...(fileData?.settings || {}),
         countdown: 30,
-        depositTelebirrPhone: "0939030118",
-        depositTelebirrName: "አደባባይ በእውቀት",
-        depositCbeBirrPhone: "1000263032997",
-        depositCbeBirrName: "አደባባይ በእውቀት",
+        depositTelebirrPhone: "0975094812",
+        depositTelebirrName: "ቃልኪዳን እንየው",
+        depositCbeBirrPhone: "1000817750552",
+        depositCbeBirrName: "ቃልኪዳን እንየው",
       },
       users: mergedUsers,
       transactions: mergedTxns,
@@ -1699,10 +1699,10 @@ async function startTelegramBot() {
                 });
               }
             } else if (text.includes("Deposit") || text.includes("ተቀማጭ") || text.includes("ዲፖዚት") || text === "/deposit") {
-              const telePhone = gameState.settings.depositTelebirrPhone || "0939030118";
-              const teleName = gameState.settings.depositTelebirrName || "አደባባይ በእውቀት";
-              const cbePhone = gameState.settings.depositCbeBirrPhone || "1000263032997";
-              const cbeName = gameState.settings.depositCbeBirrName || "አደባባይ በእውቀት";
+              const telePhone = gameState.settings.depositTelebirrPhone || "0975094812";
+              const teleName = gameState.settings.depositTelebirrName || "ቃልኪዳን እንየው";
+              const cbePhone = gameState.settings.depositCbeBirrPhone || "1000817750552";
+              const cbeName = gameState.settings.depositCbeBirrName || "ቃልኪዳን እንየው";
 
               await telegramApi("sendMessage", {
                 chat_id: chatId,
