@@ -4701,7 +4701,7 @@ body.is-game-active #view-game {
 
 .is-standard-layout .lb-mine-cards-grid.has-two-cards {
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  grid-template-rows: 1fr !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
 }
 
 .is-standard-layout .lb-card {
