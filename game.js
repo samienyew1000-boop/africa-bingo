@@ -159,6 +159,7 @@ let callPool = [];
 let callTimer = null;
 let pickTimer = null;
 let winnerTimer = null;
+let winnerPendingTimeout = null;
 const displayedResultIds = new Set();
 let roomTimer = null;
 let roomStatusTimer = null;
@@ -505,23 +506,23 @@ function handleServerRoomState(sState) {
     renderPickRoomSummary();
   }
 
-  // 3. Status is LIVE
-  if (sState.status === "live") {
+  // 3. Status is LIVE or ENDED
+  let hadNewCalls = false;
+  if ((sState.status === "live" || sState.status === "ended") && Array.isArray(sState.calls)) {
     if (selected.size === 0 && Array.isArray(sState.players)) {
       const myPlayer = sState.players.find((p) => myId && String(p.user_id) === String(myId));
       if (myPlayer && Array.isArray(myPlayer.card_ids)) {
         myPlayer.card_ids.forEach((cid) => selected.add(Number(cid)));
       }
     }
-    if (!playing && selected.size > 0) {
+    if (!playing && selected.size > 0 && views.game && views.game.classList.contains("is-on")) {
       entryCharged = true;
       beginLiveGame();
     }
-    if (playing && Array.isArray(sState.calls)) {
-      for (const n of sState.calls) {
-        if (!called.includes(n)) {
-          handleSingleCall(n);
-        }
+    for (const n of sState.calls) {
+      if (!called.includes(n)) {
+        hadNewCalls = true;
+        handleSingleCall(n);
       }
     }
   }
@@ -552,25 +553,31 @@ function handleServerRoomState(sState) {
       clearInterval(callTimer);
       callTimer = null;
 
-      // If winner overlay is already showing for this exact round, don't restart it
-      if (!winnerTimer) {
-        const isMe = res.winner_id && myId && String(res.winner_id) === String(myId);
-        if (isMe) {
-          roundOutcome = "win";
-          roundWinnerName = res.winner_name || PLAYER_NAME;
-          showRoundResult("win", roundWinnerName, "LINE", res.card_id || selected.values().next().value);
-          showWinnerOverlay("win", roundWinnerName, res.prize, res.card_id || selected.values().next().value, "LINE");
-          toast("YOU WON!", "win");
-        } else {
-          roundOutcome = "lose";
-          roundWinnerName = res.winner_name || "Opponent";
-          showRoundResult("lose", roundWinnerName, "LINE", res.card_id);
-          markLoserCards();
-          showWinnerOverlay("lose", roundWinnerName, res.prize != null ? res.prize : stake, res.card_id, "LINE");
-          toast((roundWinnerName).toUpperCase() + " WON!", "lose");
-        }
+      // Allow 1.2s delay so the winning ball is called, seen, and heard before popup appears!
+      const delayMs = hadNewCalls ? 1200 : 500;
+      if (!winnerTimer && !winnerPendingTimeout) {
+        winnerPendingTimeout = setTimeout(() => {
+          winnerPendingTimeout = null;
+          if (!winnerTimer) {
+            const isMe = res.winner_id && myId && String(res.winner_id) === String(myId);
+            if (isMe) {
+              roundOutcome = "win";
+              roundWinnerName = res.winner_name || PLAYER_NAME;
+              showRoundResult("win", roundWinnerName, "LINE", res.card_id || selected.values().next().value);
+              showWinnerOverlay("win", roundWinnerName, res.prize, res.card_id || selected.values().next().value, "LINE");
+              toast("YOU WON!", "win");
+            } else {
+              roundOutcome = "lose";
+              roundWinnerName = res.winner_name || "Opponent";
+              showRoundResult("lose", roundWinnerName, "LINE", res.card_id);
+              markLoserCards();
+              showWinnerOverlay("lose", roundWinnerName, res.prize != null ? res.prize : stake, res.card_id, "LINE");
+              toast((roundWinnerName).toUpperCase() + " WON!", "lose");
+            }
+          }
+          syncProfileWithServer();
+        }, delayMs);
       }
-      syncProfileWithServer();
     }
   }
 }
@@ -3474,6 +3481,10 @@ function hideRoundResult() {
 }
 
 function hideWinnerOverlay() {
+  if (winnerPendingTimeout) {
+    clearTimeout(winnerPendingTimeout);
+    winnerPendingTimeout = null;
+  }
   clearInterval(winnerTimer);
   winnerTimer = null;
   if (currentBingoAudio) {
@@ -3661,6 +3672,10 @@ function renderSingleWinnerCard(cardId, hits, kind = "LINE") {
 }
 
 function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kind = "LINE") {
+  if (winnerPendingTimeout) {
+    clearTimeout(winnerPendingTimeout);
+    winnerPendingTimeout = null;
+  }
   const overlay = $("winner-overlay");
   const nameEl = $("winner-overlay-name");
   const container = $("winner-cards-container");
@@ -4356,18 +4371,28 @@ function claimBingo() {
   roundWinnerName = PLAYER_NAME;
   roundWinKind = kind;
   roundWinCardId = winCard;
-  $("game-status").textContent = `${kind} on card #${winCard} · +${fmt(win)} ETB`;
-  showRoundResult("win", PLAYER_NAME, kind, winCard);
+  const gameStatusEl = $("game-status");
+  if (gameStatusEl) {
+    gameStatusEl.textContent = `${kind} on card #${winCard} · +${fmt(win)} ETB`;
+  }
   renderMineCards();
-  toast(`WON! +${fmt(win)} ETB`, "win");
-  showWinnerOverlay("win", PLAYER_NAME, win, winCard, kind);
-  playBingoVoice();
 
   if (activeRoomId && winCard && typeof LuckyBingoAPI !== "undefined") {
     LuckyBingoAPI.claimBingo(activeRoomId, winCard).then((res) => {
       syncProfileWithServer();
     }).catch(() => {});
   }
+
+  // Delay winner overlay by 1.2s so the winning ball voice & animation finish first!
+  if (winnerPendingTimeout) clearTimeout(winnerPendingTimeout);
+  winnerPendingTimeout = setTimeout(() => {
+    winnerPendingTimeout = null;
+    if (!winnerTimer) {
+      showRoundResult("win", PLAYER_NAME, kind, winCard);
+      toast(`WON! +${fmt(win)} ETB`, "win");
+      showWinnerOverlay("win", PLAYER_NAME, win, winCard, kind);
+    }
+  }, 1200);
 }
 
 function botWins() {
@@ -4394,12 +4419,23 @@ function botWins() {
   roundWinCardId = botCardId;
   const bingoBtn = $("bingo-btn");
   if (bingoBtn) bingoBtn.disabled = true;
-  $("game-status").textContent = `${winnerName} claimed Bingo!`;
-  showRoundResult("lose", winnerName, "LINE", botCardId);
+  const gameStatusEl = $("game-status");
+  if (gameStatusEl) {
+    gameStatusEl.textContent = `${winnerName} claimed Bingo!`;
+  }
   markLoserCards();
   renderMineCards();
-  toast(`${winnerName} CLAIMED BINGO!`, "lose");
-  showWinnerOverlay("lose", winnerName, botPrize, botCardId, "LINE");
+
+  // Delay winner overlay by 1.2s so the winning ball voice & animation finish first!
+  if (winnerPendingTimeout) clearTimeout(winnerPendingTimeout);
+  winnerPendingTimeout = setTimeout(() => {
+    winnerPendingTimeout = null;
+    if (!winnerTimer) {
+      showRoundResult("lose", winnerName, "LINE", botCardId);
+      toast(`${winnerName} CLAIMED BINGO!`, "lose");
+      showWinnerOverlay("lose", winnerName, botPrize, botCardId, "LINE");
+    }
+  }, 1200);
 }
 
 function leaveGame() {
