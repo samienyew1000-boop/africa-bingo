@@ -134,6 +134,8 @@ function loadGameState() {
         ...DEFAULT_STATE.settings,
         ...(fileData?.settings || {}),
         countdown: 30,
+        startingBonus: 0,
+        startingBonusEnabled: false,
         depositTelebirrPhone: "0975094812",
         depositTelebirrName: "ቃልኪዳን እንየው",
         depositCbeBirrPhone: "1000817750552",
@@ -490,7 +492,7 @@ class LiveBingoRoom {
     }
 
     if (!gameState.users[user.id]) {
-      const bonus = Number(gameState.settings?.startingBonus != null ? gameState.settings.startingBonus : 10);
+      const bonus = Number(gameState.settings?.startingBonus != null && gameState.settings?.startingBonusEnabled ? gameState.settings.startingBonus : 0);
       gameState.users[user.id] = {
         id: user.id,
         username: user.username,
@@ -870,7 +872,7 @@ const server = http.createServer(async (req, res) => {
 
       // Generate unique user id
       const userId = String(Math.floor(9000000000 + Math.random() * 999999999));
-      const bonus = Number(gameState.settings?.startingBonus != null ? gameState.settings.startingBonus : 10);
+      const bonus = Number(gameState.settings?.startingBonus != null && gameState.settings?.startingBonusEnabled ? gameState.settings.startingBonus : 0);
       const dispName = fullName || `Player ${phone.slice(-4)}`;
       const newUser = {
         id: userId,
@@ -882,7 +884,7 @@ const server = http.createServer(async (req, res) => {
         avatar: avatar || "AB",
         balance: bonus,
         bonus_balance: bonus,
-        bonus_claimed: 1,
+        bonus_claimed: bonus > 0 ? 1 : 0,
         role: "player",
         is_verified: 1,
         created_at: new Date().toISOString(),
@@ -1634,7 +1636,7 @@ async function startTelegramBot() {
                   username: rawUname || uname,
                   first_name: firstName,
                   phone: phone,
-                  balance: 10,
+                  balance: 0,
                   created_at: new Date().toISOString(),
                   source: "telegram",
                   is_verified: 1,
@@ -1644,10 +1646,10 @@ async function startTelegramBot() {
                 gameState.users[chatId].is_verified = 1;
               }
               saveGameState();
-              const uBal = Number(gameState.users[chatId]?.balance != null ? gameState.users[chatId].balance : 10);
+              const uBal = Number(gameState.users[chatId]?.balance != null ? gameState.users[chatId].balance : 0);
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `✅ *በተሳካ ሁኔታ ተመዝግበዋል*\nቦነስ: ${uBal}\nየሪፈራል ቦነስ: 10\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
+                text: `✅ *በተሳካ ሁኔታ ተመዝግበዋል*\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
@@ -1661,7 +1663,7 @@ async function startTelegramBot() {
                   id: String(chatId),
                   username: rawUname || uname,
                   first_name: firstName,
-                  balance: 10,
+                  balance: 0,
                   created_at: new Date().toISOString(),
                   source: "telegram",
                   is_verified: 1,
@@ -1669,19 +1671,19 @@ async function startTelegramBot() {
                 gameState.users[chatId] = userRecord;
                 saveGameState();
               }
-              const uBal = Number(userRecord.balance != null ? userRecord.balance : 10);
+              const uBal = Number(userRecord.balance != null ? userRecord.balance : 0);
 
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `👋 ሰላም *${firstName}* (@${rawUname || uname || "Admin"})! ወደ *Waliya Bingo* እንኳን በደህና መጡ! 🎲\n\n🛡️ *የአስተዳዳሪ (Admin) መለያዎ ነቅቷል!*\n\n✅ *በተሳካ ሁኔታ ተመዝግበዋል*\nቦነስ: ${uBal}\nየሪፈራል ቦነስ: 10\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
+                  text: `👋 ሰላም *${firstName}* (@${rawUname || uname || "Admin"})! ወደ *Waliya Bingo* እንኳን በደህና መጡ! 🎲\n\n🛡️ *የአስተዳዳሪ (Admin) መለያዎ ነቅቷል!*\n\n✅ *በተሳካ ሁኔታ ተመዝግበዋል*\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
                   parse_mode: "Markdown",
                   reply_markup: MAIN_REPLY_KEYBOARD,
                 });
               } else {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `✅ *በተሳካ ሁኔታ ተመዝግበዋል*\nቦነስ: ${uBal}\nየሪፈራል ቦነስ: 10\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
+                  text: `✅ *በተሳካ ሁኔታ ተመዝግበዋል*\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
                   parse_mode: "Markdown",
                   reply_markup: MAIN_REPLY_KEYBOARD,
                 });
@@ -1707,10 +1709,10 @@ async function startTelegramBot() {
               });
             } else if (text.includes("Balance") || text.includes("ሂሳብ") || text === "/balance") {
               const curUser = gameState.users[chatId] || {};
-              const curBal = Number(curUser.balance != null ? curUser.balance : 10);
+              const curBal = Number(curUser.balance != null ? curUser.balance : 0);
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `💳 *የሂሳብዎ ቀሪ (Your Balance)*\n\n👤 *ተጠቃሚ:* ${firstName}\n💰 *የዋና ሂሳብ ቀሪ:* \`${curBal}\` ETB\n🎁 *የሪፈራል ቦነስ:* \`10\` ETB\n\n🎲 ለመጫወት ከታች **🎮 Play Game** የሚለውን ይጫኑ!`,
+                text: `💳 *የሂሳብዎ ቀሪ (Your Balance)*\n\n👤 *ተጠቃሚ:* ${firstName}\n💰 *የዋና ሂሳብ ቀሪ:* \`${curBal}\` ETB\n\n🎲 ለመጫወት ከታች **🎮 Play Game** የሚለውን ይጫኑ!`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
@@ -1731,7 +1733,7 @@ async function startTelegramBot() {
             } else if (text.includes("Invite Friends") || text.includes("መጋበዝ") || text === "/invite") {
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `🎁 *ጓደኞችዎን ይጋብዙ እና ቦነስ ያግኙ (Invite Friends)*\n\nየእርስዎን መጋበዣ ሊንክ ለጓደኞችዎ ያጋሩ:\n👉 \`https://t.me/waliyabingo1_bot?start=ref_${chatId}\`\n\nጓደኛዎ በእርስዎ ሊንክ ተመዝግቦ ሲጫወት የ 10 ETB ተጨማሪ ቦነስ ያገኛሉ!`,
+                text: `🎁 *ጓደኞችዎን ይጋብዙ (Invite Friends)*\n\nየእርስዎን መጋበዣ ሊንክ ለጓደኞችዎ ያጋሩ:\n👉 \`https://t.me/waliyabingo1_bot?start=ref_${chatId}\`\n\nጓደኛዎ በእርስዎ ሊንክ ተመዝግቦ አብሮዎት መጫወት ይችላል!`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });

@@ -30,7 +30,7 @@ const ROOM_LIFECYCLE_KEY = "waliya-bingo-room-lifecycle-v1";
 const LAST_WINNING_CARDS_KEY = "waliya-bingo-last-winning-cards-v1";
 const CARD_DATA_URL = "card%20number.json";
 const START_BALANCE = 0;
-const DEFAULT_STARTING_BONUS = 10;
+const DEFAULT_STARTING_BONUS = 0;
 const CARD_COUNT = 1000;
 const MAX_PICK = 50;
 const CALL_MS = 3200;
@@ -598,11 +598,11 @@ function getStartingBonusSettings() {
     const saved = JSON.parse(localStorage.getItem(ADMIN_SETTINGS_KEY) || "null") || {};
     const amount = Number(saved.startingBonus);
     return {
-      enabled: saved.startingBonusEnabled !== false,
-      amount: Number.isFinite(amount) ? Math.max(0, amount) : DEFAULT_STARTING_BONUS,
+      enabled: saved.startingBonusEnabled === true,
+      amount: saved.startingBonusEnabled === true && Number.isFinite(amount) ? Math.max(0, amount) : 0,
     };
   } catch (error) {
-    return { enabled: true, amount: DEFAULT_STARTING_BONUS };
+    return { enabled: false, amount: 0 };
   }
 }
 
