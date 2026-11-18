@@ -2581,10 +2581,29 @@ function updateGameSummary() {
   const playersEl = $("game-players");
   const stakeEl = $("game-stake");
   const roundEl = $("game-round");
-  if (derashEl) derashEl.textContent = `${fmt(derash)} ETB`;
+  const gameIdLabelEl = $("game-id-label");
+
+  let gameNumber = 1;
+  if (roomStake === 20) gameNumber = 2;
+  else if (roomStake === 50) gameNumber = 3;
+  else if (roomStake === 100) gameNumber = 4;
+  else if (activeRoomId && String(activeRoomId).includes("-2")) gameNumber = 2;
+
+  if (gameIdLabelEl) {
+    gameIdLabelEl.textContent = `Game ${gameNumber} ID`;
+  }
+
+  if (derashEl) derashEl.textContent = String(Math.round(derash));
   if (playersEl) playersEl.textContent = fmt(players);
-  if (stakeEl) stakeEl.textContent = `${fmt(roomStake)} ETB`;
-  if (roundEl) roundEl.textContent = String(roundId).replace(/^#/, "");
+  if (stakeEl) stakeEl.textContent = String(Math.round(roomStake));
+  if (roundEl) {
+    const rawId = String(roundId).replace(/^#/, "");
+    if (rawId.includes("_")) {
+      roundEl.textContent = rawId;
+    } else {
+      roundEl.textContent = `${gameNumber}_${rawId}`;
+    }
+  }
 }
 
 function updateRecentCalls() {

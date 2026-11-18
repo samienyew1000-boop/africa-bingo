@@ -12,9 +12,9 @@
     <meta name="apple-mobile-web-app-title" content="Waliya Bingo" />
     <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=20261118_03" />
+    <link rel="stylesheet" href="style.css?v=20261118_04" />
     <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
-    <script src="players-data.js?v=20261118_03"></script>
+    <script src="players-data.js?v=20261118_04"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
@@ -472,30 +472,33 @@
           </section>
 <!-- LIVE GAME -->
 <section class="lb-view lb-game-view" id="view-game">
-  <!-- 2. Game Info / Round Summary Capsule -->
+  <!-- 2. Game Info / Round Summary Capsule (Matches Afro Bingo) -->
   <div class="lb-game-info-capsule" aria-label="Round information">
-    <div class="lb-info-pill-item lb-info-round">
-      <span class="lb-info-pill-label">ID:</span>
-      <strong class="lb-info-pill-val" id="game-round">720</strong>
+    <div class="wb-game-meta-card wb-meta-round">
+      <span class="wb-meta-lbl" id="game-id-label">Game 1 ID</span>
+      <strong class="wb-meta-val" id="game-round">1_113</strong>
     </div>
-    <div class="lb-info-pill-item lb-info-derash">
-      <span class="lb-info-pill-icon" aria-hidden="true">🏆</span>
-      <strong class="lb-info-pill-val" id="game-derash">128 ETB</strong>
+    <div class="wb-game-meta-card wb-meta-derash">
+      <span class="wb-meta-lbl">Derash</span>
+      <strong class="wb-meta-val" id="game-derash">50</strong>
     </div>
-    <div class="lb-info-pill-item lb-info-players">
-      <span class="lb-info-pill-icon" aria-hidden="true">👥</span>
-      <strong class="lb-info-pill-val" id="game-players">16</strong>
+    <div class="wb-game-meta-card wb-meta-players">
+      <span class="wb-meta-lbl">Players</span>
+      <strong class="wb-meta-val" id="game-players">2</strong>
     </div>
-    <div class="lb-info-pill-item lb-info-calls">
-      <span class="lb-info-pill-icon" aria-hidden="true">⏱</span>
-      <strong class="lb-info-pill-val"><span id="call-count">8</span>/75</strong>
+    <div class="wb-game-meta-card wb-meta-stake">
+      <span class="wb-meta-lbl">Stake</span>
+      <strong class="wb-meta-val" id="game-stake">10</strong>
     </div>
-    <div class="lb-live-pill" id="game-live-status" role="status" aria-live="polite">
-      <i aria-hidden="true"></i>
+    <div class="wb-game-meta-card wb-meta-called">
+      <span class="wb-meta-lbl">Called</span>
+      <strong class="wb-meta-val" id="call-count">0</strong>
+    </div>
+
+    <!-- Hidden compatibility elements -->
+    <div id="game-live-status" style="display:none;" aria-hidden="true">
       <span id="game-live-label">LIVE</span>
     </div>
-    <!-- Hidden compatibility fields -->
-    <span id="game-stake" hidden style="display:none;">10 ETB</span>
   </div>
 
   <!-- Hidden compatibility select/toggle -->
@@ -1239,9 +1242,9 @@
         <div class="lb-toast" id="toast" hidden></div>
       </div>
     </div>
-    <script src="card-data.js?v=20261118_03"></script>
-    <script src="app-config.js?v=20261118_03"></script>
-    <script src="api-client.js?v=20261118_03"></script>
-    <script src="game.js?v=20261118_03"></script>
+    <script src="card-data.js?v=20261118_04"></script>
+    <script src="app-config.js?v=20261118_04"></script>
+    <script src="api-client.js?v=20261118_04"></script>
+    <script src="game.js?v=20261118_04"></script>
   </body>
 </html>

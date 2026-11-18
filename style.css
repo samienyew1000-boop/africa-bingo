@@ -4298,85 +4298,62 @@ body.is-game-active #view-game {
   margin: 8px 0 2px 0 !important;
 }
 
-/* 2. GAME INFO CAPSULE BAR (IMAGE 2) */
+/* 2. GAME INFO META BAR (EXACT AFRO BINGO MATCH) */
 .lb-game-info-capsule {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  background: #0e121c !important;
-  border: 1px solid #1a2233 !important;
-  border-radius: 10px !important;
-  padding: 2px 8px !important;
-  margin-top: 1px !important;
-  margin-bottom: 2px !important;
-  height: 27px !important;
-  min-height: 27px !important;
-  flex: 0 0 auto !important;
-  box-sizing: border-box !important;
-}
-
-.lb-info-pill-item {
-  display: flex !important;
-  align-items: center !important;
+  display: grid !important;
+  grid-template-columns: 1.25fr 1fr 1fr 1fr 1fr !important;
   gap: 4px !important;
-  font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 12.5px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.75) !important;
+  border-radius: 12px !important;
+  padding: 3px 4px !important;
+  margin-top: 1px !important;
+  margin-bottom: 3px !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 42px !important;
 }
 
-.lb-info-pill-label {
-  color: #64748b !important;
-  font-weight: 600 !important;
-  font-size: 11.5px !important;
-}
-
-.lb-info-pill-val {
-  color: #ffffff !important;
-  font-weight: 800 !important;
-  font-size: 13px !important;
-  font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif !important;
-}
-
-.lb-info-derash .lb-info-pill-icon {
-  font-size: 14px !important;
-  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5)) !important;
-}
-
-.lb-info-players .lb-info-pill-val {
-  color: #10b981 !important;
-}
-
-.lb-info-calls .lb-info-pill-val {
-  color: #94a3b8 !important;
-}
-
-.lb-info-calls .lb-info-pill-val span {
-  color: #ef4444 !important;
-  font-weight: 900 !important;
-}
-
-.lb-game-info-capsule .lb-live-pill {
-  display: inline-flex !important;
+.wb-game-meta-card {
+  background: #ffffff !important;
+  border-radius: 8px !important;
+  padding: 3px 2px !important;
+  display: flex !important;
+  flex-direction: column !important;
   align-items: center !important;
-  gap: 5px !important;
-  height: 22px !important;
-  padding: 0 9px !important;
-  border-radius: 999px !important;
-  background: rgba(239, 68, 68, 0.12) !important;
-  border: 1px solid rgba(239, 68, 68, 0.45) !important;
-  color: #ef4444 !important;
-  font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 10.5px !important;
-  font-weight: 900 !important;
-  letter-spacing: 0.5px !important;
+  justify-content: center !important;
+  text-align: center !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
 
-.lb-game-info-capsule .lb-live-pill i {
-  width: 6px !important;
-  height: 6px !important;
-  border-radius: 50% !important;
-  background: #ef4444 !important;
-  box-shadow: 0 0 6px #ef4444 !important;
+.wb-meta-lbl {
+  color: #3b0c47 !important;
+  font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: clamp(9px, 2.7vw, 11px) !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+  margin-bottom: 1px !important;
+}
+
+.wb-meta-val {
+  color: #3b0c47 !important;
+  font-family: Arial, -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: clamp(11.5px, 3.3vw, 13.5px) !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
 }
 
 
