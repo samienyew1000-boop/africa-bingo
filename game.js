@@ -3580,140 +3580,142 @@ function renderWinnerConfetti() {
   container.appendChild(fragment);
 }
 
-function renderWinnerCard(cardId, hit = null, kind = "LINE") {
-  const grid = $("winner-card-grid");
-  if (!grid) return;
-  grid.replaceChildren();
-
+function renderSingleWinnerCard(cardId, hits, kind = "LINE") {
   const rawCard = ensureCard(cardId);
   const cardObj = rawCard ? { id: rawCard.id, cells: [...rawCard.cells] } : {
     id: cardId,
-    cells: [5, 16, 35, 58, 71, 9, 30, 41, 52, 66, 12, 21, "FREE", 59, 72, 11, 23, 33, 49, 73, 7, 25, 31, 53, 70]
+    cells: [7, 19, 33, 49, 71, 9, 17, 31, 58, 61, 5, 29, "FREE", 54, 62, 6, 20, 36, 52, 64, 2, 18, 43, 55, 75]
   };
 
   const winIndexes = new Set();
-  const hits = new Set(called);
-  if (hit instanceof Set) {
-    hit.forEach((val) => hits.add(val));
-  }
-
   try {
     const calculatedWins = winningCellIndexes(cardObj, hits, kind);
     if (calculatedWins && calculatedWins.length > 0) {
       calculatedWins.forEach((idx) => winIndexes.add(idx));
     } else {
-      [0, 6, 12, 18, 24].forEach((idx) => winIndexes.add(idx));
+      [2, 7, 12, 17, 22].forEach((idx) => winIndexes.add(idx)); // Default Column N
     }
   } catch (e) {
-    [0, 6, 12, 18, 24].forEach((idx) => winIndexes.add(idx));
+    [2, 7, 12, 17, 22].forEach((idx) => winIndexes.add(idx));
   }
 
-  // Find index of the ball on this winning card that completed the bingo (or was called latest)
-  let lastCallIndex = -1;
-  let maxCallOrder = -1;
-  winIndexes.forEach((idx) => {
-    if (idx === 12) return;
-    const val = Number(cardObj.cells[idx]);
-    const order = called.lastIndexOf(val);
-    if (order > maxCallOrder) {
-      maxCallOrder = order;
-      lastCallIndex = idx;
-    }
-  });
+  const cardBox = document.createElement("div");
+  cardBox.className = "wb-winner-card-box";
 
-  // Fallback: if no winning line cells found in called history, pick last winning line cell
-  if (lastCallIndex === -1) {
-    const winArr = [...winIndexes].filter((i) => i !== 12);
-    if (winArr.length > 0) {
-      lastCallIndex = winArr[winArr.length - 1];
-    }
-  }
+  cardBox.innerHTML = `
+    <div class="wb-winner-card-letters" aria-hidden="true">
+      <span class="wb-hdr-b">B</span>
+      <span class="wb-hdr-i">I</span>
+      <span class="wb-hdr-n">N</span>
+      <span class="wb-hdr-g">G</span>
+      <span class="wb-hdr-o">O</span>
+    </div>
+    <div class="wb-winner-card-grid"></div>
+    <div class="wb-winner-board-num">Board Number ${cardId}</div>
+  `;
+
+  const grid = cardBox.querySelector(".wb-winner-card-grid");
 
   cardObj.cells.forEach((val, index) => {
     const cell = document.createElement("div");
-    cell.className = "lb-winner-cell";
+    cell.className = "wb-winner-cell";
     const isFree = index === 12 || val === "FREE" || val === 0;
     const isWin = winIndexes.has(index);
     const isHit = isWin || isFree || hits.has(val) || hits.has(Number(val));
-    const isLastCalled = (index === lastCallIndex);
 
-    if (isWin) cell.classList.add("is-win");
-    else if (isHit) cell.classList.add("is-hit");
-
-    // The winning number blinks!
-    if (isLastCalled && !isFree) {
-      cell.classList.add("is-last-call-blink");
+    if (isWin) {
+      cell.classList.add("is-win-line");
+    } else if (isHit) {
+      cell.classList.add("is-called-hit");
     }
 
     if (isFree) {
       cell.classList.add("is-free");
-      cell.innerHTML = '<span class="lb-winner-star">★</span>';
+      cell.textContent = "*";
     } else {
       cell.textContent = String(val);
     }
     grid.appendChild(cell);
   });
+
+  return cardBox;
 }
 
 function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kind = "LINE") {
   const overlay = $("winner-overlay");
-  const name = $("winner-overlay-name");
-  const cardElem = $("winner-overlay-card");
-  const cardTitle = $("winner-card-title");
-  const prizeElem = $("winner-prize-value");
-  const message = $("winner-overlay-message");
+  const nameEl = $("winner-overlay-name");
+  const container = $("winner-cards-container");
   const seconds = $("winner-overlay-seconds");
+  const closeBtn = $("winner-overlay-close-btn");
   if (!overlay) return;
 
   clearInterval(winnerTimer);
-  const isPlayerWinner = outcome === "win";
-  const finalName = winnerName || (isPlayerWinner ? PLAYER_NAME : "RAS");
-  const finalCardId = cardId || 440;
-  const finalPrize = Number(prize || 3800).toFixed(2);
+  winnerTimer = null;
 
-  if (name) name.textContent = finalName;
-  if (cardElem) cardElem.textContent = `#${finalCardId}`;
-  if (cardTitle) cardTitle.textContent = `CARD #${finalCardId}`;
-  if (prizeElem) prizeElem.textContent = finalPrize;
-  if (message) message.textContent = isPlayerWinner ? "You won this round!" : `${finalName} won this round.`;
+  const isMe = outcome === "win";
+  const finalName = winnerName || (isMe ? PLAYER_NAME : "Opponent");
+  if (nameEl) nameEl.textContent = finalName;
 
   playBingoVoice();
   renderWinnerConfetti();
-  renderWinnerCard(finalCardId, new Set(called), kind);
 
-  let remaining = 12; // 12 seconds winner celebration
-  const hint = $("winner-overlay-hint");
-  const updateCountdownDisplay = () => {
-    if (seconds) seconds.textContent = String(Math.max(0, remaining));
-    if (hint) {
-      if (remaining > 3) {
-        hint.innerHTML = `<span>Returning to selection in <b id="winner-overlay-seconds">${Math.max(0, remaining)}</b>s</span>`;
-      } else {
-        hint.innerHTML = `<span>Returning to selection in <b id="winner-overlay-seconds">${Math.max(0, remaining)}</b>s · Tap to return</span>`;
-      }
+  // Extract winning card IDs (support single card or 2 cards)
+  let cardIds = [];
+  if (Array.isArray(cardId)) {
+    cardIds = cardId;
+  } else if (typeof cardId === "string" && cardId.includes(",")) {
+    cardIds = cardId.split(",").map((s) => s.trim()).filter(Boolean);
+  } else if (cardId !== null && cardId !== undefined) {
+    cardIds = [cardId];
+  } else if (roundWinCardId) {
+    cardIds = [roundWinCardId];
+  } else {
+    cardIds = [169];
+  }
+
+  // Support 1 or 2 cartelas
+  cardIds = cardIds.slice(0, 2);
+
+  if (container) {
+    container.replaceChildren();
+    const hitSet = new Set(called);
+    cardIds.forEach((id) => {
+      const cardEl = renderSingleWinnerCard(id, hitSet, kind);
+      container.appendChild(cardEl);
+    });
+  }
+
+  let remaining = 7; // Exactly 7 seconds countdown matching image!
+  if (seconds) seconds.textContent = String(remaining);
+
+  const cleanup = () => {
+    clearInterval(winnerTimer);
+    winnerTimer = null;
+    hideWinnerOverlay();
+    returnToCardSelection();
+  };
+
+  if (closeBtn) {
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      cleanup();
+    };
+  }
+
+  overlay.onclick = (e) => {
+    if (e.target === overlay) {
+      cleanup();
     }
   };
 
-  updateCountdownDisplay();
   overlay.removeAttribute("hidden");
   overlay.hidden = false;
 
-  overlay.onclick = () => {
-    // Allow manual dismissal only when countdown is near finish (<= 3s)
-    if (remaining <= 3) {
-      clearInterval(winnerTimer);
-      winnerTimer = null;
-      returnToCardSelection();
-    }
-  };
-
   winnerTimer = setInterval(() => {
     remaining -= 1;
-    updateCountdownDisplay();
+    if (seconds) seconds.textContent = String(Math.max(0, remaining));
     if (remaining <= 0) {
-      clearInterval(winnerTimer);
-      winnerTimer = null;
-      returnToCardSelection();
+      cleanup();
     }
   }, 1000);
 }

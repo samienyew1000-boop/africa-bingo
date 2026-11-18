@@ -12,9 +12,9 @@
     <meta name="apple-mobile-web-app-title" content="Waliya Bingo" />
     <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=20261118_02" />
+    <link rel="stylesheet" href="style.css?v=20261118_03" />
     <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
-    <script src="players-data.js?v=20261118_02"></script>
+    <script src="players-data.js?v=20261118_03"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
@@ -702,61 +702,22 @@
         >
           <div class="lb-winner-confetti" id="winner-confetti" aria-hidden="true"></div>
           <div class="lb-winner-dialog">
-            <div class="lb-winner-trophy" aria-hidden="true">
-              <svg viewBox="0 0 100 95" width="86" height="82" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Handles -->
-                <path d="M26 23 C12 23 10 39 18 51 C24 59 33 59 35 55" stroke="#f59e0b" stroke-width="5.5" stroke-linecap="round" fill="none"/>
-                <path d="M26 23 C14 23 12 38 19 49 C24 56 32 56 34 53" stroke="#fde047" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-                <path d="M74 23 C88 23 90 39 82 51 C76 59 67 59 65 55" stroke="#f59e0b" stroke-width="5.5" stroke-linecap="round" fill="none"/>
-                <path d="M74 23 C86 23 88 38 81 49 C76 56 68 56 66 53" stroke="#fde047" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-                <!-- Cup body -->
-                <path d="M25 15 H75 C75 15 73 53 50 57 C27 53 25 15 25 15 Z" fill="url(#lb-trophy-gold)"/>
-                <!-- Inner highlight sheen -->
-                <path d="M28 19 C28 19 30 49 48 54 C33 49 32 23 32 19 Z" fill="#ffffff" opacity="0.45"/>
-                <!-- Rim -->
-                <rect x="22" y="12" width="56" height="7" rx="3.5" fill="#fde047"/>
-                <!-- Stem -->
-                <rect x="46" y="56" width="8" height="15" fill="#d97706"/>
-                <!-- Stem collar -->
-                <ellipse cx="50" cy="71" rx="14" ry="4" fill="#fbbf24"/>
-                <!-- Pedestal -->
-                <path d="M34 72 H66 L69 88 H31 Z" fill="#78350f"/>
-                <rect x="28" y="86" width="44" height="6" rx="2" fill="#451a03"/>
-                <defs>
-                  <linearGradient id="lb-trophy-gold" x1="25" y1="15" x2="75" y2="57" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stop-color="#fef08a"/>
-                    <stop offset="25%" stop-color="#fde047"/>
-                    <stop offset="60%" stop-color="#f59e0b"/>
-                    <stop offset="100%" stop-color="#d97706"/>
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-            <h2 class="lb-winner-title" id="winner-overlay-title">BINGO WINNER!</h2>
-            <div class="lb-winner-prize-wrap">
-              <div class="lb-winner-prize-label">TOTAL PRIZE</div>
-              <div class="lb-winner-prize-amount">
-                <span id="winner-prize-value">3800.00</span>
-                <span class="lb-winner-prize-currency">ETB</span>
+            <!-- 1. Top Orange Banner -->
+            <div class="wb-winner-header-banner">
+              <div class="wb-winner-title" id="winner-overlay-title">BINGO!</div>
+              <div class="wb-winner-subtitle-row">
+                <span class="wb-winner-badge" id="winner-overlay-name">40498</span>
+                <span class="wb-winner-has-won">has won the game.</span>
               </div>
             </div>
-            <div class="lb-winner-pill" id="winner-overlay-pill">
-              <span class="lb-winner-pill-label">Name:</span>
-              <span class="lb-winner-pill-value" id="winner-overlay-name">RAS</span>
-              <span class="lb-winner-pill-divider">|</span>
-              <span class="lb-winner-pill-label">Card:</span>
-              <span class="lb-winner-pill-value" id="winner-overlay-card">#440</span>
-            </div>
-            <div class="lb-winner-card" id="winner-card-container">
-              <div class="lb-winner-card-title" id="winner-card-title">CARD #440</div>
-              <div class="lb-winner-card-letters" aria-hidden="true">
-                <span>B</span><span>I</span><span>N</span><span>G</span><span>O</span>
-              </div>
-              <div class="lb-winner-card-grid" id="winner-card-grid"></div>
-            </div>
-            <div class="lb-winner-timer-hint" id="winner-overlay-hint">
-              <span>Returning to selection in <b id="winner-overlay-seconds">12</b>s · Tap to return</span>
-            </div>
+
+            <!-- 2. Winning Cartelas Container (lists 1 or 2 cartelas vertically) -->
+            <div class="wb-winner-cards-container" id="winner-cards-container"></div>
+
+            <!-- 3. Bottom Orange Countdown Button -->
+            <button type="button" class="wb-winner-bottom-btn" id="winner-overlay-close-btn" aria-label="Close and return">
+              <span id="winner-overlay-seconds">7</span>
+            </button>
             <p class="lb-winner-message" id="winner-overlay-message" hidden></p>
           </div>
         </div>
@@ -1278,9 +1239,9 @@
         <div class="lb-toast" id="toast" hidden></div>
       </div>
     </div>
-    <script src="card-data.js?v=20261118_02"></script>
-    <script src="app-config.js?v=20261118_02"></script>
-    <script src="api-client.js?v=20261118_02"></script>
-    <script src="game.js?v=20261118_02"></script>
+    <script src="card-data.js?v=20261118_03"></script>
+    <script src="app-config.js?v=20261118_03"></script>
+    <script src="api-client.js?v=20261118_03"></script>
+    <script src="game.js?v=20261118_03"></script>
   </body>
 </html>
