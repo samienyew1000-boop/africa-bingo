@@ -699,9 +699,9 @@ class LiveBingoRoom {
 }
 
 const activeRooms = {
+  "20": new LiveBingoRoom("20", 20),
   "10": new LiveBingoRoom("10", 10),
   "10-2": new LiveBingoRoom("10-2", 10),
-  "20": new LiveBingoRoom("20", 20),
   "50": new LiveBingoRoom("50", 50),
 };
 

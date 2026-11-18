@@ -51,9 +51,9 @@ const PAYMENT_METHODS = Object.freeze({
 });
 
 const ROOMS = [
+  { id: "20", stake: 20, displayName: "20 No 1", color: "blue", players: 0, status: "waiting" },
   { id: "10", stake: 10, displayName: "10 No 1", color: "green", players: 0, status: "waiting" },
   { id: "10-2", stake: 10, displayName: "10 No 2", color: "orange", players: 0, status: "waiting" },
-  { id: "20", stake: 20, displayName: "20 No 1", color: "blue", players: 0, status: "waiting" },
   { id: "50", stake: 50, displayName: "50 No 1", color: "purple", players: 0, status: "waiting" },
 ];
 
