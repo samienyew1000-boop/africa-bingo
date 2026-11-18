@@ -32,9 +32,9 @@ const BACKUP_STATE_FILE = path.join(__dirname, "game-state.backup.json");
 const ROOT_BACKUP_FILE = "/var/backups/waliya-bingo-state.json";
 const BOT_TOKEN = process.env.BOT_TOKEN || "";
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://konjobetcom.et/waliya/").replace(/\/+$/, "") + "/";
-const rawAdminUsernames = process.env.ADMIN_USERNAMES || "0918182355,9029759446,berihun,admin,0999909474,su121316,samtesfa19,samienyew1000,Africabingooo,waliyabingooo,waliyabingo,waliyabingo1_bot,Biregugsa,ber63781,Ber63781";
+const rawAdminUsernames = process.env.ADMIN_USERNAMES || "Tedy12w,hailehk1,admin";
 const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
-const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "6220264098,5663531258";
+const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "6183528137";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Ber343477";
 const ADMIN_IDS = rawAdminIds.split(",").map((id) => id.trim()).filter(Boolean);
 
@@ -1497,13 +1497,9 @@ function telegramApi(method, data) {
 async function notifyTelegramAdmin(text) {
   const targetIds = new Set();
 
-  // Guaranteed admin Telegram IDs: Berihun (6220264098) & Sam (5663531258)
-  targetIds.add("6220264098");
-  targetIds.add("5663531258");
-
   for (const id of ADMIN_IDS) {
     const s = String(id).trim();
-    if (s && /^\d+$/.test(s) && !s.startsWith("09") && s.length >= 8 && s !== "9029759446") {
+    if (s && /^\d+$/.test(s) && !s.startsWith("09") && !s.startsWith("8888") && s.length >= 8 && s !== "9029759446") {
       targetIds.add(s);
     }
   }
@@ -1511,7 +1507,7 @@ async function notifyTelegramAdmin(text) {
   if (Array.isArray(gameState.settings?.adminChatIds)) {
     for (const cid of gameState.settings.adminChatIds) {
       const s = String(cid).trim();
-      if (s && /^\d+$/.test(s) && !s.startsWith("09") && s.length >= 8 && s !== "9029759446") {
+      if (s && /^\d+$/.test(s) && !s.startsWith("09") && !s.startsWith("8888") && s.length >= 8 && s !== "9029759446") {
         targetIds.add(s);
       }
     }
@@ -1521,7 +1517,7 @@ async function notifyTelegramAdmin(text) {
     const uName = u.username ? String(u.username).toLowerCase().replace(/^@/, "") : "";
     const isUnameAdmin = uName && ADMIN_USERNAMES.includes(uName);
     const uId = String(u.id || "").trim();
-    if ((u.role === "admin" || isUnameAdmin) && /^\d+$/.test(uId) && !uId.startsWith("09") && uId.length >= 8 && uId !== "9029759446") {
+    if ((u.role === "admin" || isUnameAdmin) && /^\d+$/.test(uId) && !uId.startsWith("09") && !uId.startsWith("8888") && uId.length >= 8 && uId !== "9029759446") {
       targetIds.add(uId);
     }
   }
