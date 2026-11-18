@@ -4031,10 +4031,13 @@ function renderMineCards() {
           cell.textContent = String(value);
           if (hasHit) {
             cell.classList.add("is-hit");
+            if (value === lastCalledNumber) {
+              cell.classList.add("is-latest-hit");
+            }
           }
           // Per user request:
           // When Auto is OFF: give NO mark or hint at all ("minm milket sayset").
-          // Player taps the number themselves, turning it into .is-hit (solid orange like 66).
+          // Player taps the number themselves, turning it into .is-hit (solid green like the image).
           // When Auto is ON: called numbers are in `hit` (activeHitSet) so they are automatically .is-hit upon arrival.
           cell.addEventListener("click", () => toggleManualMark(value));
         }
@@ -4166,6 +4169,7 @@ function handleSingleCall(n) {
     lastCalledNumber = null;
     document.querySelectorAll(".lb-dot.is-current-call").forEach((c) => c.classList.remove("is-current-call"));
     document.querySelectorAll(".lb-cell.is-hint-blink").forEach((c) => c.classList.remove("is-hint-blink"));
+    document.querySelectorAll(".lb-cell.is-latest-hit").forEach((c) => c.classList.remove("is-latest-hit"));
   }, 2200);
 
   if (autoMarkingEnabled) {

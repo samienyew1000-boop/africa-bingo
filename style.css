@@ -2382,9 +2382,15 @@ button {
 }
 
 .lb-cell.is-hit {
-  background: linear-gradient(150deg, #9298ff, #4c49e8 65%, #282689);
-  color: #fff;
-  box-shadow: 0 0 15px rgba(90, 89, 242, 0.7);
+  background: #028b00 !important;
+  color: #fff !important;
+  box-shadow: 0 1px 4px rgba(2, 139, 0, 0.45) !important;
+}
+
+.lb-cell.is-hit.is-latest-hit {
+  background: #5f9f6b !important;
+  color: #fff !important;
+  box-shadow: 0 1px 4px rgba(95, 159, 107, 0.5) !important;
 }
 
 .lb-cell.is-callable {
@@ -2852,10 +2858,10 @@ button {
 
 @keyframes lb-cell-last-call-blink {
   0% {
-    background: #ff7a00 !important;
+    background: #028b00 !important;
     color: #ffffff !important;
     transform: scale(1);
-    box-shadow: 0 0 6px rgba(255, 122, 0, 0.8) !important;
+    box-shadow: 0 0 6px rgba(2, 139, 0, 0.8) !important;
     border: 2px solid #ffffff !important;
   }
   100% {
@@ -4778,10 +4784,17 @@ body.is-game-active #view-game {
 }
 
 .is-standard-layout .lb-cell.is-hit:not(.is-free) {
-  background: #ff7a00 !important;
+  background: #028b00 !important;
   color: #ffffff !important;
   font-weight: 900 !important;
-  box-shadow: 0 1px 4px rgba(255, 122, 0, 0.45) !important;
+  box-shadow: 0 1px 4px rgba(2, 139, 0, 0.45) !important;
+}
+
+.is-standard-layout .lb-cell.is-hit.is-latest-hit:not(.is-free) {
+  background: #5f9f6b !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 1px 4px rgba(95, 159, 107, 0.5) !important;
 }
 
 /* ========================================================== */
@@ -4920,19 +4933,27 @@ body.is-game-active #view-game {
 }
 
 .has-many-cards-layout .lb-cell.is-free {
-  background: #bae6fd !important;
-  border-color: #7dd3fc !important;
-  color: #f59e0b !important;
+  background: #028b00 !important;
+  border-color: #027500 !important;
+  color: #ffe600 !important;
   font-size: 11px !important;
   font-weight: 900 !important;
 }
 
 .has-many-cards-layout .lb-cell.is-hit:not(.is-free) {
-  background: #ff7a00 !important;
-  border-color: #ea580c !important;
+  background: #028b00 !important;
+  border-color: #027500 !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  box-shadow: 0 1px 3px rgba(255, 122, 0, 0.3) !important;
+  box-shadow: 0 1px 3px rgba(2, 139, 0, 0.3) !important;
+}
+
+.has-many-cards-layout .lb-cell.is-hit.is-latest-hit:not(.is-free) {
+  background: #5f9f6b !important;
+  border-color: #4d8a59 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 1px 3px rgba(95, 159, 107, 0.4) !important;
 }
 
 .has-many-cards-layout .lb-cell.is-hint-blink:not(.is-hit) {
@@ -5087,13 +5108,13 @@ body.is-game-active #view-game {
   }
 }
 
-/* When the user taps it (egna nen eminekaw), it turns solid orange (marked) */
+/* When the user taps it, it turns solid green (marked) */
 .lb-v-dot.is-hit {
-  background: #ff7a00 !important;
-  border: 1px solid #ea580c !important;
+  background: #028b00 !important;
+  border: 1px solid #027500 !important;
   color: #ffffff !important;
   font-weight: 900 !important;
-  box-shadow: 0 1px 3px rgba(255, 122, 0, 0.35) !important;
+  box-shadow: 0 1px 3px rgba(2, 139, 0, 0.35) !important;
   animation: none !important;
   transform: none !important;
 }
