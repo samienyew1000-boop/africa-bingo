@@ -67,7 +67,7 @@ const DEFAULT_STATE = {
     { id: "50", stake: 50, name: "50 No 1", players: 0, status: "waiting", roundId: "#WB-104", prizePool: 0, called: [] },
   ],
   settings: {
-    countdown: 60,
+    countdown: 30,
     commissionRate: 20,
     minDeposit: 50,
     depositBonus: 20,
@@ -133,7 +133,7 @@ function loadGameState() {
       settings: {
         ...DEFAULT_STATE.settings,
         ...(fileData?.settings || {}),
-        countdown: 60,
+        countdown: 30,
         depositTelebirrPhone: "0939030118",
         depositTelebirrName: "አደባባይ በእውቀት",
         depositCbeBirrPhone: "1000263032997",
@@ -568,7 +568,7 @@ class LiveBingoRoom {
 
   startCountdown() {
     this.status = "countdown";
-    const durationSec = Math.max(10, Number(gameState.settings?.countdown || 60));
+    const durationSec = Math.max(10, Number(gameState.settings?.countdown || 30));
     this.countdownEndsAt = Date.now() + durationSec * 1000;
 
     if (this.countdownTimer) clearTimeout(this.countdownTimer);

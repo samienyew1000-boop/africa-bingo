@@ -128,7 +128,7 @@ const DEFAULT_STATE = {
 const DEFAULT_SETTINGS = {
   commission: 20,
   threshold: 10,
-  countdown: 60,
+  countdown: 30,
   winningPattern: "1",
   startingBonus: 10,
   startingBonusEnabled: true,
@@ -658,7 +658,7 @@ function startNewRound(room = currentRoom()) {
   room.prizePool = (Number(room.players) || 0) * (Number(room.stake) || 0);
   addActivity(`Started ${room.roundId} in the ${room.stake} ETB room`, "game", "◉");
   if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminRoom) {
-    LuckyBingoAPI.updateAdminRoom(room.id, "force_countdown", { countdown_secs: 60 }).catch(() => {});
+    LuckyBingoAPI.updateAdminRoom(room.id, "force_countdown", { countdown_secs: 30 }).catch(() => {});
   }
   saveState();
   renderAll();
@@ -1241,7 +1241,7 @@ function bindSettings() {
       settings[key] = input.type === "checkbox" ? input.checked : input.value;
       if (input.type === "number") settings[key] = Number(input.value);
       if (key === "winningPattern") settings[key] = WINNING_PATTERN_OPTIONS.includes(settings[key]) ? settings[key] : DEFAULT_SETTINGS.winningPattern;
-      if (key === "countdown") settings[key] = Math.min(600, Math.max(10, Math.round(settings[key] || 60)));
+      if (key === "countdown") settings[key] = Math.min(600, Math.max(10, Math.round(settings[key] || 30)));
       if (key === "startingBonus") settings[key] = Math.min(100000, Math.max(0, Math.round(settings[key] || 0)));
       saveSettings();
       $("settings-saved").textContent = "Saved just now";

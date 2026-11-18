@@ -34,7 +34,7 @@ const DEFAULT_STARTING_BONUS = 10;
 const CARD_COUNT = 1000;
 const MAX_PICK = 50;
 const CALL_MS = 3200;
-const DEFAULT_PICK_SECS = 60;
+const DEFAULT_PICK_SECS = 30;
 const DEFAULT_WINNING_PATTERN = "1";
 const WINNING_PATTERNS = Object.freeze(["1"]);
 const ROOM_GAME_MS = CALL_MS * 75;
@@ -2501,7 +2501,7 @@ function renderPickRoomSummary() {
   if (players) players.textContent = room ? fmt(playerCount) : "—";
   if (availableEl) availableEl.textContent = cardNumbers.length ? fmt(available) : "—";
   const isCounting = pickTimer !== null && pickLeft !== null && pickLeft > 0;
-  if (time) time.textContent = isCounting ? `${Math.max(0, pickLeft)}` : (selected.size > 0 ? (pickLeft ? `${pickLeft}` : "60") : "60");
+  if (time) time.textContent = isCounting ? `${Math.max(0, pickLeft)}` : (selected.size > 0 ? (pickLeft ? `${pickLeft}` : "30") : "30");
   const reservedStake = selected.size * roomStake;
   const isOnline = Boolean(activeRoomId && typeof LuckyBingoAPI !== "undefined");
   const availableBal = isOnline ? balance : Math.max(0, balance - reservedStake);
@@ -3106,7 +3106,7 @@ function setupPickWaitingState() {
   const timer = $("pick-timer");
   const banner = $("pick-banner-secs");
   const helper = $("pick-helper");
-  if (time) time.textContent = selected.size > 0 ? (pickLeft ? `${pickLeft}` : "60") : "60";
+  if (time) time.textContent = selected.size > 0 ? (pickLeft ? `${pickLeft}` : "30") : "30";
   if (seconds) seconds.textContent = "Open";
   if (banner) banner.textContent = "Open";
   if (timer) timer.classList.remove("is-urgent");
@@ -3145,8 +3145,8 @@ function scheduleOpponentJoin() {
     paintPicks();
     updatePickInfo();
 
-    // Now opponents have joined: Start the 1-minute countdown!
-    startPickCountdown(Date.now() + 60 * 1000);
+    // Now opponents have joined: Start the 30-second countdown!
+    startPickCountdown(Date.now() + 30 * 1000);
   }, 3500);
 }
 
@@ -3280,12 +3280,12 @@ function onCardSelectionChanged() {
             paintPicks();
             updatePickInfo();
           }
-          startPickCountdown(Date.now() + 60 * 1000);
+          startPickCountdown(Date.now() + 30 * 1000);
         }
       } else {
         if (!pickTimer && !opponentJoinTimeout) {
           const time = $("pick-time");
-          if (time) time.textContent = String(pickLeft || 60);
+          if (time) time.textContent = String(pickLeft || 30);
           const helper = $("pick-helper");
           if (helper) helper.textContent = `1 cartela selected! Pick up to ${MAX_PICK} or wait for opponents to join…`;
           scheduleOpponentJoin();
@@ -3303,7 +3303,7 @@ function updatePickCountdownDisplay() {
   const isCounting = pickLeft !== null && pickLeft > 0;
   const label = isCounting ? formatCountdown(pickLeft) : (selected.size > 0 ? "Waiting" : "Open");
   if (seconds) seconds.textContent = label;
-  if (time) time.textContent = isCounting ? `${Math.max(0, pickLeft)}` : (selected.size > 0 ? (pickLeft ? `${pickLeft}` : "60") : "60");
+  if (time) time.textContent = isCounting ? `${Math.max(0, pickLeft)}` : (selected.size > 0 ? (pickLeft ? `${pickLeft}` : "30") : "30");
   if (banner) banner.textContent = label;
   if (timer) timer.classList.toggle("is-urgent", isCounting && pickLeft <= 10);
   renderPickRoomSummary();
