@@ -596,18 +596,19 @@ function handleServerRoomState(sState) {
           winnerPendingTimeout = null;
           if (!winnerTimer) {
             const isMe = res.winner_id && myId && String(res.winner_id) === String(myId);
+            const winPattern = res.pattern || (res.card_id ? (ensureCard(res.card_id) ? bestWinKind(ensureCard(res.card_id), new Set(called)) : "1 LINE") : "1 LINE");
             if (isMe) {
               roundOutcome = "win";
               roundWinnerName = res.winner_name || PLAYER_NAME;
-              showRoundResult("win", roundWinnerName, "LINE", res.card_id || selected.values().next().value);
-              showWinnerOverlay("win", roundWinnerName, res.prize, res.card_id || selected.values().next().value, "LINE");
+              showRoundResult("win", roundWinnerName, winPattern, res.card_id || selected.values().next().value);
+              showWinnerOverlay("win", roundWinnerName, res.prize, res.card_id || selected.values().next().value, winPattern);
               toast("YOU WON!", "win");
             } else {
               roundOutcome = "lose";
               roundWinnerName = res.winner_name || "Opponent";
-              showRoundResult("lose", roundWinnerName, "LINE", res.card_id);
+              showRoundResult("lose", roundWinnerName, winPattern, res.card_id);
               markLoserCards();
-              showWinnerOverlay("lose", roundWinnerName, res.prize != null ? res.prize : stake, res.card_id, "LINE");
+              showWinnerOverlay("lose", roundWinnerName, res.prize != null ? res.prize : stake, res.card_id, winPattern);
               toast((roundWinnerName).toUpperCase() + " WON!", "lose");
             }
           }
@@ -3801,6 +3802,7 @@ function bingoLines() {
   for (let row = 0; row < 5; row++) lines.push([0, 1, 2, 3, 4].map((column) => row * 5 + column));
   for (let column = 0; column < 5; column++) lines.push([0, 1, 2, 3, 4].map((row) => row * 5 + column));
   lines.push([0, 6, 12, 18, 24], [4, 8, 12, 16, 20]);
+  lines.push([0, 4, 20, 24]); // 4 Corners (4 ማዕዘን / 4 Corner)
   return lines;
 }
 
@@ -3811,9 +3813,15 @@ function completedBingoLines(card, hit) {
 function winningCellIndexes(card, hit, kind) {
   if (kind === "FULL HOUSE" || kind === "BLACKOUT") return Array.from({ length: 25 }, (_, index) => index);
 
+  const completed = completedBingoLines(card, hit);
+  if (!completed.length) return [];
+  if (kind === "4 Corner" || kind === "4 CORNER") {
+    const corners = completed.find((l) => l.length === 4);
+    if (corners) return [...corners];
+  }
   const target = Math.max(1, Number.parseInt(String(kind), 10) || 1);
   const indexes = new Set();
-  completedBingoLines(card, hit)
+  completed
     .slice(0, target)
     .forEach((line) => line.forEach((index) => indexes.add(index)));
   return [...indexes];
@@ -4304,10 +4312,11 @@ function cellHit(card, index, hit) {
 function bestWinKind(card, hit) {
   if (!card) return null;
 
-  // Always 1 line bingo rule as required
-  const completedLines = completedBingoLines(card, hit).length;
-  if (completedLines < 1) return null;
-  return "1 LINE";
+  // Always 1 line bingo rule as required (including 4 corners)
+  const completed = completedBingoLines(card, hit);
+  if (!completed.length) return null;
+  const is4Corners = completed.length === 1 && completed[0].length === 4;
+  return is4Corners ? "4 Corner" : "1 LINE";
 }
 
 function playerHasBingo(useCalled = true) {

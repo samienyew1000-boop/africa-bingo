@@ -369,7 +369,7 @@ try {
   console.warn("Failed to load card number.json:", e.message);
 }
 
-// 12 Bingo lines on 5x5 card (index 12 is FREE)
+// 13 Bingo lines on 5x5 card (index 12 is FREE): 5 rows, 5 cols, 2 diagonals, 1 four-corners
 const WINNING_LINES = [
   [0, 1, 2, 3, 4],
   [5, 6, 7, 8, 9],
@@ -383,26 +383,38 @@ const WINNING_LINES = [
   [4, 9, 14, 19, 24],
   [0, 6, 12, 18, 24],
   [4, 8, 12, 16, 20],
+  [0, 4, 20, 24], // 4 Corners (4 ማዕዘን / 4 Corner)
 ];
 
 const BINGO_PATTERNS = [
   { id: "1_line", name: "1 መስመር", targetLines: 1, label: "1 መስመር ዝግ", description: "1 መስመር ሲዘጋ" }
 ];
 
-function countCompletedLines(cardNumbers, calledSet) {
-  if (!Array.isArray(cardNumbers) || cardNumbers.length !== 25) return 0;
-  let count = 0;
+function getCardCompletedLines(cardNumbers, calledSet) {
+  if (!Array.isArray(cardNumbers) || cardNumbers.length !== 25) return [];
+  const lines = [];
   for (const line of WINNING_LINES) {
     if (line.every((idx) => idx === 12 || cardNumbers[idx] === 0 || cardNumbers[idx] === "FREE" || calledSet.has(Number(cardNumbers[idx])))) {
-      count++;
+      lines.push(line);
     }
   }
-  return count;
+  return lines;
+}
+
+function countCompletedLines(cardNumbers, calledSet) {
+  return getCardCompletedLines(cardNumbers, calledSet).length;
+}
+
+function getCardWinningKind(cardNumbers, calledSet) {
+  const completed = getCardCompletedLines(cardNumbers, calledSet);
+  if (!completed.length) return null;
+  const onlyCorners = completed.length === 1 && completed[0].length === 4;
+  return onlyCorners ? "4 Corner" : "1 መስመር";
 }
 
 function checkCardBingo(cardNumbers, calledSet, pattern) {
   if (!Array.isArray(cardNumbers) || cardNumbers.length !== 25) return false;
-  // Always 1 line bingo rule
+  // Always 1 line bingo rule (includes rows, columns, diagonals, and 4 corners)
   return countCompletedLines(cardNumbers, calledSet) >= 1;
 }
 
@@ -630,8 +642,9 @@ class LiveBingoRoom {
         if (cardNumbers && checkCardBingo(cardNumbers, calledSet, activePattern)) {
           const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
           const prize = this.getDerash(totalCards);
+          const winKind = getCardWinningKind(cardNumbers, calledSet) || "1 መስመር";
 
-          this.endRound(player.user_id, player.first_name || player.username || "Player", prize, cardId);
+          this.endRound(player.user_id, player.first_name || player.username || "Player", prize, cardId, winKind);
           return;
         }
       }
@@ -656,12 +669,13 @@ class LiveBingoRoom {
 
     const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
     const prize = this.getDerash(totalCards);
+    const winKind = getCardWinningKind(cardNumbers, calledSet) || "1 መስመር";
 
-    this.endRound(userId, player.first_name || player.username || "Player", prize, cardId);
+    this.endRound(userId, player.first_name || player.username || "Player", prize, cardId, winKind);
     return { ok: true, winner: player.first_name, prize };
   }
 
-  endRound(winnerId, winnerName, prize, cardId) {
+  endRound(winnerId, winnerName, prize, cardId, winKind = null) {
     if (this.callTimer) clearInterval(this.callTimer);
     this.callTimer = null;
     this.status = "ended";
@@ -674,6 +688,7 @@ class LiveBingoRoom {
       }
     }
 
+    const patternLabel = winKind || (this.currentPattern ? (this.currentPattern.label || this.currentPattern.name) : "1 መስመር");
     const resultId = `RES_${this.id}_R${this.roundId}_${Math.floor(Date.now() / 1000)}`;
     this.lastResult = {
       result_id: resultId,
@@ -682,7 +697,7 @@ class LiveBingoRoom {
       winner_name: winnerName,
       prize: prize,
       card_id: cardId,
-      pattern: this.currentPattern ? (this.currentPattern.label || this.currentPattern.name) : "1 መስመር",
+      pattern: patternLabel,
       ended_at: Math.floor(Date.now() / 1000),
     };
 
