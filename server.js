@@ -704,6 +704,7 @@ const activeRooms = {
   "10-2": new LiveBingoRoom("10-2", 10),
   "50": new LiveBingoRoom("50", 50),
 };
+const ACTIVE_ROOM_ORDER = ["20", "10", "10-2", "50"];
 
 function sendJson(res, data, status = 200) {
   res.writeHead(status, {
@@ -1135,7 +1136,7 @@ const server = http.createServer(async (req, res) => {
         if (bScore !== aScore) return bScore - aScore;
         return new Date(b.created_at || 0) - new Date(a.created_at || 0);
       });
-      const roomsOverview = Object.values(activeRooms).map(r => r.getState());
+      const roomsOverview = ACTIVE_ROOM_ORDER.map((id) => activeRooms[id]?.getState()).filter(Boolean);
       const totalPlayers = usersList.length;
       const verifiedPlayers = usersList.filter(u => u.is_verified).length || totalPlayers;
       const blockedPlayers = usersList.filter(u => u.status === "blocked").length;
@@ -1317,7 +1318,7 @@ const server = http.createServer(async (req, res) => {
 
     // 11. Rooms & Settings
     if (pathname === "/api/rooms") {
-      const rList = Object.values(activeRooms).map((r) => r.getState());
+      const rList = ACTIVE_ROOM_ORDER.map((id) => activeRooms[id]?.getState()).filter(Boolean);
       return sendJson(res, { rooms: rList, settings: gameState.settings });
     }
     if (pathname === "/api/settings") {
