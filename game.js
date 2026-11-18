@@ -504,25 +504,31 @@ function handleServerRoomState(sState) {
     updatePickCountdownDisplay();
     updatePickInfo();
     renderPickRoomSummary();
+    if (remaining <= 0 && selected.size > 0 && !playing) {
+      entryCharged = true;
+      beginLiveGame();
+    }
   }
 
   // 3. Status is LIVE or ENDED
   let hadNewCalls = false;
-  if ((sState.status === "live" || sState.status === "ended") && Array.isArray(sState.calls)) {
+  if (sState.status === "live" || sState.status === "ended") {
     if (selected.size === 0 && Array.isArray(sState.players)) {
       const myPlayer = sState.players.find((p) => myId && String(p.user_id) === String(myId));
       if (myPlayer && Array.isArray(myPlayer.card_ids)) {
         myPlayer.card_ids.forEach((cid) => selected.add(Number(cid)));
       }
     }
-    if (!playing && selected.size > 0 && views.game && views.game.classList.contains("is-on")) {
+    if (!playing && selected.size > 0) {
       entryCharged = true;
       beginLiveGame();
     }
-    for (const n of sState.calls) {
-      if (!called.includes(n)) {
-        hadNewCalls = true;
-        handleSingleCall(n);
+    if (playing && views.game && views.game.classList.contains("is-on") && Array.isArray(sState.calls)) {
+      for (const n of sState.calls) {
+        if (!called.includes(n)) {
+          hadNewCalls = true;
+          handleSingleCall(n);
+        }
       }
     }
   }
@@ -555,7 +561,7 @@ function handleServerRoomState(sState) {
 
       // Allow 1.2s delay so the winning ball is called, seen, and heard before popup appears!
       const delayMs = hadNewCalls ? 1200 : 500;
-      if (!winnerTimer && !winnerPendingTimeout) {
+      if (!winnerTimer && !winnerPendingTimeout && views.game && views.game.classList.contains("is-on") && playing) {
         winnerPendingTimeout = setTimeout(() => {
           winnerPendingTimeout = null;
           if (!winnerTimer) {
@@ -3324,7 +3330,7 @@ function startPickCountdown(roomStartsAt = null, roomRoundKey = null) {
   const suppliedStart = Number(roomStartsAt);
   pickEndsAt = Number.isFinite(suppliedStart) && suppliedStart > Date.now()
     ? suppliedStart
-    : Date.now() + 60 * 1000;
+    : Date.now() + 30 * 1000;
 
   const tick = () => {
     pickLeft = Math.max(0, Math.ceil((pickEndsAt - Date.now()) / 1000));
@@ -3336,24 +3342,9 @@ function startPickCountdown(roomStartsAt = null, roomRoundKey = null) {
       pickTimer = null;
       pickEndsAt = 0;
       if (selected.size > 0 && !playing) {
-        if (activeRoomId && typeof LuckyBingoAPI !== "undefined") {
-          setGameWaitingState(true);
-          return;
-        }
-        if (!entryCharged) {
-          const cost = stake * selected.size;
-          if (balance >= cost) {
-            balance -= cost;
-            saveBalance();
-            renderBalance();
-            entryCharged = true;
-          } else {
-            toast("NOT ENOUGH BALANCE", "lose");
-            setupPickWaitingState();
-            return;
-          }
-        }
+        entryCharged = true;
         beginLiveGame();
+        return;
       }
     }
   };
@@ -4115,6 +4106,7 @@ function toggleManualMark(value) {
 
 function playCallVoice(number, letter) {
   if (!soundEffectsEnabled) return;
+  if (!playing || !views.game || !views.game.classList.contains("is-on")) return;
   try {
     if (currentCallAudio) {
       currentCallAudio.pause();
@@ -4198,6 +4190,7 @@ function playNopeVoice() {
 }
 
 function handleSingleCall(n) {
+  if (!playing || !views.game || !views.game.classList.contains("is-on")) return;
   if (called.includes(n)) return;
   called.push(n);
   lastCalledNumber = n;
