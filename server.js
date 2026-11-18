@@ -599,6 +599,9 @@ class LiveBingoRoom {
     }
     this.deck = nums;
 
+    const intervalSec = Number(gameState.settings?.call_interval || 3.5);
+    this.callIntervalMs = Math.max(2000, Math.min(6000, Math.round(intervalSec * 1000)));
+
     if (this.callTimer) clearInterval(this.callTimer);
     this.callTimer = setInterval(() => {
       this.callNextBall();

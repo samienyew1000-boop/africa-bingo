@@ -512,22 +512,51 @@ function handleServerRoomState(sState) {
 
   // 3. Status is LIVE or ENDED
   let hadNewCalls = false;
-  if (sState.status === "live" || sState.status === "ended") {
+  if (sState.status === "live") {
     if (selected.size === 0 && Array.isArray(sState.players)) {
       const myPlayer = sState.players.find((p) => myId && String(p.user_id) === String(myId));
       if (myPlayer && Array.isArray(myPlayer.card_ids)) {
         myPlayer.card_ids.forEach((cid) => selected.add(Number(cid)));
       }
     }
-    if (!playing && selected.size > 0) {
+    // Only begin live game if not currently playing and not already claimed/ended
+    if (!playing && !claimed && selected.size > 0) {
       entryCharged = true;
       beginLiveGame();
     }
     if (playing && views.game && views.game.classList.contains("is-on") && Array.isArray(sState.calls)) {
-      for (const n of sState.calls) {
-        if (!called.includes(n)) {
-          hadNewCalls = true;
-          handleSingleCall(n);
+      const newCalls = sState.calls.filter((n) => !called.includes(n));
+      if (newCalls.length === 1) {
+        hadNewCalls = true;
+        handleSingleCall(newCalls[0]);
+      } else if (newCalls.length > 1) {
+        hadNewCalls = true;
+        // Mark all caught-up previous calls silently on cards and board
+        for (const n of newCalls.slice(0, -1)) {
+          if (!called.includes(n)) {
+            called.push(n);
+            if (autoMarkingEnabled) manualMarked.add(n);
+          }
+        }
+        // Voice only the latest call
+        handleSingleCall(newCalls[newCalls.length - 1]);
+      }
+    }
+  } else if (sState.status === "ended") {
+    // If round ended and there are calls that arrived with the final state:
+    if (views.game && views.game.classList.contains("is-on") && Array.isArray(sState.calls)) {
+      const newCalls = sState.calls.filter((n) => !called.includes(n));
+      if (newCalls.length > 0) {
+        hadNewCalls = true;
+        for (const n of newCalls.slice(0, -1)) {
+          if (!called.includes(n)) {
+            called.push(n);
+            if (autoMarkingEnabled) manualMarked.add(n);
+          }
+        }
+        const lastBall = newCalls[newCalls.length - 1];
+        if (!called.includes(lastBall)) {
+          handleSingleCall(lastBall);
         }
       }
     }
@@ -559,9 +588,10 @@ function handleServerRoomState(sState) {
       clearInterval(callTimer);
       callTimer = null;
 
-      // Allow 1.2s delay so the winning ball is called, seen, and heard before popup appears!
-      const delayMs = hadNewCalls ? 1200 : 500;
-      if (!winnerTimer && !winnerPendingTimeout && views.game && views.game.classList.contains("is-on") && playing) {
+      // Exactly 1.0s delay so the winning ball is called, seen, and heard before popup appears!
+      const delayMs = 1000;
+      if (!winnerTimer && views.game && views.game.classList.contains("is-on")) {
+        if (winnerPendingTimeout) clearTimeout(winnerPendingTimeout);
         winnerPendingTimeout = setTimeout(() => {
           winnerPendingTimeout = null;
           if (!winnerTimer) {
@@ -4376,7 +4406,7 @@ function claimBingo() {
     }).catch(() => {});
   }
 
-  // Delay winner overlay by 1.2s so the winning ball voice & animation finish first!
+  // Delay winner overlay by 1.0s so the winning ball voice & animation finish first!
   if (winnerPendingTimeout) clearTimeout(winnerPendingTimeout);
   winnerPendingTimeout = setTimeout(() => {
     winnerPendingTimeout = null;
@@ -4385,7 +4415,7 @@ function claimBingo() {
       toast(`WON! +${fmt(win)} ETB`, "win");
       showWinnerOverlay("win", PLAYER_NAME, win, winCard, kind);
     }
-  }, 1200);
+  }, 1000);
 }
 
 function botWins() {
@@ -4419,7 +4449,7 @@ function botWins() {
   markLoserCards();
   renderMineCards();
 
-  // Delay winner overlay by 1.2s so the winning ball voice & animation finish first!
+  // Delay winner overlay by 1.0s so the winning ball voice & animation finish first!
   if (winnerPendingTimeout) clearTimeout(winnerPendingTimeout);
   winnerPendingTimeout = setTimeout(() => {
     winnerPendingTimeout = null;
@@ -4428,7 +4458,7 @@ function botWins() {
       toast(`${winnerName} CLAIMED BINGO!`, "lose");
       showWinnerOverlay("lose", winnerName, botPrize, botCardId, "LINE");
     }
-  }, 1200);
+  }, 1000);
 }
 
 function leaveGame() {

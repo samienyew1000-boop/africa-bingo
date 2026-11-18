@@ -240,7 +240,14 @@ const LuckyBingoAPI = (() => {
   }
 
   async function getRoomState(roomId) {
-    return apiRequest(`/api/room-state?room_id=${encodeURIComponent(roomId)}`);
+    let controller = null;
+    let signal = undefined;
+    if (typeof AbortController !== "undefined") {
+      controller = new AbortController();
+      setTimeout(() => controller.abort(), 3500);
+      signal = controller.signal;
+    }
+    return apiRequest(`/api/room-state?room_id=${encodeURIComponent(roomId)}`, { signal });
   }
 
   async function joinRoom(roomId, cardIds) {
