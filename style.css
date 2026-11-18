@@ -2387,10 +2387,30 @@ button {
   box-shadow: 0 1px 4px rgba(2, 139, 0, 0.45) !important;
 }
 
-.lb-cell.is-hit.is-latest-hit {
-  background: #5f9f6b !important;
-  color: #fff !important;
-  box-shadow: 0 1px 4px rgba(95, 159, 107, 0.5) !important;
+.lb-cell.is-hit.is-calling-blink {
+  animation: lb-cell-calling-blink 0.5s infinite alternate ease-in-out !important;
+  z-index: 2 !important;
+}
+
+@keyframes lb-cell-calling-blink {
+  0% {
+    background: #028b00 !important;
+    color: #ffffff !important;
+    transform: scale(1);
+    box-shadow: 0 1px 4px rgba(2, 139, 0, 0.45) !important;
+  }
+  50% {
+    background: #5f9f6b !important;
+    color: #ffffff !important;
+    transform: scale(1.06);
+    box-shadow: 0 0 12px rgba(95, 159, 107, 0.9) !important;
+  }
+  100% {
+    background: #028b00 !important;
+    color: #ffffff !important;
+    transform: scale(1);
+    box-shadow: 0 1px 4px rgba(2, 139, 0, 0.45) !important;
+  }
 }
 
 .lb-cell.is-callable {
@@ -4790,11 +4810,9 @@ body.is-game-active #view-game {
   box-shadow: 0 1px 4px rgba(2, 139, 0, 0.45) !important;
 }
 
-.is-standard-layout .lb-cell.is-hit.is-latest-hit:not(.is-free) {
-  background: #5f9f6b !important;
-  color: #ffffff !important;
-  font-weight: 900 !important;
-  box-shadow: 0 1px 4px rgba(95, 159, 107, 0.5) !important;
+.is-standard-layout .lb-cell.is-hit.is-calling-blink:not(.is-free) {
+  animation: lb-cell-calling-blink 0.5s infinite alternate ease-in-out !important;
+  z-index: 2 !important;
 }
 
 /* ========================================================== */
@@ -4948,12 +4966,9 @@ body.is-game-active #view-game {
   box-shadow: 0 1px 3px rgba(2, 139, 0, 0.3) !important;
 }
 
-.has-many-cards-layout .lb-cell.is-hit.is-latest-hit:not(.is-free) {
-  background: #5f9f6b !important;
-  border-color: #4d8a59 !important;
-  color: #ffffff !important;
-  font-weight: 800 !important;
-  box-shadow: 0 1px 3px rgba(95, 159, 107, 0.4) !important;
+.has-many-cards-layout .lb-cell.is-hit.is-calling-blink:not(.is-free) {
+  animation: lb-cell-calling-blink 0.5s infinite alternate ease-in-out !important;
+  z-index: 2 !important;
 }
 
 .has-many-cards-layout .lb-cell.is-hint-blink:not(.is-hit) {

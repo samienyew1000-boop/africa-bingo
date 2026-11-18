@@ -4031,14 +4031,15 @@ function renderMineCards() {
           cell.textContent = String(value);
           if (hasHit) {
             cell.classList.add("is-hit");
-            if (value === lastCalledNumber) {
-              cell.classList.add("is-latest-hit");
+            if (autoMarkingEnabled && value === lastCalledNumber) {
+              cell.classList.add("is-calling-blink");
             }
           }
           // Per user request:
           // When Auto is OFF: give NO mark or hint at all ("minm milket sayset").
           // Player taps the number themselves, turning it into .is-hit (solid green like the image).
-          // When Auto is ON: called numbers are in `hit` (activeHitSet) so they are automatically .is-hit upon arrival.
+          // When Auto is ON: called numbers are in `hit` (activeHitSet) so they are automatically .is-hit upon arrival,
+          // and the currently called number blinks while being called!
           cell.addEventListener("click", () => toggleManualMark(value));
         }
         cells.appendChild(cell);
@@ -4169,7 +4170,7 @@ function handleSingleCall(n) {
     lastCalledNumber = null;
     document.querySelectorAll(".lb-dot.is-current-call").forEach((c) => c.classList.remove("is-current-call"));
     document.querySelectorAll(".lb-cell.is-hint-blink").forEach((c) => c.classList.remove("is-hint-blink"));
-    document.querySelectorAll(".lb-cell.is-latest-hit").forEach((c) => c.classList.remove("is-latest-hit"));
+    document.querySelectorAll(".lb-cell.is-calling-blink").forEach((c) => c.classList.remove("is-calling-blink"));
   }, 2200);
 
   if (autoMarkingEnabled) {
