@@ -1513,15 +1513,6 @@ async function notifyTelegramAdmin(text) {
     }
   }
 
-  for (const u of Object.values(gameState.users || {})) {
-    const uName = u.username ? String(u.username).toLowerCase().replace(/^@/, "") : "";
-    const isUnameAdmin = uName && ADMIN_USERNAMES.includes(uName);
-    const uId = String(u.id || "").trim();
-    if ((u.role === "admin" || isUnameAdmin) && /^\d+$/.test(uId) && !uId.startsWith("09") && !uId.startsWith("8888") && uId.length >= 8 && uId !== "9029759446") {
-      targetIds.add(uId);
-    }
-  }
-
   console.log(`[NOTIFY ADMIN] Dispatching notification to ${targetIds.size} admin(s):`, Array.from(targetIds));
 
   for (const adminId of targetIds) {
