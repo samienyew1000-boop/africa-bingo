@@ -496,17 +496,34 @@ function handleServerRoomState(sState) {
   updatePickLiveTracker(sState);
 
   // 2. Status is COUNTDOWN
-  if (sState.status === "countdown" && sState.countdown_ends_at > 0) {
-    const startsAt = sState.countdown_ends_at * 1000;
-    const remaining = sState.countdown_remaining != null ? sState.countdown_remaining : Math.max(0, Math.ceil((startsAt - Date.now()) / 1000));
-    pickLeft = remaining;
-    pickEndsAt = startsAt;
+  if (sState.status === "countdown") {
+    // If client is still on the previous game screen and countdown started for new round, return to pick:
+    if (views.game && views.game.classList.contains("is-on") && !claimed && !winnerTimer) {
+      returnToCardSelection();
+    }
+
+    const serverRem = (sState.countdown_remaining != null && sState.countdown_remaining >= 0)
+      ? Number(sState.countdown_remaining)
+      : (sState.countdown_ends_at > 0 ? Math.max(0, Math.ceil((sState.countdown_ends_at * 1000 - Date.now()) / 1000)) : 30);
+    const targetEndsAt = Date.now() + serverRem * 1000;
+
+    // Resync local countdown timer if not running or if drifted by > 1s
+    if (!pickTimer || Math.abs((pickLeft ?? serverRem) - serverRem) > 1) {
+      startPickCountdown(targetEndsAt, `countdown:${sState.round_id || ""}:server`);
+    }
+    pickLeft = serverRem;
+    pickEndsAt = targetEndsAt;
     updatePickCountdownDisplay();
     updatePickInfo();
     renderPickRoomSummary();
-    if (remaining <= 0 && selected.size > 0 && !playing) {
-      entryCharged = true;
-      beginLiveGame();
+
+    if (serverRem <= 0 && !playing) {
+      if (selected.size > 0) {
+        entryCharged = true;
+        beginLiveGame(false);
+      } else if (activeRoomId) {
+        beginLiveGame(true); // Spectator mode: enter to watch live!
+      }
     }
   }
 
@@ -515,15 +532,24 @@ function handleServerRoomState(sState) {
   if (sState.status === "live") {
     if (selected.size === 0 && Array.isArray(sState.players)) {
       const myPlayer = sState.players.find((p) => myId && String(p.user_id) === String(myId));
-      if (myPlayer && Array.isArray(myPlayer.card_ids)) {
+      if (myPlayer && Array.isArray(myPlayer.card_ids) && myPlayer.card_ids.length > 0) {
         myPlayer.card_ids.forEach((cid) => selected.add(Number(cid)));
       }
     }
-    // Only begin live game if not currently playing and not already claimed/ended
-    if (!playing && !claimed && selected.size > 0) {
-      entryCharged = true;
-      beginLiveGame();
+    const isSpectator = selected.size === 0;
+
+    // Begin live game (either as player or as spectator)
+    if (!playing && !claimed) {
+      if (!isSpectator) {
+        entryCharged = true;
+        beginLiveGame(false);
+      } else if (activeRoomId) {
+        beginLiveGame(true); // Spectator mode!
+      }
     }
+
+    updateGameSummary();
+
     if (playing && views.game && views.game.classList.contains("is-on") && Array.isArray(sState.calls)) {
       const newCalls = sState.calls.filter((n) => !called.includes(n));
       if (newCalls.length === 1) {
@@ -541,6 +567,7 @@ function handleServerRoomState(sState) {
         // Voice only the latest call
         handleSingleCall(newCalls[newCalls.length - 1]);
       }
+      paintBoard();
     }
   } else if (sState.status === "ended") {
     // If round ended and there are calls that arrived with the final state:
@@ -559,12 +586,15 @@ function handleServerRoomState(sState) {
           handleSingleCall(lastBall);
         }
       }
+      paintBoard();
     }
   }
 
   // 4. Status is OPEN
   if (sState.status === "open") {
-    if (!playing && views.pick && views.pick.classList.contains("is-on")) {
+    if (playing && views.game && views.game.classList.contains("is-on") && !winnerTimer) {
+      returnToCardSelection();
+    } else if (!playing && views.pick && views.pick.classList.contains("is-on")) {
       pickLeft = null;
       pickEndsAt = 0;
       updatePickCountdownDisplay();
@@ -2544,13 +2574,13 @@ function renderPickRoomSummary() {
   if (pickStake) pickStake.textContent = String(roomStake);
   if (players) players.textContent = room ? fmt(playerCount) : "—";
   if (availableEl) availableEl.textContent = cardNumbers.length ? fmt(available) : "—";
-  const isCounting = pickTimer !== null && pickLeft !== null && pickLeft > 0;
-  if (time) time.textContent = isCounting ? `${Math.max(0, pickLeft)}` : (selected.size > 0 ? (pickLeft ? `${pickLeft}` : "30") : "30");
+  const isCounting = (server && server.status === "countdown") || (pickTimer !== null && pickLeft !== null && pickLeft > 0);
+  if (time) time.textContent = isCounting && pickLeft !== null ? `${Math.max(0, pickLeft)}` : "30";
   const reservedStake = selected.size * roomStake;
   const isOnline = Boolean(activeRoomId && typeof LuckyBingoAPI !== "undefined");
   const availableBal = isOnline ? balance : Math.max(0, balance - reservedStake);
   if (pickBalance) pickBalance.textContent = String(Math.floor(availableBal));
-  if (bannerSeconds) bannerSeconds.textContent = isCounting ? formatCountdown(pickLeft) : "Open";
+  if (bannerSeconds) bannerSeconds.textContent = isCounting && pickLeft !== null ? formatCountdown(pickLeft) : (selected.size > 0 ? "Waiting" : "Open");
 
   const serverCards = server ? Number(server.total_cards || 0) : 0;
   const totalCards = Math.max(serverCards, selected.size + takenByOthers.size);
@@ -2835,7 +2865,7 @@ function renderRooms() {
     const server = serverRoomStates[String(room.id)];
     const canPlay = canAfford(room.stake);
     const state = roomDisplayState(room);
-    const roomClosed = state.type === "live" || state.type === "paused";
+    const roomClosed = state.type === "paused";
     const color = room.color || roomColors[index % roomColors.length];
 
     let displayName = room.displayName;
@@ -2884,9 +2914,29 @@ function enterRoom(roomId) {
   }
 
   const state = roomDisplayState(room);
-  if (state.type === "live" || state.type === "paused") {
-    toast(state.type === "live" ? "ROUND IN PROGRESS" : "ROOM CLOSED", "lose");
+  if (state.type === "paused") {
+    toast("ROOM CLOSED", "lose");
     renderRooms();
+    return;
+  }
+
+  // If entering a room where game is already live: enter directly in spectator mode!
+  if (state.type === "live") {
+    activeRoomId = String(room.id);
+    stake = room.stake;
+    selected = new Set();
+    selectedPreviewId = null;
+    takenByOthers = new Set();
+    playing = true;
+    entryCharged = false;
+    gameWaiting = false;
+
+    if (typeof LuckyBingoAPI !== "undefined") {
+      LuckyBingoAPI.stopLobbyPoll();
+      LuckyBingoAPI.startRoomPoll(activeRoomId, handleServerRoomState, 500);
+    }
+
+    beginLiveGame(true); // spectator mode!
     return;
   }
 
@@ -2948,7 +2998,8 @@ function updatePickInfo() {
   const isOnline = Boolean(activeRoomId && typeof LuckyBingoAPI !== "undefined");
   const maxPossible = isOnline ? (selected.size + Math.floor(balance / stake)) : Math.floor(balance / stake);
   const limit = Math.min(MAX_PICK, maxPossible);
-  const waitingForStart = pickTimer !== null && pickLeft !== null && pickLeft > 0;
+  const server = activeRoomId ? serverRoomStates[String(activeRoomId)] : null;
+  const waitingForStart = (server && server.status === "countdown") || (pickTimer !== null && pickLeft !== null && pickLeft > 0);
   const startButton = $("start-game");
   if ($("pick-count")) $("pick-count").textContent = String(selected.size);
   if ($("pick-limit")) $("pick-limit").textContent = String(limit);
@@ -2971,12 +3022,16 @@ function updatePickInfo() {
   if ($("pick-helper")) {
     if (!cardsReady) {
       $("pick-helper").textContent = cardsLoadError ? "The 1,000 card numbers could not be loaded." : "Loading all 1,000 card numbers…";
+    } else if (waitingForStart && pickLeft !== null && pickLeft > 0) {
+      if (selected.size === 0) {
+        $("pick-helper").textContent = `ጨዋታው በ ${pickLeft} ሰከንድ ውስጥ ይጀምራል! ቶሎ ካርቴላ ይምረጡ…`;
+      } else {
+        $("pick-helper").textContent = `Round starts in ${formatCountdown(pickLeft)}. Get ready!`;
+      }
     } else if (selected.size === 0) {
       $("pick-helper").textContent = "Select your cartela. Countdown begins when players join.";
-    } else if (!waitingForStart) {
-      $("pick-helper").textContent = `${selected.size} cartela selected. Waiting for other players to join…`;
     } else {
-      $("pick-helper").textContent = `Round starts in ${formatCountdown(pickLeft)}. Get ready!`;
+      $("pick-helper").textContent = `${selected.size} cartela selected. Waiting for other players to join…`;
     }
   }
 
@@ -3137,6 +3192,11 @@ function randomPick(amount) {
 let opponentJoinTimeout = null;
 
 function setupPickWaitingState() {
+  const server = activeRoomId ? serverRoomStates[String(activeRoomId)] : null;
+  if (server && server.status === "countdown") {
+    // If room on server is counting down, keep timer running
+    return;
+  }
   clearInterval(pickTimer);
   pickTimer = null;
   pickEndsAt = 0;
@@ -3150,7 +3210,7 @@ function setupPickWaitingState() {
   const timer = $("pick-timer");
   const banner = $("pick-banner-secs");
   const helper = $("pick-helper");
-  if (time) time.textContent = selected.size > 0 ? (pickLeft ? `${pickLeft}` : "30") : "30";
+  if (time) time.textContent = "30";
   if (seconds) seconds.textContent = "Open";
   if (banner) banner.textContent = "Open";
   if (timer) timer.classList.remove("is-urgent");
@@ -3207,11 +3267,14 @@ function onCardSelectionChanged() {
       clearTimeout(opponentJoinTimeout);
       opponentJoinTimeout = null;
     }
-    clearInterval(pickTimer);
-    pickTimer = null;
-    pickEndsAt = 0;
-    pickLeft = null;
-    setupPickWaitingState();
+    const server = activeRoomId ? serverRoomStates[String(activeRoomId)] : null;
+    if (!server || server.status !== "countdown") {
+      clearInterval(pickTimer);
+      pickTimer = null;
+      pickEndsAt = 0;
+      pickLeft = null;
+      setupPickWaitingState();
+    }
   } else {
     if (activeRoomId && typeof LuckyBingoAPI !== "undefined") {
       const requestedCards = new Set(selected);
@@ -3344,12 +3407,13 @@ function updatePickCountdownDisplay() {
   const time = $("pick-time");
   const timer = $("pick-timer");
   const banner = $("pick-banner-secs");
-  const isCounting = pickLeft !== null && pickLeft > 0;
-  const label = isCounting ? formatCountdown(pickLeft) : (selected.size > 0 ? "Waiting" : "Open");
+  const server = activeRoomId ? serverRoomStates[String(activeRoomId)] : null;
+  const isCounting = (server && server.status === "countdown") || (pickTimer !== null && pickLeft !== null && pickLeft > 0);
+  const label = isCounting && pickLeft !== null ? formatCountdown(pickLeft) : (selected.size > 0 ? "Waiting" : "Open");
   if (seconds) seconds.textContent = label;
-  if (time) time.textContent = isCounting ? `${Math.max(0, pickLeft)}` : (selected.size > 0 ? (pickLeft ? `${pickLeft}` : "30") : "30");
+  if (time) time.textContent = isCounting && pickLeft !== null ? `${Math.max(0, pickLeft)}` : "30";
   if (banner) banner.textContent = label;
-  if (timer) timer.classList.toggle("is-urgent", isCounting && pickLeft <= 10);
+  if (timer) timer.classList.toggle("is-urgent", isCounting && pickLeft !== null && pickLeft <= 10);
   renderPickRoomSummary();
   updateGameWaiting();
 }
@@ -3374,7 +3438,11 @@ function startPickCountdown(roomStartsAt = null, roomRoundKey = null) {
       pickEndsAt = 0;
       if (selected.size > 0 && !playing) {
         entryCharged = true;
-        beginLiveGame();
+        beginLiveGame(false);
+        return;
+      }
+      if (selected.size === 0 && !playing && activeRoomId) {
+        beginLiveGame(true); // Spectator mode: enter to watch live!
         return;
       }
     }
@@ -3457,8 +3525,8 @@ function startGame() {
   toast("YOU'RE IN — WAIT FOR THE COUNTDOWN", "win");
 }
 
-function beginLiveGame() {
-  if (!selected.size || !entryCharged) return;
+function beginLiveGame(isSpectator = false) {
+  if (!isSpectator && (!selected.size || !entryCharged)) return;
   clearInterval(pickTimer);
   pickTimer = null;
   // The server owns the room lifecycle. This function is called only after a
@@ -3476,10 +3544,32 @@ function beginLiveGame() {
   callPool = shuffle(Array.from({ length: 75 }, (_, i) => i + 1));
   showView("game");
   updateGameSummary();
-  $("bingo-btn").disabled = true;
-  $("game-status").textContent = autoMarkingEnabled
-    ? "Game started — marking automatically"
-    : "Game started — tap called numbers on your card";
+
+  const bingoBtn = $("bingo-btn");
+  if (bingoBtn) {
+    if (isSpectator) {
+      bingoBtn.disabled = true;
+      bingoBtn.classList.remove("is-visible");
+      bingoBtn.style.opacity = "0.5";
+      bingoBtn.style.pointerEvents = "none";
+    } else {
+      bingoBtn.disabled = true;
+      bingoBtn.style.opacity = "";
+      bingoBtn.style.pointerEvents = "";
+    }
+  }
+
+  const statusEl = $("game-status");
+  if (statusEl) {
+    if (isSpectator) {
+      statusEl.textContent = "ካርቴላ አልመረጡም — የቀጥታ ጨዋታ እይታ (Spectator)";
+    } else {
+      statusEl.textContent = autoMarkingEnabled
+        ? "Game started — marking automatically"
+        : "Game started — tap called numbers on your card";
+    }
+  }
+
   setCallBall("—", "—");
   const callCountEl2 = $("call-count");
   if (callCountEl2) callCountEl2.textContent = "0";
@@ -4041,6 +4131,16 @@ function renderMineCards() {
       emptyNotice.removeAttribute("hidden");
       emptyNotice.hidden = false;
       emptyNotice.style.display = "flex";
+      const titleEl = emptyNotice.querySelector(".lb-empty-notice-title");
+      const descEl = emptyNotice.querySelector(".lb-empty-notice-desc");
+      const pickBtn = $("empty-pick-action-btn");
+      if (titleEl) titleEl.textContent = "ካርቴላ አልመረጡም!";
+      if (descEl) descEl.textContent = "ጨዋታው በሂደት ላይ ስለሆነ በቀጥታ እየተመለከቱ ነው። ይህ ዙር ሲጠናቀቅ አዲስ ካርቴላ መምረጥ ይችላሉ።";
+      if (pickBtn) {
+        pickBtn.textContent = "👁️ የቀጥታ እይታ (Spectator)";
+        pickBtn.disabled = true;
+        pickBtn.style.opacity = "0.85";
+      }
     }
     if (bingoBtn) {
       bingoBtn.classList.remove("is-visible");
@@ -4363,7 +4463,7 @@ function playerHasBingo(useCalled = true) {
 }
 
 function claimBingo() {
-  if (claimed || !playing) return;
+  if (claimed || !playing || !selected.size) return;
   // Always evaluate against called numbers so un-marked cards win automatically
   const hit = new Set(called);
   let kind = null;
@@ -5041,7 +5141,12 @@ function bind() {
     leaveGame();
   });
   $("empty-pick-action-btn")?.addEventListener("click", () => {
-    returnToCardSelection();
+    const server = activeRoomId ? serverRoomStates[String(activeRoomId)] : null;
+    if (server && server.status === "live") {
+      toast("ጨዋታው በሂደት ላይ ነው። ይህ ዙር ሲያልቅ ካርቴላ መምረጥ ይችላሉ!", "win");
+    } else {
+      returnToCardSelection();
+    }
   });
   $("game-refresh-btn")?.addEventListener("click", () => {
     syncProfileWithServer();
@@ -5049,7 +5154,10 @@ function bind() {
     paintBoard();
     if (activeRoomId && typeof LuckyBingoAPI !== "undefined") {
       LuckyBingoAPI.getRoomState(activeRoomId).then((data) => {
-        if (data) syncProfileWithServer();
+        if (data) {
+          handleServerRoomState(data);
+          syncProfileWithServer();
+        }
       }).catch(() => {});
     }
     toast("GAME REFRESHED", "win");
