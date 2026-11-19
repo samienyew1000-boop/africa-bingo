@@ -458,6 +458,8 @@ function startServerLobbySync() {
   }, 1500);
 }
 
+let activeRoundId = null;
+
 function handleServerRoomState(sState) {
   if (!sState || sState.error) return;
   const rid = String(sState.room_id || sState.id || activeRoomId);
@@ -469,8 +471,26 @@ function handleServerRoomState(sState) {
   const current = mUser || tgUser;
   const myId = current?.id;
 
+  // Track round ID: whenever the server advances to a new round, start with a 100% clean board!
+  const sRoundId = String(sState.round_id || "");
+  if (sRoundId && activeRoundId !== null && sRoundId !== activeRoundId) {
+    selected.clear();
+    selectedPreviewId = null;
+    takenByOthers.clear();
+    botPlayers = 0;
+    activeRoundId = sRoundId;
+    if (views.pick && views.pick.classList.contains("is-on")) {
+      paintPicks();
+      renderCartelaPreview();
+      updatePickInfo();
+      renderPickRoomSummary();
+    }
+  } else if (sRoundId) {
+    activeRoundId = sRoundId;
+  }
+
   // 1. Sync cards taken by other players in this room
-  if (Array.isArray(sState.players)) {
+  if (sState.status !== "ended" && Array.isArray(sState.players)) {
     takenByOthers.clear();
     sState.players.forEach((player) => {
       const isMine = myId && String(player.user_id) === String(myId);
@@ -478,14 +498,21 @@ function handleServerRoomState(sState) {
       if (!isMine) {
         cids.forEach((cid) => takenByOthers.add(Number(cid)));
       } else {
-        if (cids.length > 0 && selected.size === 0) {
+        // ONLY restore selected cards if the player is currently in an active LIVE game screen (e.g. page reload during play)
+        // NEVER auto-restore old cards when selecting cards for a new round in views.pick!
+        if (views.game && views.game.classList.contains("is-on") && cids.length > 0 && selected.size === 0) {
           cids.forEach((cid) => selected.add(Number(cid)));
-          if (views.game && views.game.classList.contains("is-on")) {
-            renderMineCards();
-          }
+          renderMineCards();
         }
       }
     });
+    if (views.pick && views.pick.classList.contains("is-on")) {
+      paintPicks();
+      renderCartelaPreview();
+      updatePickInfo();
+    }
+  } else if (sState.status === "ended") {
+    takenByOthers.clear();
     if (views.pick && views.pick.classList.contains("is-on")) {
       paintPicks();
       renderCartelaPreview();
@@ -2980,7 +3007,10 @@ function enterRoom(roomId) {
   $("pick-cost").textContent = String(stake);
   renderWinningCards();
   buildCardGrid();
+  paintPicks();
   renderCartelaPreview();
+  updatePickInfo();
+  renderPickRoomSummary();
 
   if (state.type === "countdown") {
     startPickCountdown(state.startsAt, state.roundKey);
@@ -3658,7 +3688,10 @@ function returnToCardSelection() {
   $("pick-cost").textContent = String(stake);
   renderWinningCards();
   buildCardGrid();
+  paintPicks();
   renderCartelaPreview();
+  updatePickInfo();
+  renderPickRoomSummary();
   setupPickWaitingState();
   renderRooms();
 }
@@ -5229,7 +5262,10 @@ if (window.location.hash === "#game" || window.location.search.includes("view=ga
   selected.clear();
   updatePickInfo();
   buildCardGrid();
+  paintPicks();
   renderCartelaPreview();
+  updatePickInfo();
+  renderPickRoomSummary();
 } else if (window.location.hash === "#winner" || window.location.search.includes("view=winner")) {
   showView("game");
   showWinnerOverlay("win", "RAS", 3800, 440, "LINE");

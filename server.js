@@ -548,10 +548,10 @@ class LiveBingoRoom {
       countdown_ends_at: Math.floor(cdEnds / 1000),
       countdown_remaining: cdRem,
       server_time: Math.floor(now / 1000),
-      players: this.players,
-      player_count: this.players.length,
-      total_cards: totalCards,
-      derash: derash,
+      players: this.status === "ended" ? [] : this.players,
+      player_count: this.status === "ended" ? 0 : this.players.length,
+      total_cards: this.status === "ended" ? 0 : totalCards,
+      derash: this.status === "ended" ? this.stake : derash,
       calls: this.calls,
       last_result: this.lastResult,
       enabled: this.enabled,
@@ -559,7 +559,7 @@ class LiveBingoRoom {
   }
 
   join(user, cardIds) {
-    if (this.status === "live") {
+    if (this.status === "live" || this.status === "ended") {
       return { error: "Game in progress, please wait" };
     }
     const cleanCardIds = Array.from(new Set(cardIds.map(Number))).filter(id => id >= 1 && id <= 1000);
@@ -781,7 +781,7 @@ class LiveBingoRoom {
 
     setTimeout(() => {
       this.resetRound();
-    }, 14000);
+    }, 7500);
   }
 
   resetRound() {
