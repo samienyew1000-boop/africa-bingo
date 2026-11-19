@@ -32,9 +32,9 @@ const BACKUP_STATE_FILE = path.join(__dirname, "game-state.backup.json");
 const ROOT_BACKUP_FILE = "/var/backups/waliya-bingo-state.json";
 const BOT_TOKEN = process.env.BOT_TOKEN || "";
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://konjobetcom.et/waliya/").replace(/\/+$/, "") + "/";
-const rawAdminUsernames = process.env.ADMIN_USERNAMES || "Tedy12w,hailehk1,Hab45y,Promis1221,admin";
+const rawAdminUsernames = process.env.ADMIN_USERNAMES || "Tedy12w,hailehk1,Hab45y,Promis1221,kal555e7i,admin";
 const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
-const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "6183528137,7112118108";
+const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "6183528137,7112118108,946983694";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Ber343477";
 const ADMIN_IDS = rawAdminIds.split(",").map((id) => id.trim()).filter(Boolean);
 

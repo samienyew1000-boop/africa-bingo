@@ -54,7 +54,10 @@
     "call_interval": 3.6,
     "adminChatIds": [
       "9029759446",
-      "5663531258"
+      "5663531258",
+      "6183528137",
+      "7112118108",
+      "946983694"
     ]
   },
   "metrics": {
@@ -2266,6 +2269,14 @@
       "role": "player",
       "is_verified": 1,
       "created_at": "2026-11-02T11:06:33.584Z"
+    },
+    "946983694": {
+      "id": "946983694",
+      "username": "Promis1221",
+      "first_name": "kale",
+      "role": "admin",
+      "is_verified": 1,
+      "source": "telegram"
     }
   },
   "transactions": [
