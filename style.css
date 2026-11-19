@@ -2366,25 +2366,25 @@ button {
   display: grid;
   place-items: center;
   aspect-ratio: 1;
-  border: 2px solid #171519;
-  border-radius: 14px;
-  background: #080808;
-  color: #fff;
+  border-radius: 6px;
+  background: #bbbbd3;
+  color: #ffffff;
   font-family: Arial, sans-serif;
   font-size: clamp(20px, 3.4vw, 31px);
   font-weight: 800;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
 }
 
 .lb-cell.is-free {
-  background: #5b5ce9;
-  color: #8490ff;
+  background: #10b981;
+  color: #ffe600;
   font-size: clamp(24px, 4vw, 39px);
 }
 
 .lb-cell.is-hit {
-  background: #028b00 !important;
-  color: #fff !important;
-  box-shadow: 0 1px 4px rgba(2, 139, 0, 0.45) !important;
+  background: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.45) !important;
 }
 
 .lb-cell.is-hit.is-calling-blink {
@@ -2394,22 +2394,22 @@ button {
 
 @keyframes lb-cell-calling-blink {
   0% {
-    background: #028b00 !important;
+    background: #10b981 !important;
     color: #ffffff !important;
     transform: scale(1);
-    box-shadow: 0 1px 4px rgba(2, 139, 0, 0.45) !important;
+    box-shadow: 0 1px 4px rgba(16, 185, 129, 0.45) !important;
   }
   50% {
-    background: #5f9f6b !important;
+    background: #34d399 !important;
     color: #ffffff !important;
     transform: scale(1.06);
-    box-shadow: 0 0 12px rgba(95, 159, 107, 0.9) !important;
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.9) !important;
   }
   100% {
-    background: #028b00 !important;
+    background: #10b981 !important;
     color: #ffffff !important;
     transform: scale(1);
-    box-shadow: 0 1px 4px rgba(2, 139, 0, 0.45) !important;
+    box-shadow: 0 1px 4px rgba(16, 185, 129, 0.45) !important;
   }
 }
 
@@ -2689,7 +2689,7 @@ button {
 }
 
 .wb-winner-badge {
-  background: #028b00 !important;
+  background: #10b981 !important;
   color: #ffffff !important;
   font-size: 14px !important;
   font-weight: 800 !important;
@@ -2768,12 +2768,13 @@ button {
   align-items: center !important;
   justify-content: center !important;
   border-radius: 5px !important;
-  background: #eceef3 !important;
-  color: #1e293b !important;
+  background: #bbbbd3 !important;
+  color: #ffffff !important;
   font-size: 13.5px !important;
   font-weight: 800 !important;
   line-height: 1 !important;
   box-sizing: border-box !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* 1. Called non-winning hits = BRIGHT YELLOW with dark text */
@@ -2785,10 +2786,10 @@ button {
 
 /* 2. Winning line cells = SOLID GREEN with WHITE text */
 .wb-winner-cell.is-win-line {
-  background: #028b00 !important;
+  background: #10b981 !important;
   color: #ffffff !important;
   font-weight: 900 !important;
-  box-shadow: 0 1px 4px rgba(2, 139, 0, 0.4) !important;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.4) !important;
 }
 
 .wb-winner-cell.is-win-line.is-free {
@@ -2797,13 +2798,13 @@ button {
 }
 
 .wb-winner-cell.is-free:not(.is-win-line) {
-  background: #028b00 !important;
+  background: #10b981 !important;
   color: #ffe600 !important;
   font-size: 16px !important;
 }
 
 .wb-winner-board-num {
-  color: #028b00 !important;
+  color: #10b981 !important;
   font-size: 14.5px !important;
   font-weight: 900 !important;
   text-align: center !important;
@@ -2905,10 +2906,10 @@ button {
 
 @keyframes lb-cell-last-call-blink {
   0% {
-    background: #028b00 !important;
+    background: #10b981 !important;
     color: #ffffff !important;
     transform: scale(1);
-    box-shadow: 0 0 6px rgba(2, 139, 0, 0.8) !important;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8) !important;
     border: 2px solid #ffffff !important;
   }
   100% {
@@ -3978,20 +3979,22 @@ body.is-game-active #view-game {
   justify-content: center !important;
   min-width: 0 !important;
   min-height: 0 !important;
-  background: #cbd5e1 !important;
+  background: #bbbbd3 !important;
   border: none !important;
   border-radius: 3.5px !important;
-  color: #1e293b !important;
+  color: #ffffff !important;
   font-family: inherit !important;
   font-size: 9.5px !important;
   font-weight: 800 !important;
   line-height: 1 !important;
   user-select: none !important;
   box-sizing: border-box !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) !important;
 }
 
 .lb-selection-cell.is-free {
-  color: #1e293b !important;
+  background: #10b981 !important;
+  color: #ffe600 !important;
   font-size: 13px !important;
   font-weight: 900 !important;
 }
@@ -4787,9 +4790,9 @@ body.is-game-active #view-game {
   min-width: 0 !important;
   min-height: 0 !important;
   border-radius: 3.5px !important;
-  background: #ede8ec !important;
+  background: #bbbbd3 !important;
   border: none !important;
-  color: #1e1b4b !important;
+  color: #ffffff !important;
   font-family: inherit !important;
   font-size: 10.5px !important;
   font-weight: 800 !important;
@@ -4798,20 +4801,40 @@ body.is-game-active #view-game {
   box-sizing: border-box !important;
   cursor: pointer !important;
   transition: transform 0.08s ease, background 0.12s ease !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) !important;
+}
+
+.is-standard-layout .lb-mine-cards-grid.has-single-card .lb-cell {
+  font-size: 15px !important;
+  border-radius: 5px !important;
+}
+
+.is-standard-layout .lb-mine-cards-grid.has-single-card .lb-cell.is-free {
+  font-size: 22px !important;
+}
+
+.is-standard-layout .lb-mine-cards-grid.has-single-card .lb-card-header-row {
+  height: 22px !important;
+  min-height: 22px !important;
+}
+
+.is-standard-layout .lb-mine-cards-grid.has-single-card .lb-card-header-row span {
+  height: 22px !important;
+  font-size: 13px !important;
 }
 
 .is-standard-layout .lb-cell.is-free {
-  background: #028b00 !important;
+  background: #10b981 !important;
   color: #ffe600 !important;
   font-size: 14px !important;
   font-weight: 900 !important;
 }
 
 .is-standard-layout .lb-cell.is-hit:not(.is-free) {
-  background: #028b00 !important;
+  background: #10b981 !important;
   color: #ffffff !important;
   font-weight: 900 !important;
-  box-shadow: 0 1px 4px rgba(2, 139, 0, 0.45) !important;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.45) !important;
 }
 
 .is-standard-layout .lb-cell.is-hit.is-calling-blink:not(.is-free) {
@@ -4941,33 +4964,34 @@ body.is-game-active #view-game {
   align-items: center !important;
   justify-content: center !important;
   border-radius: 3px !important;
-  background: #ffffff !important;
-  border: 1px solid #cbd5e1 !important;
-  color: #1e293b !important;
+  background: #bbbbd3 !important;
+  border: none !important;
+  color: #ffffff !important;
   font-family: Arial, -apple-system, sans-serif !important;
   font-size: 10px !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   line-height: 1 !important;
   box-sizing: border-box !important;
   user-select: none !important;
   cursor: pointer !important;
   padding: 0 !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) !important;
 }
 
 .has-many-cards-layout .lb-cell.is-free {
-  background: #028b00 !important;
-  border-color: #027500 !important;
+  background: #10b981 !important;
+  border: none !important;
   color: #ffe600 !important;
   font-size: 11px !important;
   font-weight: 900 !important;
 }
 
 .has-many-cards-layout .lb-cell.is-hit:not(.is-free) {
-  background: #028b00 !important;
-  border-color: #027500 !important;
+  background: #10b981 !important;
+  border: none !important;
   color: #ffffff !important;
-  font-weight: 800 !important;
-  box-shadow: 0 1px 3px rgba(2, 139, 0, 0.3) !important;
+  font-weight: 900 !important;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.35) !important;
 }
 
 .has-many-cards-layout .lb-cell.is-hit.is-calling-blink:not(.is-free) {
@@ -4981,8 +5005,8 @@ body.is-game-active #view-game {
 
 @keyframes lb-cell-hint-blink {
   0% {
-    background: #ffffff !important;
-    border-color: #cbd5e1 !important;
+    background: #bbbbd3 !important;
+    border-color: #bbbbd3 !important;
     transform: scale(1);
     box-shadow: none !important;
   }
@@ -5129,11 +5153,11 @@ body.is-game-active #view-game {
 
 /* When the user taps it, it turns solid green (marked) */
 .lb-v-dot.is-hit {
-  background: #028b00 !important;
-  border: 1px solid #027500 !important;
+  background: #10b981 !important;
+  border: 1px solid #10b981 !important;
   color: #ffffff !important;
   font-weight: 900 !important;
-  box-shadow: 0 1px 3px rgba(2, 139, 0, 0.35) !important;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.35) !important;
   animation: none !important;
   transform: none !important;
 }
