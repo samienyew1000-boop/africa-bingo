@@ -1237,8 +1237,16 @@ const server = http.createServer(async (req, res) => {
       gameState.transactions.unshift(newTx);
       saveGameState();
 
+      // Record transaction into SQLite database so Telegram bot & admin see it
+      recordSqliteTransaction(txId, user.id, "deposit", method, amount, phone || user.id, "pending");
+
+      // Sanitize fields for Telegram Markdown to prevent parse entity failure
+      const safePlayerName = String(user.name || "Player").replace(/[_*`\[\]]/g, " ").trim();
+      const safeRef = String(reference || "").slice(0, 160).replace(/[`*]/g, "").trim();
+      const safeMethod = String(method || "Telebirr").replace(/[_*`\[\]]/g, " ").trim();
+
       // Notify Admin on Telegram
-      notifyTelegramAdmin(`📩 *አዲስ የተቀማጭ ጥያቄ (New Deposit Request)*\n\n👤 *ተጫዋች:* ${user.name}\n💰 *መጠን:* \`${amount} ETB\`\n🏦 *መንገድ:* ${method}\n🧾 *ማጣቀሻ (Ref):* \`${reference}\`\n\n✅ ለማጽደቅ ወደ Admin Console ይሂዱ: ${WEB_APP_URL}admin.html`);
+      notifyTelegramAdmin(`📩 *አዲስ የተቀማጭ ጥያቄ (New Deposit Request)*\n\n👤 *ተጫዋች:* ${safePlayerName}\n💰 *መጠን:* \`${amount} ETB\`\n🏦 *መንገድ:* ${safeMethod}\n🧾 *ማጣቀሻ (Ref):* \`${safeRef}\`\n\n✅ ለማጽደቅ ወደ Admin Console ይሂዱ: ${WEB_APP_URL}admin.html`);
 
       return sendJson(res, { ok: true, id: txId, status: "pending" });
     }
@@ -1313,7 +1321,11 @@ const server = http.createServer(async (req, res) => {
       // Record transaction into SQLite database so Telegram bot & admin see it
       recordSqliteTransaction(txId, newTx.user_id, "withdraw", method, amount, newTx.phone, "pending");
 
-      notifyTelegramAdmin(`📤 *የገንዘብ ማውጣት ጥያቄ (New Withdrawal Request)*\n\n👤 *ተጫዋች:* ${newTx.player}\n💰 *መጠን:* \`${amount} ETB\`\n📱 *ስልክ:* \`${newTx.phone}\`\n🏦 *መንገድ:* ${method}\n\n✅ ለማጽደቅ: ${WEB_APP_URL}admin.html`);
+      const safePlayer = String(newTx.player || "Player").replace(/[_*`\[\]]/g, " ").trim();
+      const safePhone = String(newTx.phone || "").replace(/[`*]/g, "").trim();
+      const safeMethod = String(method || "Telebirr").replace(/[_*`\[\]]/g, " ").trim();
+
+      notifyTelegramAdmin(`📤 *የገንዘብ ማውጣት ጥያቄ (New Withdrawal Request)*\n\n👤 *ተጫዋች:* ${safePlayer}\n💰 *መጠን:* \`${amount} ETB\`\n📱 *ስልክ:* \`${safePhone}\`\n🏦 *መንገድ:* ${safeMethod}\n\n✅ ለማጽደቅ: ${WEB_APP_URL}admin.html`);
 
       return sendJson(res, {
         ok: true,
@@ -1717,19 +1729,41 @@ async function notifyTelegramAdmin(text) {
 
   console.log(`[NOTIFY ADMIN] Dispatching notification to ${targetIds.size} admin(s):`, Array.from(targetIds));
 
+  // Clean plain text fallback (strip markdown tokens)
+  const plainText = text.replace(/[*_`\[\]]/g, "");
+
   for (const adminId of targetIds) {
     telegramApi("sendMessage", {
       chat_id: adminId,
       text: text,
       parse_mode: "Markdown",
-    }).then((res) => {
+    }).then(async (res) => {
       if (res && res.ok) {
         console.log(`[NOTIFY ADMIN SUCCESS] Notification delivered to ${adminId}`);
       } else {
-        console.warn(`[NOTIFY ADMIN FAILED] Could not send to ${adminId}:`, res?.description || res?.error);
+        console.warn(`[NOTIFY ADMIN FAILED] Markdown failed for ${adminId}:`, res?.description || res?.error, "-> Retrying with plain text...");
+        try {
+          const retryRes = await telegramApi("sendMessage", {
+            chat_id: adminId,
+            text: plainText,
+          });
+          if (retryRes && retryRes.ok) {
+            console.log(`[NOTIFY ADMIN SUCCESS (FALLBACK)] Plain text delivered to ${adminId}`);
+          } else {
+            console.warn(`[NOTIFY ADMIN RETRY FAILED] Could not send plain text to ${adminId}:`, retryRes?.description || retryRes?.error);
+          }
+        } catch (retryErr) {
+          console.warn(`[NOTIFY ADMIN RETRY ERROR] Network error sending fallback to ${adminId}:`, retryErr.message);
+        }
       }
-    }).catch((err) => {
-      console.warn(`[NOTIFY ADMIN ERROR] Network error sending to ${adminId}:`, err.message);
+    }).catch(async (err) => {
+      console.warn(`[NOTIFY ADMIN ERROR] Network error sending to ${adminId}:`, err.message, "-> Retrying with plain text...");
+      try {
+        await telegramApi("sendMessage", {
+          chat_id: adminId,
+          text: plainText,
+        });
+      } catch (e2) {}
     });
   }
 }
@@ -1956,7 +1990,120 @@ async function startTelegramBot() {
             } else if (text.startsWith("/id") || text.startsWith("/myid") || text.startsWith("/status")) {
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `ℹ️ *የመለያ መረጃ (Account Info)*\n\n🆔 *Chat ID:* \`${chatId}\`\n👤 *Username:* @${rawUname || "None"}\n🛡️ *Role:* ${isAdmin ? "👑 Admin (Receives Alerts)" : "Player"}`,
+                text: `ℹ️ *የመለያ መረጃ (Account Info)*\n\n🆔 *Chat ID:* \`${chatId}\`\n👤 *Username:* \`@${rawUname || "None"}\`\n🛡️ *Role:* ${isAdmin ? "👑 Admin (Receives Alerts)" : "Player"}`,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+            } else if (
+              (extractTxCodes(text).length > 0 && (text.length >= 10 || /ETB|\bብር\b/i.test(text))) ||
+              /(?:transferred|ልከዋል|ተቀብለዋል|telebirr|cbe birr|deposited|receipt)/i.test(text)
+            ) {
+              let userRecord = gameState.users[chatId];
+              if (!userRecord) {
+                userRecord = {
+                  id: String(chatId),
+                  username: rawUname || uname || `User_${String(chatId).slice(-4)}`,
+                  first_name: firstName,
+                  balance: 0,
+                  created_at: new Date().toISOString(),
+                  source: "telegram",
+                  is_verified: 1,
+                };
+                gameState.users[chatId] = userRecord;
+                saveGameState();
+              }
+
+              if (!gameState.usedDepositReferences) {
+                gameState.usedDepositReferences = {};
+              }
+
+              const cleanRefUpper = text.trim().replace(/\s+/g, " ").toUpperCase();
+              const newCodes = extractTxCodes(text);
+              if (newCodes.length === 0) {
+                newCodes.push(cleanRefUpper.slice(0, 40));
+              }
+
+              let isDuplicate = false;
+              let matchedRef = "";
+              if (gameState.usedDepositReferences[cleanRefUpper]) {
+                isDuplicate = true;
+                matchedRef = cleanRefUpper;
+              } else {
+                for (const code of newCodes) {
+                  if (gameState.usedDepositReferences[code]) {
+                    isDuplicate = true;
+                    matchedRef = code;
+                    break;
+                  }
+                }
+              }
+
+              if (isDuplicate) {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `⚠️ *ይህ ደረሰኝ / የግብይት ቁጥር ቀደም ሲል ጥቅም ላይ ውሏል!*\n\nእባክዎ ትክክለኛ አዲስ ደረሰኝ ያስገቡ ወይም እርዳታ ከፈለጉ ድጋፍ ሰጪዎችን ያነጋግሩ።`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+                continue;
+              }
+
+              let extractedAmount = 0;
+              const amMatch1 = text.match(/(?:ETB|ብር)\s*([\d,]+(?:\.\d+)?)/i);
+              const amMatch2 = text.match(/([\d,]+(?:\.\d+)?)\s*(?:ETB|ብር)/i);
+              const amMatch3 = text.match(/(?:transferred|ልከዋል|deposited)\s*([\d,]+(?:\.\d+)?)/i);
+              if (amMatch1 && amMatch1[1]) extractedAmount = parseFloat(amMatch1[1].replace(/,/g, ""));
+              else if (amMatch2 && amMatch2[1]) extractedAmount = parseFloat(amMatch2[1].replace(/,/g, ""));
+              else if (amMatch3 && amMatch3[1]) extractedAmount = parseFloat(amMatch3[1].replace(/,/g, ""));
+
+              let detectedMethod = "Telebirr";
+              if (/cbe|commercial bank|ንግድ ባንክ/i.test(text)) detectedMethod = "CBE Birr";
+
+              const txId = `DEP-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
+              const playerName = firstName || rawUname || `User_${String(chatId).slice(-4)}`;
+              const newTx = {
+                id: txId,
+                playerId: `TG-${String(chatId).slice(-5)}`,
+                user_id: String(chatId),
+                player: playerName,
+                phone: String(chatId),
+                type: "deposit",
+                method: detectedMethod,
+                amount: extractedAmount,
+                reference: text.slice(0, 300),
+                requested: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                status: "pending",
+                created_at: new Date().toISOString(),
+              };
+
+              gameState.usedDepositReferences[cleanRefUpper] = {
+                txId: txId,
+                user_id: String(chatId),
+                player: playerName,
+                amount: extractedAmount,
+                created_at: new Date().toISOString(),
+              };
+              for (const code of newCodes) {
+                gameState.usedDepositReferences[code] = {
+                  txId: txId,
+                  user_id: String(chatId),
+                  player: playerName,
+                  amount: extractedAmount,
+                  created_at: new Date().toISOString(),
+                };
+              }
+
+              gameState.transactions.unshift(newTx);
+              saveGameState();
+              recordSqliteTransaction(txId, String(chatId), "deposit", detectedMethod, extractedAmount, String(chatId), "pending");
+
+              const safePlayerName = String(playerName).replace(/[_*`\[\]]/g, " ").trim();
+              const safeRef = String(newCodes[0] || text.slice(0, 50)).replace(/[`*]/g, "").trim();
+              notifyTelegramAdmin(`📩 *አዲስ የተቀማጭ ደረሰኝ (New Bot SMS Deposit)*\n\n👤 *ተጫዋች:* ${safePlayerName} (\`${chatId}\`)\n💰 *የተገኘ መጠን:* \`${extractedAmount > 0 ? extractedAmount + " ETB" : "በአድሚን ይረጋገጥ"}\`\n🏦 *መንገድ:* ${detectedMethod}\n🧾 *ማጣቀሻ:* \`${safeRef}\`\n\n✅ ለማጽደቅ: ${WEB_APP_URL}admin.html`);
+
+              await telegramApi("sendMessage", {
+                chat_id: chatId,
+                text: `✅ *ደረሰኝዎ በተሳካ ሁኔታ ደርሶናል!*\n\n💰 *መጠን:* \`${extractedAmount > 0 ? extractedAmount + " ETB" : "በማረጋገጥ ላይ"}\`\n🧾 *ማጣቀሻ:* \`${newCodes[0] || "የተረጋገጠ"}\`\n\n📌 ጥያቄዎ በአስተዳዳሪው ተረጋግጦ ቀሪ ሂሳብዎ ላይ ይጨመራል። ጥቂት ደቂቃ ይጠብቁ!\n\nለመጫወት ከታች ያለውን **🎮 Play Game** ይጫኑ።`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
