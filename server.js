@@ -690,6 +690,7 @@ class LiveBingoRoom {
 
     const patternLabel = winKind || (this.currentPattern ? (this.currentPattern.label || this.currentPattern.name) : "1 መስመር");
     const resultId = `RES_${this.id}_R${this.roundId}_${Math.floor(Date.now() / 1000)}`;
+    const winningCall = this.calls.length ? this.calls[this.calls.length - 1] : null;
     this.lastResult = {
       result_id: resultId,
       round_id: this.roundId,
@@ -699,6 +700,7 @@ class LiveBingoRoom {
       card_id: cardId,
       pattern: patternLabel,
       ended_at: Math.floor(Date.now() / 1000),
+      winning_call: winningCall,
     };
 
     setTimeout(() => {

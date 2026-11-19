@@ -601,14 +601,14 @@ function handleServerRoomState(sState) {
               roundOutcome = "win";
               roundWinnerName = res.winner_name || PLAYER_NAME;
               showRoundResult("win", roundWinnerName, winPattern, res.card_id || selected.values().next().value);
-              showWinnerOverlay("win", roundWinnerName, res.prize, res.card_id || selected.values().next().value, winPattern);
+              showWinnerOverlay("win", roundWinnerName, res.prize, res.card_id || selected.values().next().value, winPattern, res.winning_call);
               toast("YOU WON!", "win");
             } else {
               roundOutcome = "lose";
               roundWinnerName = res.winner_name || "Opponent";
               showRoundResult("lose", roundWinnerName, winPattern, res.card_id);
               markLoserCards();
-              showWinnerOverlay("lose", roundWinnerName, res.prize != null ? res.prize : stake, res.card_id, winPattern);
+              showWinnerOverlay("lose", roundWinnerName, res.prize != null ? res.prize : stake, res.card_id, winPattern, res.winning_call);
               toast((roundWinnerName).toUpperCase() + " WON!", "lose");
             }
           }
@@ -3632,7 +3632,7 @@ function renderWinnerConfetti() {
   container.appendChild(fragment);
 }
 
-function renderSingleWinnerCard(cardId, hits, kind = "LINE") {
+function renderSingleWinnerCard(cardId, hits, kind = "LINE", winningCall = null) {
   const rawCard = ensureCard(cardId);
   const cardObj = rawCard ? { id: rawCard.id, cells: [...rawCard.cells] } : {
     id: cardId,
@@ -3649,6 +3649,34 @@ function renderSingleWinnerCard(cardId, hits, kind = "LINE") {
     }
   } catch (e) {
     [2, 7, 12, 17, 22].forEach((idx) => winIndexes.add(idx));
+  }
+
+  // Find the exact last winning number that completed the win
+  let lastCallIndex = -1;
+  let maxCallOrder = -1;
+  const callsArr = Array.isArray(called) && called.length > 0 ? called : Array.from(hits || []);
+
+  winIndexes.forEach((idx) => {
+    if (idx === 12) return; // Free center
+    const val = Number(cardObj.cells[idx]);
+    if (winningCall !== null && winningCall !== undefined && val === Number(winningCall)) {
+      lastCallIndex = idx;
+      return;
+    }
+    const order = callsArr.lastIndexOf(val);
+    if (order > maxCallOrder) {
+      maxCallOrder = order;
+      if (lastCallIndex === -1 || winningCall === null) {
+        lastCallIndex = idx;
+      }
+    }
+  });
+
+  if (lastCallIndex === -1) {
+    const nonFreeWins = Array.from(winIndexes).filter((i) => i !== 12);
+    if (nonFreeWins.length > 0) {
+      lastCallIndex = nonFreeWins[nonFreeWins.length - 1];
+    }
   }
 
   const cardBox = document.createElement("div");
@@ -3674,11 +3702,17 @@ function renderSingleWinnerCard(cardId, hits, kind = "LINE") {
     const isFree = index === 12 || val === "FREE" || val === 0;
     const isWin = winIndexes.has(index);
     const isHit = isWin || isFree || hits.has(val) || hits.has(Number(val));
+    const isLastWinningCall = index === lastCallIndex;
 
     if (isWin) {
       cell.classList.add("is-win-line");
     } else if (isHit) {
       cell.classList.add("is-called-hit");
+    }
+
+    if (isLastWinningCall) {
+      cell.classList.add("is-last-call-blink");
+      cell.classList.add("is-winning-call-blink");
     }
 
     if (isFree) {
@@ -3693,7 +3727,7 @@ function renderSingleWinnerCard(cardId, hits, kind = "LINE") {
   return cardBox;
 }
 
-function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kind = "LINE") {
+function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kind = "LINE", winningCall = null) {
   if (winnerPendingTimeout) {
     clearTimeout(winnerPendingTimeout);
     winnerPendingTimeout = null;
@@ -3736,7 +3770,7 @@ function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kin
     container.replaceChildren();
     const hitSet = new Set(called);
     cardIds.forEach((id) => {
-      const cardEl = renderSingleWinnerCard(id, hitSet, kind);
+      const cardEl = renderSingleWinnerCard(id, hitSet, kind, winningCall);
       container.appendChild(cardEl);
     });
   }
@@ -4422,7 +4456,7 @@ function claimBingo() {
     if (!winnerTimer) {
       showRoundResult("win", PLAYER_NAME, kind, winCard);
       toast(`WON! +${fmt(win)} ETB`, "win");
-      showWinnerOverlay("win", PLAYER_NAME, win, winCard, kind);
+      showWinnerOverlay("win", PLAYER_NAME, win, winCard, kind, (Array.isArray(called) && called.length) ? called[called.length - 1] : null);
     }
   }, 1000);
 }
@@ -4465,7 +4499,7 @@ function botWins() {
     if (!winnerTimer) {
       showRoundResult("lose", winnerName, "LINE", botCardId);
       toast(`${winnerName} CLAIMED BINGO!`, "lose");
-      showWinnerOverlay("lose", winnerName, botPrize, botCardId, "LINE");
+      showWinnerOverlay("lose", winnerName, botPrize, botCardId, "LINE", (Array.isArray(called) && called.length) ? called[called.length - 1] : null);
     }
   }, 1000);
 }
