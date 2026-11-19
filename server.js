@@ -92,6 +92,59 @@ const DEFAULT_STATE = {
 
 let gameState = DEFAULT_STATE;
 
+const COMMON_SMS_WORDS = new Set([
+  "CUSTOMER", "TRANSFERRED", "TRANSACTION", "COMPLETED", "SUCCESSFUL",
+  "SUCCESSFULLY", "DEPOSITED", "CONFIRMED", "PAYMENT", "ACCOUNT",
+  "TELEBIRR", "SERVICE", "TRANSFER", "RECEIVED", "BALANCE", "TELECOM",
+  "ETHIOTELECOM", "COMMERCIAL", "DEAR", "YOUR", "HAVE", "WITH", "FROM", "FOR"
+]);
+
+function extractTxCodes(text) {
+  if (!text || typeof text !== "string") return [];
+  const trimmed = text.trim();
+  const codes = new Set();
+
+  if (!trimmed.includes(" ") && !trimmed.includes("\n") && trimmed.length >= 4) {
+    codes.add(trimmed.toUpperCase());
+  }
+
+  const keywordPatterns = [
+    /(?:trans(?:action)?\.?\s*(?:id|no|number|num)?[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
+    /(?:txn\s*(?:id|no|num)?[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
+    /(?:ref(?:\.|erence)?[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
+    /(?:code[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
+    /(?:fs\s*no[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
+    /(?:ቁጥር[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
+  ];
+
+  for (const pat of keywordPatterns) {
+    let match;
+    while ((match = pat.exec(trimmed)) !== null) {
+      if (match[1]) {
+        const c = match[1].trim().toUpperCase();
+        if (c.length >= 5 && !COMMON_SMS_WORDS.has(c)) {
+          codes.add(c);
+        }
+      }
+    }
+  }
+
+  const tokenMatches = trimmed.match(/\b([A-Za-z0-9]{7,30})\b/g);
+  if (tokenMatches) {
+    for (const rawToken of tokenMatches) {
+      const token = rawToken.toUpperCase();
+      if (COMMON_SMS_WORDS.has(token)) continue;
+      const hasDigit = /\d/.test(token);
+      const hasAlpha = /[A-Z]/.test(token);
+      if ((hasDigit && hasAlpha) || (hasDigit && token.length >= 10)) {
+        codes.add(token);
+      }
+    }
+  }
+
+  return Array.from(codes);
+}
+
 function loadGameState() {
   try {
     let fileData = null;
@@ -143,7 +196,30 @@ function loadGameState() {
       },
       users: mergedUsers,
       transactions: mergedTxns,
+      usedDepositReferences: {
+        ...(fileData?.usedDepositReferences || {}),
+      },
     };
+
+    if (Array.isArray(gameState.transactions)) {
+      for (const tx of gameState.transactions) {
+        if (tx.type === "deposit" || tx.reference) {
+          const rawRef = String(tx.reference || "").trim();
+          if (rawRef) {
+            const rawUpper = rawRef.replace(/\s+/g, " ").toUpperCase();
+            if (!gameState.usedDepositReferences[rawUpper]) {
+              gameState.usedDepositReferences[rawUpper] = { txId: tx.id, at: tx.created_at || "" };
+            }
+            const codes = extractTxCodes(rawRef);
+            for (const c of codes) {
+              if (!gameState.usedDepositReferences[c]) {
+                gameState.usedDepositReferences[c] = { txId: tx.id, at: tx.created_at || "" };
+              }
+            }
+          }
+        }
+      }
+    }
 
     if (Object.keys(backupUsers).length > Object.keys(fileData?.users || {}).length) {
       console.log(`[STATE] Auto-recovered ${Object.keys(backupUsers).length} users from backup!`);
@@ -1035,8 +1111,94 @@ const server = http.createServer(async (req, res) => {
       const body = await parseJsonBody(req);
       const amount = Number(body.amount) || 0;
       const method = body.method || "Telebirr";
-      const reference = body.reference || "";
+      const reference = (body.reference || "").trim();
       const phone = body.phone || "";
+
+      if (amount <= 0) {
+        return sendJson(res, { ok: false, error: "ትክክለኛ የገንዘብ መጠን ያስገቡ (Invalid amount)" }, 400);
+      }
+      if (amount < 50) {
+        return sendJson(res, { ok: false, error: "ዝቅተኛው የዲፖዚት መጠን 50 ብር ነው (Minimum deposit is 50 ETB)" }, 400);
+      }
+      if (!reference || reference.length < 4) {
+        return sendJson(res, { ok: false, error: "ትክክለኛ የግብይት ማጣቀሻ (Reference / SMS) ያስገቡ" }, 400);
+      }
+
+      if (!gameState.usedDepositReferences) {
+        gameState.usedDepositReferences = {};
+      }
+
+      const cleanRefUpper = reference.replace(/\s+/g, " ").toUpperCase();
+      const newCodes = extractTxCodes(reference);
+      if (newCodes.length === 0) {
+        newCodes.push(cleanRefUpper);
+      }
+
+      let isDuplicate = false;
+      let matchedRef = "";
+
+      // 1. Check against the persistent usedDepositReferences registry
+      if (gameState.usedDepositReferences[cleanRefUpper]) {
+        isDuplicate = true;
+        matchedRef = cleanRefUpper;
+      } else {
+        for (const code of newCodes) {
+          if (gameState.usedDepositReferences[code]) {
+            isDuplicate = true;
+            matchedRef = code;
+            break;
+          }
+        }
+      }
+
+      // 2. Check against all past transactions in memory (regardless of status: pending, approved, or rejected!)
+      if (!isDuplicate && Array.isArray(gameState.transactions)) {
+        for (const tx of gameState.transactions) {
+          if (tx.type !== "deposit" && !tx.reference) continue;
+          const existingRef = String(tx.reference || "").trim();
+          if (!existingRef) continue;
+          const existingUpper = existingRef.replace(/\s+/g, " ").toUpperCase();
+
+          if (existingUpper === cleanRefUpper) {
+            isDuplicate = true;
+            matchedRef = existingUpper;
+            break;
+          }
+
+          const existingCodes = extractTxCodes(existingRef);
+          if (newCodes.some((c) => existingCodes.includes(c))) {
+            isDuplicate = true;
+            matchedRef = existingUpper;
+            break;
+          }
+
+          for (const c of newCodes) {
+            if (c.length >= 6 && existingUpper.includes(c)) {
+              isDuplicate = true;
+              matchedRef = c;
+              break;
+            }
+          }
+          if (isDuplicate) break;
+
+          for (const ec of existingCodes) {
+            if (ec.length >= 6 && cleanRefUpper.includes(ec)) {
+              isDuplicate = true;
+              matchedRef = ec;
+              break;
+            }
+          }
+          if (isDuplicate) break;
+        }
+      }
+
+      if (isDuplicate) {
+        console.warn(`[DEPOSIT DUPLICATE BLOCKED] Reference "${reference}" (matched "${matchedRef}") already used. User: ${user.id} (${user.name})`);
+        return sendJson(res, {
+          ok: false,
+          error: "ይህ የግብይት ቁጥር ቀደም ሲል ጥቅም ላይ ውሏል! (This transaction reference has already been used)"
+        }, 400);
+      }
 
       const txId = `DEP-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
       const newTx = {
@@ -1053,6 +1215,24 @@ const server = http.createServer(async (req, res) => {
         status: "pending",
         created_at: new Date().toISOString(),
       };
+
+      // Record into persistent used registry so this reference/SMS can never be submitted again
+      gameState.usedDepositReferences[cleanRefUpper] = {
+        txId: txId,
+        user_id: user.id,
+        player: user.name,
+        amount: amount,
+        created_at: new Date().toISOString()
+      };
+      for (const code of newCodes) {
+        gameState.usedDepositReferences[code] = {
+          txId: txId,
+          user_id: user.id,
+          player: user.name,
+          amount: amount,
+          created_at: new Date().toISOString()
+        };
+      }
 
       gameState.transactions.unshift(newTx);
       saveGameState();

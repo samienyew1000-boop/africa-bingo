@@ -4722,35 +4722,105 @@ function saveWalletRequest(request) {
 
 function handleDepositSubmit(event) {
   event.preventDefault();
+  const form = event.currentTarget || event.target;
   const amount = normaliseWalletAmount($("deposit-amount").value);
   const reference = $("deposit-reference").value.trim();
   const method = walletState.deposit;
   const account = PAYMENT_METHODS[method] || PAYMENT_METHODS.Telebirr;
+  const submitBtn = form ? (form.querySelector("button[type='submit']") || form.querySelector(".lb-wallet-submit")) : null;
 
   if (amount < MIN_WALLET_AMOUNT) {
-    showWalletFeedback("deposit", `Minimum deposit amount is ${MIN_WALLET_AMOUNT} ETB.`, true);
+    showWalletFeedback("deposit", `ዝቅተኛው የዲፖዚት መጠን ${MIN_WALLET_AMOUNT} ብር ነው። (Minimum deposit is ${MIN_WALLET_AMOUNT} ETB)`, true);
     toast("MINIMUM 50 ETB", "lose");
     return;
   }
   if (reference.length < 4) {
-    showWalletFeedback("deposit", "Paste a valid transaction reference or SMS confirmation.", true);
+    showWalletFeedback("deposit", "ትክክለኛ የግብይት ቁጥር ወይም የ SMS መልዕክት ያስገቡ። (Paste a valid transaction reference or SMS)", true);
     toast("REFERENCE REQUIRED", "lose");
     return;
   }
 
-  const transaction = saveWalletRequest({ type: "deposit", method, amount, reference, accountName: account.accountName, accountNumber: account.accountNumber });
-  const bonus = amount >= 100 ? Math.floor(amount * 0.2) : 0;
-  showWalletFeedback(
-    "deposit",
-    `Deposit request ${transaction.id} was sent via ${method}. ${bonus ? `Bonus pending: ${fmt(bonus)} ETB.` : "Admin approval is required."}`
-  );
-  event.currentTarget.reset();
-  toast("DEPOSIT REQUEST SENT", "win");
+  // Pre-check local wallet requests to immediately block duplicate submissions on same device
+  const cleanRef = reference.replace(/\s+/g, " ").toUpperCase();
+  try {
+    const saved = JSON.parse(localStorage.getItem(ADMIN_STATE_KEY) || "{}");
+    const localTxns = Array.isArray(saved.transactions) ? saved.transactions : [];
+    const isLocalDup = localTxns.some((t) => {
+      if (t.type === "deposit" && t.reference) {
+        return t.reference.trim().replace(/\s+/g, " ").toUpperCase() === cleanRef;
+      }
+      return false;
+    });
+    if (isLocalDup) {
+      showWalletFeedback("deposit", "ይህ የግብይት ቁጥር ቀደም ሲል ጥቅም ላይ ውሏል! (This transaction reference has already been used)", true);
+      toast("ALREADY USED", "lose");
+      return;
+    }
+  } catch (e) {}
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = "0.7";
+    submitBtn.style.pointerEvents = "none";
+  }
+  showWalletFeedback("deposit", "የተላከው የግብይት ቁጥር እየተረጋገጠ ነው... (Verifying...)", false);
 
   if (typeof LuckyBingoAPI !== "undefined") {
     LuckyBingoAPI.deposit(amount, method, reference, "").then((res) => {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = "";
+        submitBtn.style.pointerEvents = "";
+      }
+
+      if (!res || res.error || res.ok === false) {
+        const errorMsg = res?.error || "ይህ የግብይት ቁጥር ቀደም ሲል ጥቅም ላይ ውሏል! (This transaction reference has already been used)";
+        showWalletFeedback("deposit", errorMsg, true);
+        toast("ALREADY USED", "lose");
+        return;
+      }
+
+      const txId = res.id || makeTransactionId();
+      saveWalletRequest({
+        id: txId,
+        type: "deposit",
+        method,
+        amount,
+        reference,
+        accountName: account.accountName,
+        accountNumber: account.accountNumber,
+      });
+
+      const bonus = amount >= 100 ? Math.floor(amount * 0.2) : 0;
+      showWalletFeedback(
+        "deposit",
+        `የተቀማጭ ጥያቄ ቁጥር ${txId} ተልኳል። የአስተዳዳሪ ማረጋገጫ ይጠብቃል። (Deposit request ${txId} was sent. Admin approval is required.)`
+      );
+      if (form && form.reset) form.reset();
+      toast("DEPOSIT REQUEST SENT", "win");
       syncProfileWithServer();
-    }).catch(() => {});
+    }).catch((err) => {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = "";
+        submitBtn.style.pointerEvents = "";
+      }
+      showWalletFeedback("deposit", "የኔትወርክ ስህተት ተከስቷል፣ እባክዎ እንደገና ይሞክሩ።", true);
+      toast("NETWORK ERROR", "lose");
+    });
+  } else {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = "";
+      submitBtn.style.pointerEvents = "";
+    }
+    const transaction = saveWalletRequest({ type: "deposit", method, amount, reference, accountName: account.accountName, accountNumber: account.accountNumber });
+    showWalletFeedback(
+      "deposit",
+      `Deposit request ${transaction.id} was sent via ${method}. Admin approval is required.`
+    );
+    if (form && form.reset) form.reset();
+    toast("DEPOSIT REQUEST SENT", "win");
   }
 }
 
