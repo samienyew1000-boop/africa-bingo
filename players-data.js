@@ -10,7 +10,7 @@ window.LUCKY_BINGO_PAYMENT_METHODS = {
   "Telebirr": {
     "name": "Telebirr",
     "account_name": "ቃልኪዳን እንየው",
-    "account_number": "0975094812",
+    "account_number": "0963344995",
     "min_amount": 50,
     "bonus": "ከ 100 ETB በላይ 20% ተጨማሪ ቦነስ",
     "enabled": true

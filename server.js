@@ -74,7 +74,7 @@ const DEFAULT_STATE = {
     bonusThreshold: 100,
     startingBonus: 0,
     startingBonusEnabled: false,
-    depositTelebirrPhone: "0975094812",
+    depositTelebirrPhone: "0963344995",
     depositTelebirrName: "ቃልኪዳን እንየው",
     depositCbeBirrPhone: "1000817750552",
     depositCbeBirrName: "ቃልኪዳን እንየው",
@@ -189,7 +189,7 @@ function loadGameState() {
         countdown: 30,
         startingBonus: 0,
         startingBonusEnabled: false,
-        depositTelebirrPhone: "0975094812",
+        depositTelebirrPhone: "0963344995",
         depositTelebirrName: "ቃልኪዳን እንየው",
         depositCbeBirrPhone: "1000817750552",
         depositCbeBirrName: "ቃልኪዳን እንየው",
@@ -1889,7 +1889,7 @@ async function startTelegramBot() {
                 });
               }
             } else if (text.includes("Deposit") || text.includes("ተቀማጭ") || text.includes("ዲፖዚት") || text === "/deposit") {
-              const telePhone = gameState.settings.depositTelebirrPhone || "0975094812";
+              const telePhone = gameState.settings.depositTelebirrPhone || "0963344995";
               const teleName = gameState.settings.depositTelebirrName || "ቃልኪዳን እንየው";
               const cbePhone = gameState.settings.depositCbeBirrPhone || "1000817750552";
               const cbeName = gameState.settings.depositCbeBirrName || "ቃልኪዳን እንየው";
