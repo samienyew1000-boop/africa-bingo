@@ -2673,13 +2673,14 @@ function updateGameSummary() {
   const serverPlayers = server ? Number(server.player_count) || 0 : 0;
   const serverCards = server ? Number(server.total_cards) || 0 : 0;
   const players = serverPlayers > 0 ? serverPlayers : (botPlayers ? botPlayers + selected.size : Math.max(1, selected.size));
-  const activeCards = Math.max(serverCards, players);
+  const activeCards = Math.max(serverCards, selected.size + takenByOthers.size, selected.size, 1);
   const derash = (server && Number(server.derash) > 0)
     ? Math.round(Number(server.derash))
     : calculateDerash(Math.max(1, activeCards), roomStake);
   const roundId = room?.roundId || server?.round_id || "720";
   const derashEl = $("game-derash");
   const playersEl = $("game-players");
+  const playersLabelEl = $("game-players-label");
   const stakeEl = $("game-stake");
   const roundEl = $("game-round");
   const gameIdLabelEl = $("game-id-label");
@@ -2694,8 +2695,15 @@ function updateGameSummary() {
     gameIdLabelEl.textContent = `Game ${gameNumber} ID`;
   }
 
+  if (playersLabelEl) {
+    playersLabelEl.textContent = "Cartela";
+  }
+
+  // Display registered cartelas count (server total_cards or active cards)
+  const displayCartelas = serverCards > 0 ? serverCards : (activeCards > 0 ? activeCards : Math.max(1, selected.size));
+
   if (derashEl) derashEl.textContent = String(Math.round(derash));
-  if (playersEl) playersEl.textContent = fmt(players);
+  if (playersEl) playersEl.textContent = fmt(displayCartelas);
   if (stakeEl) stakeEl.textContent = String(Math.round(roomStake));
   if (roundEl) {
     const rawId = String(roundId).replace(/^#/, "");
