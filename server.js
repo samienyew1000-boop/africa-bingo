@@ -1117,8 +1117,8 @@ const server = http.createServer(async (req, res) => {
       if (amount <= 0) {
         return sendJson(res, { ok: false, error: "ትክክለኛ የገንዘብ መጠን ያስገቡ (Invalid amount)" }, 400);
       }
-      if (amount < 50) {
-        return sendJson(res, { ok: false, error: "ዝቅተኛው የዲፖዚት መጠን 50 ብር ነው (Minimum deposit is 50 ETB)" }, 400);
+      if (amount < 10) {
+        return sendJson(res, { ok: false, error: "ዝቅተኛው የዲፖዚት መጠን 10 ብር ነው (Minimum deposit is 10 ETB)" }, 400);
       }
       if (!reference || reference.length < 4) {
         return sendJson(res, { ok: false, error: "ትክክለኛ የግብይት ማጣቀሻ (Reference / SMS) ያስገቡ" }, 400);
@@ -1787,6 +1787,32 @@ async function startTelegramBot() {
     console.log("[INFO] Successfully configured Telegram bot polling.");
   } catch (e) {}
 
+  const botUserStates = {};
+
+  const MAIN_REPLY_KEYBOARD = {
+    keyboard: [
+      [
+        { text: "🎮 Play Game", web_app: { url: WEB_APP_URL } }
+      ],
+      [
+        { text: "💰 Deposit" },
+        { text: "💸 Withdraw" }
+      ],
+      [
+        { text: "💳 Balance" }
+      ],
+      [
+        { text: "📞 Support" },
+        { text: "📖 Instructions" }
+      ],
+      [
+        { text: "🎁 Invite Friends" }
+      ]
+    ],
+    resize_keyboard: true,
+    is_persistent: true
+  };
+
   let offset = 0;
   async function poll() {
     try {
@@ -1798,6 +1824,62 @@ async function startTelegramBot() {
       if (res && res.ok && Array.isArray(res.result)) {
         for (const update of res.result) {
           offset = update.update_id + 1;
+
+          // 1. Handle Callback Query (Inline buttons)
+          if (update.callback_query) {
+            const cq = update.callback_query;
+            const cqId = cq.id;
+            const cqChatId = cq.message?.chat?.id || cq.from?.id;
+            const cqData = cq.data || "";
+
+            try {
+              telegramApi("answerCallbackQuery", { callback_query_id: cqId }).catch(() => {});
+            } catch (e) {}
+
+            if (cqData.startsWith("dep_m:")) {
+              const parts = cqData.split(":");
+              const method = parts[1] || "Telebirr";
+              const amount = parseFloat(parts[2]) || botUserStates[cqChatId]?.amount || 10;
+
+              botUserStates[cqChatId] = {
+                step: "awaiting_deposit_sms",
+                amount: amount,
+                method: method,
+                updatedAt: Date.now()
+              };
+
+              const telePhone = gameState.settings.depositTelebirrPhone || "0963344995";
+              const teleName = gameState.settings.depositTelebirrName || "ቃልኪዳን እንየው";
+              const cbePhone = gameState.settings.depositCbeBirrPhone || "1000817750552";
+              const cbeName = gameState.settings.depositCbeBirrName || "ቃልኪዳን እንየው";
+
+              if (method === "Telebirr") {
+                await telegramApi("sendMessage", {
+                  chat_id: cqChatId,
+                  text: `📱 *Tele-Birr*\n\n\`${telePhone}\`\n\n*የቴሌቢር መመሪያ:-*\n\n1. በላይ ላለው የ Tele-Birr አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ከ Tele-Birr ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Waliya bingo support (@su121316)`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+              } else {
+                await telegramApi("sendMessage", {
+                  chat_id: cqChatId,
+                  text: `🏦 *CBE Birr / ንግድ ባንክ*\n\n\`${cbePhone}\`\n\n*የንግድ ባንክ መመሪያ:-*\n\n1. በላይ ላለው የባንክ አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Waliya bingo support (@su121316)`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+              }
+            } else if (cqData === "dep_sms_help") {
+              await telegramApi("sendMessage", {
+                chat_id: cqChatId,
+                text: `ℹ️ *የ SMS ማረጋገጫ እርዳታ*\n\n1. በቴሌብር አፕሊኬሽን ወይም በ *127# የግብይት ታሪክ (Transaction History) ውስጥ የግብይት ቁጥሩን ይመልከቱ።\n2. የግብይት ቁጥሩን (Transaction ID ወይም Ref) ኮፒ በማድረግ እዚህ ይላኩ።\n3. ማንኛውም ችግር ካጋጠመዎት ድጋፍ ሰጪዎቻችንን ያነጋግሩ:\n👉 @su121316\n📞 \`+251918182355\``,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+            }
+            continue;
+          }
+
+          // 2. Handle Message
           const msg = update.message;
           if (msg && (msg.text || msg.contact)) {
             const chatId = msg.chat.id;
@@ -1835,31 +1917,6 @@ async function startTelegramBot() {
               }
               saveGameState();
             }
-
-            // Persistent Main Keyboard matching user screenshot
-            const MAIN_REPLY_KEYBOARD = {
-              keyboard: [
-                [
-                  { text: "🎮 Play Game", web_app: { url: WEB_APP_URL } }
-                ],
-                [
-                  { text: "💰 Deposit" },
-                  { text: "💸 Withdraw" }
-                ],
-                [
-                  { text: "💳 Balance" }
-                ],
-                [
-                  { text: "📞 Support" },
-                  { text: "📖 Instructions" }
-                ],
-                [
-                  { text: "🎁 Invite Friends" }
-                ]
-              ],
-              resize_keyboard: true,
-              is_persistent: true
-            };
 
             // Handle shared contact registration
             if (msg && msg.contact && msg.contact.phone_number) {
@@ -1923,14 +1980,14 @@ async function startTelegramBot() {
                 });
               }
             } else if (text.includes("Deposit") || text.includes("ተቀማጭ") || text.includes("ዲፖዚት") || text === "/deposit") {
-              const telePhone = gameState.settings.depositTelebirrPhone || "0963344995";
-              const teleName = gameState.settings.depositTelebirrName || "ቃልኪዳን እንየው";
-              const cbePhone = gameState.settings.depositCbeBirrPhone || "1000817750552";
-              const cbeName = gameState.settings.depositCbeBirrName || "ቃልኪዳን እንየው";
+              botUserStates[chatId] = {
+                step: "awaiting_deposit_amount",
+                updatedAt: Date.now()
+              };
 
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `💰 *የተቀማጭ ሂሳብ መሙያ (Deposit)*\n\nገንዘብ ለማስገባት ከታች ያሉትን የሂሳብ ቁጥሮች ይጠቀሙ:\n\n📱 *ቴሌብር (Telebirr):*\n• ስልክ: \`${telePhone}\`\n• ስም: *${teleName}*\n\n🏦 *ንግድ ባንክ (CBE / CBE Birr):*\n• አካውንት: \`${cbePhone}\`\n• ስም: *${cbeName}*\n\n💡 *ማሳሰቢያ:* ገንዘብ ካስተላለፉ በኋላ ከታች **🎮 Play Game** የሚለውን ተጭነው በጨዋታው ውስጥ *Deposit* የሚለውን በመንካት የደረሰኝ ስክሪንሾት ወይም የሂሳብ ቁጥርዎን ያስገቡ። ጥያቄዎ ፈጣን ምላሽ ያገኛል!`,
+                text: `💰 *ማስገባት የሚፈልጉትን መጠን ከ10 ብር ጀምሮ ያስገቡ::*`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
@@ -1995,8 +2052,46 @@ async function startTelegramBot() {
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
             } else if (
-              (extractTxCodes(text).length > 0 && (text.length >= 10 || /ETB|\bብር\b/i.test(text))) ||
-              /(?:transferred|ልከዋል|ተቀብለዋል|telebirr|cbe birr|deposited|receipt)/i.test(text)
+              /^(\d+(?:\.\d+)?)\s*(?:birr|etb|ብር)?$/i.test(text.replace(/,/g, "").trim()) &&
+              (botUserStates[chatId]?.step === "awaiting_deposit_amount" || (!text.startsWith("/") && parseFloat(text.replace(/,/g, "").trim()) >= 10))
+            ) {
+              const amountMatch = text.replace(/,/g, "").trim().match(/^(\d+(?:\.\d+)?)/);
+              const amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
+              if (amount < 10) {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `⚠️ *ዝቅተኛው የማስገቢያ መጠን 10 ብር ነው።* እባክዎ ከ10 ብር ጀምሮ ያስገቡ::`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+              } else {
+                botUserStates[chatId] = {
+                  step: "awaiting_deposit_method",
+                  amount: amount,
+                  updatedAt: Date.now()
+                };
+
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `*ተቀማጭ*\n*መጠን:* \`${amount.toFixed(2)} ብር\`\n*ዘዴ ይምረጡ:-*\n\n📞 ለ ድጋፍ ወይም ላጋጠመዎት ችግር\n1. Waliya bingo support (@su121316)`,
+                  parse_mode: "Markdown",
+                  reply_markup: {
+                    inline_keyboard: [
+                      [
+                        { text: "📱 Telebirr", callback_data: `dep_m:Telebirr:${amount}` },
+                        { text: "🏦 CBE Birr", callback_data: `dep_m:CBE Birr:${amount}` }
+                      ],
+                      [
+                        { text: "📩 SMS አልደረሰኝም?", callback_data: "dep_sms_help" }
+                      ]
+                    ]
+                  }
+                });
+              }
+            } else if (
+              (extractTxCodes(text).length > 0 && (text.length >= 8 || /ETB|\bብር\b/i.test(text))) ||
+              /(?:transferred|ልከዋል|ተቀብለዋል|telebirr|cbe birr|deposited|receipt)/i.test(text) ||
+              (botUserStates[chatId]?.step === "awaiting_deposit_sms" && text.length >= 4)
             ) {
               let userRecord = gameState.users[chatId];
               if (!userRecord) {
@@ -2056,8 +2151,12 @@ async function startTelegramBot() {
               else if (amMatch2 && amMatch2[1]) extractedAmount = parseFloat(amMatch2[1].replace(/,/g, ""));
               else if (amMatch3 && amMatch3[1]) extractedAmount = parseFloat(amMatch3[1].replace(/,/g, ""));
 
-              let detectedMethod = "Telebirr";
-              if (/cbe|commercial bank|ንግድ ባንክ/i.test(text)) detectedMethod = "CBE Birr";
+              // Fallback to bot flow amount if not parsed from SMS
+              if (extractedAmount <= 0 && botUserStates[chatId]?.amount > 0) {
+                extractedAmount = botUserStates[chatId].amount;
+              }
+
+              let detectedMethod = botUserStates[chatId]?.method || (/cbe|commercial bank|ንግድ ባንክ/i.test(text) ? "CBE Birr" : "Telebirr");
 
               const txId = `DEP-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
               const playerName = firstName || rawUname || `User_${String(chatId).slice(-4)}`;
@@ -2103,10 +2202,12 @@ async function startTelegramBot() {
 
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `✅ *ደረሰኝዎ በተሳካ ሁኔታ ደርሶናል!*\n\n💰 *መጠን:* \`${extractedAmount > 0 ? extractedAmount + " ETB" : "በማረጋገጥ ላይ"}\`\n🧾 *ማጣቀሻ:* \`${newCodes[0] || "የተረጋገጠ"}\`\n\n📌 ጥያቄዎ በአስተዳዳሪው ተረጋግጦ ቀሪ ሂሳብዎ ላይ ይጨመራል። ጥቂት ደቂቃ ይጠብቁ!\n\nለመጫወት ከታች ያለውን **🎮 Play Game** ይጫኑ።`,
+                text: `✅ *ደረሰኝዎ በተሳካ ሁኔታ ደርሶናል!*\n\n💰 *መጠን:* \`${extractedAmount > 0 ? extractedAmount + " ETB" : "በማረጋገጥ ላይ"}\`\n🧾 *ማጣቀሻ:* \`${newCodes[0] || "የተረጋገጠ"}\`\n🏦 *መንገድ:* ${detectedMethod}\n\n📌 ጥያቄዎ በአስተዳዳሪው ተረጋግጦ ቀሪ ሂሳብዎ ላይ ይጨመራል። ጥቂት ደቂቃ ይጠብቁ!\n\nለመጫወት ከታች ያለውን **🎮 Play Game** ይጫኑ።`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
+
+              delete botUserStates[chatId];
             } else {
               await telegramApi("sendMessage", {
                 chat_id: chatId,

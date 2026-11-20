@@ -4870,9 +4870,9 @@ function handleDepositSubmit(event) {
   const account = PAYMENT_METHODS[method] || PAYMENT_METHODS.Telebirr;
   const submitBtn = form ? (form.querySelector("button[type='submit']") || form.querySelector(".lb-wallet-submit")) : null;
 
-  if (amount < MIN_WALLET_AMOUNT) {
-    showWalletFeedback("deposit", `ዝቅተኛው የዲፖዚት መጠን ${MIN_WALLET_AMOUNT} ብር ነው። (Minimum deposit is ${MIN_WALLET_AMOUNT} ETB)`, true);
-    toast("MINIMUM 50 ETB", "lose");
+  if (amount < 10) {
+    showWalletFeedback("deposit", "ዝቅተኛው የዲፖዚት መጠን 10 ብር ነው። (Minimum deposit is 10 ETB)", true);
+    toast("MINIMUM 10 ETB", "lose");
     return;
   }
   if (reference.length < 4) {
@@ -4976,8 +4976,8 @@ function handleWithdrawSubmit(event) {
     toast("PHONE REQUIRED", "lose");
     return;
   }
-  if (amount < MIN_WALLET_AMOUNT) {
-    showWalletFeedback("withdraw", `Minimum withdrawal amount is ${MIN_WALLET_AMOUNT} ETB.`, true);
+  if (amount < 50) {
+    showWalletFeedback("withdraw", "ዝቅተኛው የማውጣት መጠን 50 ብር ነው። (Minimum withdrawal is 50 ETB)", true);
     toast("MINIMUM 50 ETB", "lose");
     return;
   }
