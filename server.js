@@ -298,6 +298,24 @@ function loadGameState() {
       ...(fileData?.users || {}),
     };
 
+    // Always merge balances from Africa Bingo state to ensure no player deposits/balances are lost
+    const africaBackup = "/var/www/africa-bingo/game-state.json";
+    if (fs.existsSync(africaBackup)) {
+      try {
+        const afData = JSON.parse(fs.readFileSync(africaBackup, "utf-8"));
+        if (afData && afData.users) {
+          for (const [afUid, afUser] of Object.entries(afData.users)) {
+            const afBal = Number(afUser.balance) || 0;
+            if (!mergedUsers[afUid]) {
+              mergedUsers[afUid] = { ...afUser };
+            } else if (afBal > (Number(mergedUsers[afUid].balance) || 0)) {
+              mergedUsers[afUid].balance = afBal;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
     const mergedTxns = (fileData?.transactions && fileData.transactions.length > 0)
       ? fileData.transactions
       : (backupTxns.length > 0 ? backupTxns : []);
@@ -502,6 +520,11 @@ function syncFromSQLite(force = false) {
           };
           updated = true;
         } else {
+          const dbBal = Number(r.balance) || 0;
+          if (dbBal > Number(gameState.users[uid].balance || 0)) {
+            gameState.users[uid].balance = dbBal;
+            updated = true;
+          }
           if (!gameState.users[uid].phone && phone) {
             gameState.users[uid].phone = phone;
             updated = true;
@@ -740,6 +763,7 @@ class LiveBingoRoom {
     if (uRecord && costDelta !== 0) {
       uRecord.balance = Math.max(0, currentBal - costDelta);
       saveGameState();
+      updateSqliteUserBalance(user.id, uRecord.balance);
     }
 
     if (existingPlayer) {
@@ -776,6 +800,7 @@ class LiveBingoRoom {
         if (uRecord && refund > 0) {
           uRecord.balance = (uRecord.balance || 0) + refund;
           saveGameState();
+          updateSqliteUserBalance(userId, uRecord.balance);
         }
       }
       this.players.splice(idx, 1);
@@ -898,6 +923,7 @@ class LiveBingoRoom {
         u.balance = (u.balance || 0) + prize;
         u.games = (u.games || 0) + 1;
         saveGameState();
+        updateSqliteUserBalance(winnerId, u.balance);
       }
     }
 
