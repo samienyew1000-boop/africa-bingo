@@ -1856,14 +1856,14 @@ async function startTelegramBot() {
               if (method === "Telebirr") {
                 await telegramApi("sendMessage", {
                   chat_id: cqChatId,
-                  text: `📱 *Tele-Birr*\n\n\`${telePhone}\`\n\n*የቴሌቢር መመሪያ:-*\n\n1. በላይ ላለው የ Tele-Birr አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ከ Tele-Birr ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Waliya bingo support (@su121316)`,
+                  text: `📱 *Tele-Birr*\n\n\`${telePhone}\`\n\n*የቴሌቢር መመሪያ:-*\n\n1. በላይ ላለው የ Tele-Birr አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ከ Tele-Birr ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Waliya bingo support (@Tedy12w)`,
                   parse_mode: "Markdown",
                   reply_markup: MAIN_REPLY_KEYBOARD,
                 });
               } else {
                 await telegramApi("sendMessage", {
                   chat_id: cqChatId,
-                  text: `🏦 *CBE Birr / ንግድ ባንክ*\n\n\`${cbePhone}\`\n\n*የንግድ ባንክ መመሪያ:-*\n\n1. በላይ ላለው የባንክ አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Waliya bingo support (@su121316)`,
+                  text: `🏦 *CBE Birr / ንግድ ባንክ*\n\n\`${cbePhone}\`\n\n*የንግድ ባንክ መመሪያ:-*\n\n1. በላይ ላለው የባንክ አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Waliya bingo support (@Tedy12w)`,
                   parse_mode: "Markdown",
                   reply_markup: MAIN_REPLY_KEYBOARD,
                 });
@@ -1871,7 +1871,7 @@ async function startTelegramBot() {
             } else if (cqData === "dep_sms_help") {
               await telegramApi("sendMessage", {
                 chat_id: cqChatId,
-                text: `ℹ️ *የ SMS ማረጋገጫ እርዳታ*\n\n1. በቴሌብር አፕሊኬሽን ወይም በ *127# የግብይት ታሪክ (Transaction History) ውስጥ የግብይት ቁጥሩን ይመልከቱ።\n2. የግብይት ቁጥሩን (Transaction ID ወይም Ref) ኮፒ በማድረግ እዚህ ይላኩ።\n3. ማንኛውም ችግር ካጋጠመዎት ድጋፍ ሰጪዎቻችንን ያነጋግሩ:\n👉 @su121316\n📞 \`+251918182355\``,
+                text: `ℹ️ *የ SMS ማረጋገጫ እርዳታ*\n\n1. በቴሌብር አፕሊኬሽን ወይም በ *127# የግብይት ታሪክ (Transaction History) ውስጥ የግብይት ቁጥሩን ይመልከቱ።\n2. የግብይት ቁጥሩን (Transaction ID ወይም Ref) ኮፒ በማድረግ እዚህ ይላኩ።\n3. ማንኛውም ችግር ካጋጠመዎት ድጋፍ ሰጪዎቻችንን ያነጋግሩ:\n👉 @Tedy12w\n📞 \`+251918182355\``,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
@@ -2010,7 +2010,7 @@ async function startTelegramBot() {
             } else if (text.includes("Support") || text.includes("ድጋፍ") || text === "/support") {
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `📞 *የደንበኞች አገልግሎት እና ድጋፍ (Customer Support)*\n\nለማንኛውም አይነት ጥያቄ፣ አስተያየት ወይም የክፍያ እርዳታ አድሚኖችን ያግኙ:\n\n👉 *ቴሌግራም:* @su121316\n📞 *ስልክ:* \`+251918182355\`\n\nእርስዎን ለማገልገል 24/7 ዝግጁ ነን!`,
+                text: `📞 *የደንበኞች አገልግሎት እና ድጋፍ (Customer Support)*\n\nለማንኛውም አይነት ጥያቄ፣ አስተያየት ወይም የክፍያ እርዳታ አድሚኖችን ያግኙ:\n\n👉 *ቴሌግራም:* @Tedy12w\n📞 *ስልክ:* \`+251918182355\`\n\nእርስዎን ለማገልገል 24/7 ዝግጁ ነን!`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
@@ -2073,7 +2073,7 @@ async function startTelegramBot() {
 
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `*ተቀማጭ*\n*መጠን:* \`${amount.toFixed(2)} ብር\`\n*ዘዴ ይምረጡ:-*\n\n📞 ለ ድጋፍ ወይም ላጋጠመዎት ችግር\n1. Waliya bingo support (@su121316)`,
+                  text: `*ተቀማጭ*\n*መጠን:* \`${amount.toFixed(2)} ብር\`\n*ዘዴ ይምረጡ:-*\n\n📞 ለ ድጋፍ ወይም ላጋጠመዎት ችግር\n1. Waliya bingo support (@Tedy12w)`,
                   parse_mode: "Markdown",
                   reply_markup: {
                     inline_keyboard: [
