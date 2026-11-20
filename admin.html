@@ -280,8 +280,96 @@
           </section>
 
           <section class="admin-section" id="admin-reports" data-page="reports">
-            <div class="admin-page-heading"><div><span class="admin-kicker">INSIGHTS</span><h1>Reports</h1><p>Understand performance, player behavior, and the health of your bingo operation.</p></div><div class="admin-heading-actions"><select class="admin-select" id="report-range"><option>Last 7 days</option><option>Last 30 days</option><option>This year</option></select><button type="button" class="admin-button admin-button-soft" id="export-report"><span aria-hidden="true">↓</span> Export report</button></div></div>
-            <div class="admin-report-grid"><article class="admin-panel admin-chart-panel admin-chart-wide"><div class="admin-panel-heading"><div><span class="admin-panel-eyebrow">REVENUE TREND</span><h2>Net revenue</h2></div><strong class="admin-chart-total">18,460 <small>ETB</small></strong></div><div class="admin-chart-legend"><span><i class="chart-line chart-line-blue"></i> Revenue</span><span><i class="chart-line chart-line-orange"></i> Payouts</span></div><div class="admin-chart" aria-label="Revenue chart"><div class="admin-chart-y"><span>20k</span><span>15k</span><span>10k</span><span>5k</span><span>0</span></div><div class="admin-chart-area"><div class="admin-chart-gridlines"><i></i><i></i><i></i><i></i><i></i></div><svg viewBox="0 0 720 220" preserveAspectRatio="none" role="img" aria-label="Revenue and payout trend"><defs><linearGradient id="revenue-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2f80ed" stop-opacity=".24"/><stop offset="1" stop-color="#2f80ed" stop-opacity="0"/></linearGradient></defs><path class="chart-fill" d="M0 172 C42 162 58 155 92 158 S144 134 178 145 S230 121 268 130 S320 91 360 112 S416 82 452 96 S496 48 540 72 S600 38 636 55 S682 31 720 42 L720 220 L0 220 Z"/><path class="chart-path chart-path-blue" d="M0 172 C42 162 58 155 92 158 S144 134 178 145 S230 121 268 130 S320 91 360 112 S416 82 452 96 S496 48 540 72 S600 38 636 55 S682 31 720 42"/><path class="chart-path chart-path-orange" d="M0 190 C42 181 58 176 92 178 S144 161 178 170 S230 144 268 154 S320 119 360 140 S416 106 452 125 S496 79 540 102 S600 65 636 83 S682 61 720 70"/></svg><div class="admin-chart-x"><span>15 Sep</span><span>17 Sep</span><span>19 Sep</span><span>21 Sep</span></div></div></div></article><article class="admin-panel admin-chart-panel"><div class="admin-panel-heading"><div><span class="admin-panel-eyebrow">ROOM PERFORMANCE</span><h2>Top rooms</h2></div><button type="button" class="admin-more-button">•••</button></div><div class="admin-bar-list"><div><span><b>10 ETB room</b><small>2,180 rounds</small></span><strong>42%</strong><i><em style="width:42%"></em></i></div><div><span><b>20 ETB room</b><small>1,640 rounds</small></span><strong>34%</strong><i><em style="width:34%"></em></i></div><div><span><b>50 ETB room</b><small>812 rounds</small></span><strong>24%</strong><i><em style="width:24%"></em></i></div></div><div class="admin-report-callout"><span aria-hidden="true">✦</span><span>The <b>10 ETB room</b> brings the most first-time players.</span></div></article><article class="admin-panel admin-chart-panel"><div class="admin-panel-heading"><div><span class="admin-panel-eyebrow">PLAYER RETENTION</span><h2>Weekly return rate</h2></div><span class="admin-chip admin-chip-green">+4.8%</span></div><div class="admin-retention-score"><strong>68.4<small>%</small></strong><span>players returned this week</span></div><div class="admin-retention-bars"><i style="height:43%"></i><i style="height:58%"></i><i style="height:51%"></i><i style="height:70%"></i><i style="height:64%"></i><i style="height:83%"></i><i style="height:92%"></i></div><div class="admin-chart-x admin-chart-x-even"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div></article></div>
+            <div class="admin-page-heading">
+              <div>
+                <span class="admin-kicker">INSIGHTS</span>
+                <h1>Reports</h1>
+                <p>Understand performance, player behavior, and the health of your bingo operation.</p>
+              </div>
+              <div class="admin-heading-actions">
+                <select class="admin-select" id="report-range">
+                  <option value="today">Daily (ዛሬ / Today)</option>
+                  <option value="last7days" selected>Weekly (ያለፉት 7 ቀናት / Last 7 days)</option>
+                  <option value="last30days">Monthly (ያለፉት 30 ቀናት / Last 30 days)</option>
+                </select>
+                <button type="button" class="admin-button admin-button-soft" id="export-report">
+                  <span aria-hidden="true">↓</span> Export report
+                </button>
+              </div>
+            </div>
+            <div class="admin-report-grid">
+              <article class="admin-panel admin-chart-panel admin-chart-wide">
+                <div class="admin-panel-heading">
+                  <div>
+                    <span class="admin-panel-eyebrow">REVENUE TREND</span>
+                    <h2>Net revenue <span style="font-size:12px;color:#16a34a;font-weight:700;margin-left:6px">(20% Profit)</span></h2>
+                  </div>
+                  <strong class="admin-chart-total" id="report-net-revenue">0 <small>ETB</small></strong>
+                </div>
+                <div class="admin-chart-legend">
+                  <span><i class="chart-line chart-line-blue"></i> Turnover (ድምር ጨዋታ)</span>
+                  <span><i class="chart-line chart-line-orange"></i> Payouts (ደራሽ)</span>
+                  <span><i class="chart-line" style="background:#16a34a"></i> 20% Net Profit (የእኛ ትርፍ)</span>
+                </div>
+                <div class="admin-chart" aria-label="Revenue chart">
+                  <div class="admin-chart-y" id="report-chart-y">
+                    <span>20k</span><span>15k</span><span>10k</span><span>5k</span><span>0</span>
+                  </div>
+                  <div class="admin-chart-area">
+                    <div class="admin-chart-gridlines"><i></i><i></i><i></i><i></i><i></i></div>
+                    <svg id="report-chart-svg" viewBox="0 0 720 220" preserveAspectRatio="none" role="img" aria-label="Revenue and payout trend">
+                      <defs>
+                        <linearGradient id="revenue-fill" x1="0" x2="0" y1="0" y2="1">
+                          <stop offset="0" stop-color="#2f80ed" stop-opacity=".24"/>
+                          <stop offset="1" stop-color="#2f80ed" stop-opacity="0"/>
+                        </linearGradient>
+                      </defs>
+                      <path id="report-chart-fill" class="chart-fill" d="M0 172 C42 162 58 155 92 158 S144 134 178 145 S230 121 268 130 S320 91 360 112 S416 82 452 96 S496 48 540 72 S600 38 636 55 S682 31 720 42 L720 220 L0 220 Z"/>
+                      <path id="report-chart-blue" class="chart-path chart-path-blue" d="M0 172 C42 162 58 155 92 158 S144 134 178 145 S230 121 268 130 S320 91 360 112 S416 82 452 96 S496 48 540 72 S600 38 636 55 S682 31 720 42"/>
+                      <path id="report-chart-orange" class="chart-path chart-path-orange" d="M0 190 C42 181 58 176 92 178 S144 161 178 170 S230 144 268 154 S320 119 360 140 S416 106 452 125 S496 79 540 102 S600 65 636 83 S682 61 720 70"/>
+                    </svg>
+                    <div class="admin-chart-x" id="report-chart-x">
+                      <span>Day 1</span><span>Day 2</span><span>Day 3</span><span>Day 4</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+              <article class="admin-panel admin-chart-panel">
+                <div class="admin-panel-heading">
+                  <div>
+                    <span class="admin-panel-eyebrow">ROOM PERFORMANCE</span>
+                    <h2>Top rooms</h2>
+                  </div>
+                  <span class="admin-chip admin-chip-blue" id="report-room-chip">Weekly</span>
+                </div>
+                <div class="admin-bar-list" id="report-room-bars">
+                  <!-- Populated by JS -->
+                </div>
+                <div class="admin-report-callout" id="report-room-callout">
+                  <span aria-hidden="true">✦</span>
+                  <span id="report-callout-text">Loading room statistics...</span>
+                </div>
+              </article>
+              <article class="admin-panel admin-chart-panel">
+                <div class="admin-panel-heading">
+                  <div>
+                    <span class="admin-panel-eyebrow">GAME ACTIVITY</span>
+                    <h2>Rounds & Cartelas</h2>
+                  </div>
+                  <span class="admin-chip admin-chip-green" id="report-activity-chip">0 rounds</span>
+                </div>
+                <div class="admin-retention-score">
+                  <strong id="report-total-cartelas">0</strong>
+                  <span id="report-cartelas-subtitle">Total cartelas played in this period</span>
+                </div>
+                <div class="admin-retention-bars" id="report-retention-bars">
+                  <!-- 7 bars populated dynamically -->
+                </div>
+                <div class="admin-chart-x admin-chart-x-even" id="report-retention-x">
+                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+              </article>
+            </div>
           </section>
 
           <section class="admin-section" id="admin-settings" data-page="settings">
@@ -406,6 +494,6 @@
     <script src="app-config.js?v=20261117_07"></script>
     <script src="api-client.js?v=20261117_07"></script>
     <script src="players-data.js?v=20261117_07"></script>
-    <script src="admin.js?v=20261117_07"></script>
+    <script src="admin.js?v=20261120_01"></script>
   </body>
 </html>

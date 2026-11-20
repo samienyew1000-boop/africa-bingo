@@ -153,6 +153,7 @@ let transactionQuery = "";
 let transactionStatusFilter = "all";
 let playerQuery = "";
 let playerStatusFilter = "all";
+let currentReportRange = "last7days";
 let liveTimer = null;
 let toastTimer = null;
 
@@ -426,6 +427,9 @@ function showSection(name, updateHash = true) {
     startLiveTimer();
   } else {
     stopLiveTimer();
+  }
+  if (page === "reports") {
+    renderReports();
   }
   $("admin-sidebar")?.classList.remove("is-open");
 }
@@ -985,6 +989,215 @@ function renderAdminProfile() {
   }
 }
 
+function renderReports() {
+  const rep = state.reports ? state.reports[currentReportRange] : null;
+  if (!rep) return;
+
+  // 1. Net Revenue (20% Profit)
+  const netRevenueEl = $("report-net-revenue");
+  if (netRevenueEl && rep.summary) {
+    netRevenueEl.innerHTML = `${fmt(rep.summary.totalProfit)} <small>ETB</small>`;
+  }
+
+  // 2. Room Performance Badge & Bars
+  const roomChip = $("report-room-chip");
+  if (roomChip) {
+    roomChip.textContent = currentReportRange === "today" ? "Daily" : (currentReportRange === "last7days" ? "Weekly" : "Monthly");
+  }
+
+  const barsContainer = $("report-room-bars");
+  if (barsContainer && rep.rooms) {
+    const stakes = ["10", "20", "50"];
+    barsContainer.innerHTML = stakes.map((stk) => {
+      const rm = rep.rooms[stk] || { name: `${stk} ETB room`, rounds: 0, totalCards: 0, turnover: 0, profit: 0, percentage: 0 };
+      const pct = Math.min(100, Math.max(0, rm.percentage || 0));
+      return `<div>
+        <span>
+          <b>${rm.name}</b>
+          <small>${fmt(rm.rounds)} rounds • ድምር: ${fmt(rm.turnover)} ETB • <span style="color:#16a34a;font-weight:700">20% ትርፍ: ${fmt(rm.profit)} ETB</span></small>
+        </span>
+        <strong>${pct}%</strong>
+        <i><em style="width:${Math.max(4, pct)}%"></em></i>
+      </div>`;
+    }).join("");
+  }
+
+  // 3. Room Insight Callout
+  const calloutText = $("report-callout-text");
+  if (calloutText && rep.rooms) {
+    const r10 = rep.rooms["10"] || { profit: 0, rounds: 0 };
+    const r20 = rep.rooms["20"] || { profit: 0, rounds: 0 };
+    const pLabel = currentReportRange === "today" ? "ዛሬ" : (currentReportRange === "last7days" ? "በዚህ ሳምንት" : "በዚህ ወር");
+    calloutText.innerHTML = `${pLabel} ከባለ 10 ብር ክፍል <b>${fmt(r10.profit)} ETB</b> ትርፍ (${fmt(r10.rounds)} rounds) እንዲሁም ከባለ 20 ብር ክፍል <b>${fmt(r20.profit)} ETB</b> ትርፍ (${fmt(r20.rounds)} rounds) ተገኝቷል።`;
+  }
+
+  // 4. Activity Summary (Rounds & Cartelas)
+  const actChip = $("report-activity-chip");
+  if (actChip && rep.summary) actChip.textContent = `${fmt(rep.summary.totalRounds)} rounds`;
+
+  const totalCartelasEl = $("report-total-cartelas");
+  if (totalCartelasEl && rep.summary) totalCartelasEl.textContent = fmt(rep.summary.totalCards);
+
+  const cartelasSub = $("report-cartelas-subtitle");
+  if (cartelasSub) {
+    cartelasSub.textContent = currentReportRange === "today" ? "ዛሬ የተጫወቱት አጠቃላይ ካርቴላዎች" : "በተመረጠው ጊዜ የተጫወቱት አጠቃላይ ካርቴላዎች";
+  }
+
+  // 5. Activity Retention Bars (7 bars or slots)
+  const retBars = $("report-retention-bars");
+  const retX = $("report-retention-x");
+  if (retBars && Array.isArray(rep.chart) && rep.chart.length > 0) {
+    const maxCards = Math.max(...rep.chart.map((c) => c.cards || c.rounds || 1), 1);
+    retBars.innerHTML = rep.chart.map((c) => {
+      const val = c.cards || c.rounds || 0;
+      const hPct = Math.max(12, Math.round((val / maxCards) * 100));
+      return `<i style="height:${hPct}%" title="${c.label}: ${val} cartelas"></i>`;
+    }).join("");
+
+    if (retX) {
+      retX.innerHTML = rep.chart.map((c) => `<span>${c.dayName || c.label}</span>`).join("");
+    }
+  }
+
+  // 6. SVG Trend Chart (Turnover vs Payouts)
+  renderReportSvgChart(rep);
+}
+
+function renderReportSvgChart(rep) {
+  const chartPoints = rep.chart || [];
+  if (chartPoints.length === 0) return;
+
+  const svgW = 720;
+  const svgH = 220;
+  const padTop = 20;
+  const padBottom = 194;
+  const chartH = padBottom - padTop;
+
+  let maxVal = 1000;
+  chartPoints.forEach((pt) => {
+    if (pt.turnover > maxVal) maxVal = pt.turnover;
+    if (pt.payouts > maxVal) maxVal = pt.payouts;
+  });
+
+  const rawStep = maxVal / 4;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep || 10)));
+  const niceStep = Math.max(100, Math.ceil(rawStep / magnitude) * magnitude);
+  const niceMax = niceStep * 4;
+
+  const yAxisEl = $("report-chart-y");
+  if (yAxisEl) {
+    const formatY = (v) => (v >= 1000 ? `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : `${v}`);
+    yAxisEl.innerHTML = `
+      <span>${formatY(niceMax)}</span>
+      <span>${formatY(niceStep * 3)}</span>
+      <span>${formatY(niceStep * 2)}</span>
+      <span>${formatY(niceStep * 1)}</span>
+      <span>0</span>
+    `;
+  }
+
+  const n = chartPoints.length;
+  const bluePoints = [];
+  const orangePoints = [];
+
+  chartPoints.forEach((pt, i) => {
+    const x = n > 1 ? Math.round((i / (n - 1)) * svgW) : Math.round(svgW / 2);
+    const yBlue = Math.round(padBottom - (Math.min(pt.turnover, niceMax) / niceMax) * chartH);
+    const yOrange = Math.round(padBottom - (Math.min(pt.payouts, niceMax) / niceMax) * chartH);
+    bluePoints.push({ x, y: yBlue });
+    orangePoints.push({ x, y: yOrange });
+  });
+
+  const bluePathD = generateSmoothSvgPath(bluePoints);
+  const orangePathD = generateSmoothSvgPath(orangePoints);
+  const fillPathD = bluePoints.length > 0
+    ? `${bluePathD} L ${bluePoints[bluePoints.length - 1].x} ${svgH} L ${bluePoints[0].x} ${svgH} Z`
+    : "";
+
+  const bluePathEl = $("report-chart-blue");
+  const orangePathEl = $("report-chart-orange");
+  const fillPathEl = $("report-chart-fill");
+
+  if (bluePathEl) bluePathEl.setAttribute("d", bluePathD);
+  if (orangePathEl) orangePathEl.setAttribute("d", orangePathD);
+  if (fillPathEl) fillPathEl.setAttribute("d", fillPathD);
+
+  const xAxisEl = $("report-chart-x");
+  if (xAxisEl) {
+    xAxisEl.innerHTML = chartPoints.map((pt) => `<span>${pt.label}</span>`).join("");
+  }
+}
+
+function generateSmoothSvgPath(points) {
+  if (!points || points.length === 0) return "";
+  if (points.length === 1) return `M 0 ${points[0].y} L 720 ${points[0].y}`;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = i > 0 ? points[i - 1] : points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = i < points.length - 2 ? points[i + 2] : p2;
+
+    const cp1x = Math.round(p1.x + (p2.x - p0.x) / 5);
+    const cp1y = Math.round(p1.y + (p2.y - p0.y) / 5);
+    const cp2x = Math.round(p2.x - (p3.x - p1.x) / 5);
+    const cp2y = Math.round(p2.y - (p3.y - p1.y) / 5);
+
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+  }
+  return d;
+}
+
+function exportCurrentReport() {
+  const rep = state.reports ? state.reports[currentReportRange] : null;
+  if (!rep) {
+    showToast("No report data available to export.");
+    return;
+  }
+  const rangeName = currentReportRange === "today" ? "Daily (Today)" : (currentReportRange === "last7days" ? "Weekly (Last 7 days)" : "Monthly (Last 30 days)");
+  const rows = [
+    ["Waliya Bingo - Financial & Room Performance Report"],
+    ["Generated At", new Date().toLocaleString()],
+    ["Timeframe", rangeName],
+    [],
+    ["FINANCIAL OVERVIEW (ETB)"],
+    ["Gross Turnover (Total Bet Inflow)", rep.summary.totalTurnover],
+    ["Total Payouts (Derash Paid to Winners)", rep.summary.totalPayouts],
+    ["Net House Profit (20% Profit)", rep.summary.totalProfit],
+    ["Total Game Rounds", rep.summary.totalRounds],
+    ["Total Cartelas Played", rep.summary.totalCards],
+    [],
+    ["ROOM BREAKDOWN"],
+    ["Room", "Stake (ETB)", "Rounds", "Cartelas", "Turnover (ETB)", "Payouts (ETB)", "20% House Profit (ETB)", "Room Share %"],
+  ];
+
+  ["10", "20", "50"].forEach((stk) => {
+    const rm = rep.rooms[stk] || { name: `${stk} ETB room`, stake: Number(stk), rounds: 0, totalCards: 0, turnover: 0, payouts: 0, profit: 0, percentage: 0 };
+    rows.push([
+      rm.name,
+      rm.stake,
+      rm.rounds,
+      rm.totalCards,
+      rm.turnover,
+      rm.payouts,
+      rm.profit,
+      `${rm.percentage}%`,
+    ]);
+  });
+
+  if (Array.isArray(rep.chart) && rep.chart.length > 0) {
+    rows.push([]);
+    rows.push(["TIMELINE TREND"]);
+    rows.push(["Period / Time", "Turnover (ETB)", "Payouts (ETB)", "20% Profit (ETB)", "Rounds", "Cartelas"]);
+    rep.chart.forEach((pt) => {
+      rows.push([pt.label, pt.turnover, pt.payouts, pt.profit, pt.rounds || 0, pt.cards || 0]);
+    });
+  }
+
+  downloadCSV(`waliya-bingo-report-${currentReportRange}-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  showToast("Report exported successfully!");
+}
+
 function renderAll() {
   syncRoomsWithRealParticipants();
   renderAdminProfile();
@@ -992,6 +1205,7 @@ function renderAll() {
   renderLive();
   renderTransactions();
   renderPlayers();
+  renderReports();
 }
 
 function openModal(id) {
@@ -1516,7 +1730,17 @@ function bindEvents() {
   });
   $("export-transactions").addEventListener("click", exportTransactions);
   $("export-players").addEventListener("click", exportPlayers);
-  $("export-report").addEventListener("click", () => downloadCSV("lucky-bingo-report.csv", [["Metric", "Value"], ["Total players", state.metrics.totalPlayers], ["Processed today", state.metrics.processedToday], ["Pending requests", pendingTransactions().length], ["Live rooms", state.rooms.filter((room) => room.status === "live").length]]));
+  const exportRepBtn = $("export-report");
+  if (exportRepBtn) {
+    exportRepBtn.addEventListener("click", exportCurrentReport);
+  }
+  const repRangeSel = $("report-range");
+  if (repRangeSel) {
+    repRangeSel.addEventListener("change", (e) => {
+      currentReportRange = e.target.value;
+      renderReports();
+    });
+  }
   $("player-filter-button").addEventListener("click", () => showToast("Use the status menu or search field to narrow players."));
   $("player-form").addEventListener("submit", savePlayerFromForm);
   $("password-form").addEventListener("submit", savePassword);
@@ -1727,6 +1951,12 @@ function _startAdminDataPoll() {
     renderLive();
     renderTransactions();
     renderPlayers();
+
+    // 6. Sync live reports
+    if (data.reports) {
+      state.reports = data.reports;
+      renderReports();
+    }
   }, 1500);
 }
 
