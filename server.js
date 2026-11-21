@@ -1111,6 +1111,211 @@ function getUserFromHeaders(req, body = null) {
   return { id: uid, username: uname, name };
 }
 
+function getReportsData(range = "last7days") {
+  const now = new Date();
+  let cutoff = 0;
+
+  if (range === "today") {
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    cutoff = startOfToday.getTime();
+  } else if (range === "last30days") {
+    cutoff = Date.now() - 30 * 86400 * 1000;
+  } else {
+    // default last7days
+    cutoff = Date.now() - 7 * 86400 * 1000;
+  }
+
+  const allRounds = Array.isArray(gameState.roundHistory) ? gameState.roundHistory : [];
+  const rounds = allRounds.filter((r) => {
+    const ts = r.timestamp || (r.created_at ? new Date(r.created_at).getTime() : 0);
+    return ts >= cutoff;
+  });
+
+  const totalRounds = rounds.length;
+  let totalTurnover = 0;
+  let totalPayouts = 0;
+  let totalProfit = 0;
+  let totalCards = 0;
+
+  const roomsMap = {
+    "10": { roomId: "10", name: "10 ETB room", stake: 10, rounds: 0, totalCards: 0, turnover: 0, payouts: 0, profit: 0, percentage: 0 },
+    "20": { roomId: "20", name: "20 ETB room", stake: 20, rounds: 0, totalCards: 0, turnover: 0, payouts: 0, profit: 0, percentage: 0 },
+    "50": { roomId: "50", name: "50 ETB room", stake: 50, rounds: 0, totalCards: 0, turnover: 0, payouts: 0, profit: 0, percentage: 0 },
+  };
+
+  for (const r of rounds) {
+    const stake = Number(r.stake) || 10;
+    const rTurnover = Number(r.turnover) || (Number(r.totalCards) * stake) || 0;
+    const rPrize = Number(r.prize) || 0;
+    // 20% Profit rule: house profit is 20% of turnover or (turnover - prize)
+    const rProfit = Number(r.profit) || (rTurnover > rPrize ? (rTurnover - rPrize) : Math.round(rTurnover * 0.20));
+    const rCards = Number(r.totalCards) || 0;
+
+    totalTurnover += rTurnover;
+    totalPayouts += rPrize;
+    totalProfit += rProfit;
+    totalCards += rCards;
+
+    const key = String(stake);
+    if (!roomsMap[key]) {
+      roomsMap[key] = {
+        roomId: key,
+        name: `${stake} ETB room`,
+        stake: stake,
+        rounds: 0,
+        totalCards: 0,
+        turnover: 0,
+        payouts: 0,
+        profit: 0,
+        percentage: 0,
+      };
+    }
+    roomsMap[key].rounds += 1;
+    roomsMap[key].totalCards += rCards;
+    roomsMap[key].turnover += rTurnover;
+    roomsMap[key].payouts += rPrize;
+    roomsMap[key].profit += rProfit;
+  }
+
+  // Calculate percentages
+  Object.values(roomsMap).forEach((rm) => {
+    rm.percentage = totalRounds > 0 ? Math.round((rm.rounds / totalRounds) * 100) : 0;
+  });
+
+  // Chart data generation
+  const chartPoints = [];
+  if (range === "today") {
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime();
+    for (let h = 0; h < 24; h += 3) {
+      const slotStart = startOfToday + h * 3600 * 1000;
+      const slotEnd = slotStart + 3 * 3600 * 1000;
+      const slotRounds = rounds.filter((r) => {
+        const ts = r.timestamp || (r.created_at ? new Date(r.created_at).getTime() : 0);
+        return ts >= slotStart && ts < slotEnd;
+      });
+      const tOver = slotRounds.reduce((sum, r) => sum + (Number(r.turnover) || 0), 0);
+      const pOut = slotRounds.reduce((sum, r) => sum + (Number(r.prize) || 0), 0);
+      const prof = slotRounds.reduce((sum, r) => sum + (Number(r.profit) || Math.round((Number(r.turnover) || 0) * 0.2)), 0);
+      const label = `${String(h).padStart(2, "0")}:00`;
+      chartPoints.push({ label, dayName: label, turnover: tOver, payouts: pOut, profit: prof, rounds: slotRounds.length, cards: slotRounds.reduce((s, r) => s + (r.totalCards || 0), 0) });
+    }
+  } else {
+    const dayCount = range === "last30days" ? 30 : 7;
+    for (let i = dayCount - 1; i >= 0; i--) {
+      const dStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 0, 0, 0).getTime();
+      const dEnd = dStart + 86400 * 1000;
+      const dRounds = rounds.filter((r) => {
+        const ts = r.timestamp || (r.created_at ? new Date(r.created_at).getTime() : 0);
+        return ts >= dStart && ts < dEnd;
+      });
+      const tOver = dRounds.reduce((sum, r) => sum + (Number(r.turnover) || 0), 0);
+      const pOut = dRounds.reduce((sum, r) => sum + (Number(r.prize) || 0), 0);
+      const prof = dRounds.reduce((sum, r) => sum + (Number(r.profit) || Math.round((Number(r.turnover) || 0) * 0.2)), 0);
+      const dDate = new Date(dStart);
+      const label = dDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const dayName = dDate.toLocaleDateString("en-US", { weekday: "short" });
+      chartPoints.push({ label, dayName, turnover: tOver, payouts: pOut, profit: prof, rounds: dRounds.length, cards: dRounds.reduce((s, r) => s + (r.totalCards || 0), 0) });
+    }
+  }
+
+  return {
+    range,
+    summary: {
+      totalRounds,
+      totalTurnover,
+      totalPayouts,
+      totalProfit,
+      totalCards,
+      commissionRate: 20,
+    },
+    rooms: roomsMap,
+    chart: chartPoints,
+  };
+}
+
+
+
+function generateProfitReportMessage() {
+  const daily = getReportsData("today");
+  const weekly = getReportsData("last7days");
+
+  const todayStr = new Date().toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+  const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const dSummary = daily.summary;
+  const dRooms = daily.rooms || {};
+  const d10 = dRooms["10"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0 };
+  const d20 = dRooms["20"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0 };
+  const d50 = dRooms["50"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0 };
+
+  const wSummary = weekly.summary;
+  const wRooms = weekly.rooms || {};
+  const w10 = wRooms["10"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0, percentage: 0 };
+  const w20 = wRooms["20"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0, percentage: 0 };
+  const w50 = wRooms["50"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0, percentage: 0 };
+
+  let msg = `📊 *ዋሊያ ቢንጎ — የቀንና የሳምንት ትርፍ ሪፖርት (Profit Report)*\n`;
+  msg += `🕒 *ሰዓት:* \`${todayStr} | ${timeStr}\`\n\n`;
+
+  // 1. Daily Report
+  msg += `☀️ *የዛሬ የቀን ሪፖርት (Today's Daily)*\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `💰 *የቀኑ ጠቅላላ ትርፍ (20% Net):* \`${Number(dSummary.totalProfit || 0).toLocaleString()} ETB\`\n`;
+  msg += `💵 *የቀኑ ሽያጭ (Turnover):* \`${Number(dSummary.totalTurnover || 0).toLocaleString()} ETB\`\n`;
+  msg += `🏆 *የተከፈለ አሸናፊ (Payouts):* \`${Number(dSummary.totalPayouts || 0).toLocaleString()} ETB\`\n`;
+  msg += `🎮 *የተደረጉ ዙሮች:* \`${Number(dSummary.totalRounds || 0).toLocaleString()} ዙር\`\n`;
+  msg += `🎟️ *የተሸጡ ካርቴላዎች:* \`${Number(dSummary.totalCards || 0).toLocaleString()} ካርቴላ\`\n\n`;
+
+  msg += `🏠 *የክፍሎች የቀን ትርፍ ዝርዝር:*\n`;
+  msg += `• *ባለ 10 ብር ክፍል:* \n  └ ዙሮች: \`${d10.rounds}\` | ትርፍ: \`${Number(d10.profit).toLocaleString()} ETB\` | ሽያጭ: \`${Number(d10.turnover).toLocaleString()} ETB\`\n`;
+  msg += `• *ባለ 20 ብር ክፍል:* \n  └ ዙሮች: \`${d20.rounds}\` | ትርፍ: \`${Number(d20.profit).toLocaleString()} ETB\` | ሽያጭ: \`${Number(d20.turnover).toLocaleString()} ETB\`\n`;
+  if (d50.rounds > 0 || d50.profit > 0) {
+    msg += `• *ባለ 50 ብር ክፍል:* \n  └ ዙሮች: \`${d50.rounds}\` | ትርፍ: \`${Number(d50.profit).toLocaleString()} ETB\` | ሽያጭ: \`${Number(d50.turnover).toLocaleString()} ETB\`\n`;
+  }
+  msg += `\n`;
+
+  // 2. Weekly Report (ዝቅ ብሎ ሳምንታዊው ሪፖርት)
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `🗓️ *የሳምንቱ ጠቅላላ ሪፖርት (Weekly Report - Last 7 Days)*\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `💰 *የሳምንቱ ጠቅላላ ትርፍ (Net Profit):* \`${Number(wSummary.totalProfit || 0).toLocaleString()} ETB\`\n`;
+  msg += `💵 *የሳምንቱ ሽያጭ (Turnover):* \`${Number(wSummary.totalTurnover || 0).toLocaleString()} ETB\`\n`;
+  msg += `🏆 *የተከፈለ አሸናፊ (Payouts):* \`${Number(wSummary.totalPayouts || 0).toLocaleString()} ETB\`\n`;
+  msg += `🎮 *የተደረጉ ዙሮች:* \`${Number(wSummary.totalRounds || 0).toLocaleString()} ዙር\`\n`;
+  msg += `🎟️ *የተሸጡ ካርቴላዎች:* \`${Number(wSummary.totalCards || 0).toLocaleString()} ካርቴላ\`\n\n`;
+
+  msg += `🏠 *የሳምንቱ ክፍሎች ትርፍ ዝርዝር:*\n`;
+  msg += `• *ባለ 10 ብር ክፍል:* \n  └ ዙሮች: \`${w10.rounds}\` (${w10.percentage}%) | ትርፍ: \`${Number(w10.profit).toLocaleString()} ETB\`\n`;
+  msg += `• *ባለ 20 ብር ክፍል:* \n  └ ዙሮች: \`${w20.rounds}\` (${w20.percentage}%) | ትርፍ: \`${Number(w20.profit).toLocaleString()} ETB\`\n`;
+  if (w50.rounds > 0 || w50.profit > 0) {
+    msg += `• *ባለ 50 ብር ክፍል:* \n  └ ዙሮች: \`${w50.rounds}\` (${w50.percentage}%) | ትርፍ: \`${Number(w50.profit).toLocaleString()} ETB\`\n`;
+  }
+
+  msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `📈 *ሙሉ ሪፖርት በግራፍ ለማየት:* \n👉 ${WEB_APP_URL}admin.html`;
+
+  return msg;
+}
+
+let lastReportNotificationTime = 0;
+function sendAdminProfitReportThrottled(minIntervalMs = 15000) {
+  const now = Date.now();
+  if (now - lastReportNotificationTime < minIntervalMs) return;
+  lastReportNotificationTime = now;
+  setTimeout(() => {
+    try {
+      const reportText = generateProfitReportMessage();
+      notifyTelegramAdmin(reportText);
+    } catch (e) {
+      console.warn("[ADMIN REPORT NOTIFICATION ERROR]", e.message);
+    }
+  }, 1200);
+}
+
 const server = http.createServer(async (req, res) => {
   // CORS Preflight
   if (req.method === "OPTIONS") {
@@ -1520,6 +1725,7 @@ const server = http.createServer(async (req, res) => {
 
       // Notify Admin on Telegram
       notifyTelegramAdmin(`📩 *አዲስ የተቀማጭ ጥያቄ (New Deposit Request)*\n\n👤 *ተጫዋች:* ${safePlayerName}\n💰 *መጠን:* \`${amount} ETB\`\n🏦 *መንገድ:* ${safeMethod}\n🧾 *ማጣቀሻ (Ref):* \`${safeRef}\`\n\n✅ ለማጽደቅ ወደ Admin Console ይሂዱ: ${WEB_APP_URL}admin.html`);
+      sendAdminProfitReportThrottled();
 
       return sendJson(res, { ok: true, id: txId, status: "pending" });
     }
@@ -1599,6 +1805,7 @@ const server = http.createServer(async (req, res) => {
       const safeMethod = String(method || "Telebirr").replace(/[_*`\[\]]/g, " ").trim();
 
       notifyTelegramAdmin(`📤 *የገንዘብ ማውጣት ጥያቄ (New Withdrawal Request)*\n\n👤 *ተጫዋች:* ${safePlayer}\n💰 *መጠን:* \`${amount} ETB\`\n📱 *ስልክ:* \`${safePhone}\`\n🏦 *መንገድ:* ${safeMethod}\n\n✅ ለማጽደቅ: ${WEB_APP_URL}admin.html`);
+      sendAdminProfitReportThrottled();
 
       return sendJson(res, {
         ok: true,
@@ -1608,127 +1815,7 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-function getReportsData(range = "last7days") {
-  const now = new Date();
-  let cutoff = 0;
 
-  if (range === "today") {
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    cutoff = startOfToday.getTime();
-  } else if (range === "last30days") {
-    cutoff = Date.now() - 30 * 86400 * 1000;
-  } else {
-    // default last7days
-    cutoff = Date.now() - 7 * 86400 * 1000;
-  }
-
-  const allRounds = Array.isArray(gameState.roundHistory) ? gameState.roundHistory : [];
-  const rounds = allRounds.filter((r) => {
-    const ts = r.timestamp || (r.created_at ? new Date(r.created_at).getTime() : 0);
-    return ts >= cutoff;
-  });
-
-  const totalRounds = rounds.length;
-  let totalTurnover = 0;
-  let totalPayouts = 0;
-  let totalProfit = 0;
-  let totalCards = 0;
-
-  const roomsMap = {
-    "10": { roomId: "10", name: "10 ETB room", stake: 10, rounds: 0, totalCards: 0, turnover: 0, payouts: 0, profit: 0, percentage: 0 },
-    "20": { roomId: "20", name: "20 ETB room", stake: 20, rounds: 0, totalCards: 0, turnover: 0, payouts: 0, profit: 0, percentage: 0 },
-    "50": { roomId: "50", name: "50 ETB room", stake: 50, rounds: 0, totalCards: 0, turnover: 0, payouts: 0, profit: 0, percentage: 0 },
-  };
-
-  for (const r of rounds) {
-    const stake = Number(r.stake) || 10;
-    const rTurnover = Number(r.turnover) || (Number(r.totalCards) * stake) || 0;
-    const rPrize = Number(r.prize) || 0;
-    // 20% Profit rule: house profit is 20% of turnover or (turnover - prize)
-    const rProfit = Number(r.profit) || (rTurnover > rPrize ? (rTurnover - rPrize) : Math.round(rTurnover * 0.20));
-    const rCards = Number(r.totalCards) || 0;
-
-    totalTurnover += rTurnover;
-    totalPayouts += rPrize;
-    totalProfit += rProfit;
-    totalCards += rCards;
-
-    const key = String(stake);
-    if (!roomsMap[key]) {
-      roomsMap[key] = {
-        roomId: key,
-        name: `${stake} ETB room`,
-        stake: stake,
-        rounds: 0,
-        totalCards: 0,
-        turnover: 0,
-        payouts: 0,
-        profit: 0,
-        percentage: 0,
-      };
-    }
-    roomsMap[key].rounds += 1;
-    roomsMap[key].totalCards += rCards;
-    roomsMap[key].turnover += rTurnover;
-    roomsMap[key].payouts += rPrize;
-    roomsMap[key].profit += rProfit;
-  }
-
-  // Calculate percentages
-  Object.values(roomsMap).forEach((rm) => {
-    rm.percentage = totalRounds > 0 ? Math.round((rm.rounds / totalRounds) * 100) : 0;
-  });
-
-  // Chart data generation
-  const chartPoints = [];
-  if (range === "today") {
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime();
-    for (let h = 0; h < 24; h += 3) {
-      const slotStart = startOfToday + h * 3600 * 1000;
-      const slotEnd = slotStart + 3 * 3600 * 1000;
-      const slotRounds = rounds.filter((r) => {
-        const ts = r.timestamp || (r.created_at ? new Date(r.created_at).getTime() : 0);
-        return ts >= slotStart && ts < slotEnd;
-      });
-      const tOver = slotRounds.reduce((sum, r) => sum + (Number(r.turnover) || 0), 0);
-      const pOut = slotRounds.reduce((sum, r) => sum + (Number(r.prize) || 0), 0);
-      const prof = slotRounds.reduce((sum, r) => sum + (Number(r.profit) || Math.round((Number(r.turnover) || 0) * 0.2)), 0);
-      const label = `${String(h).padStart(2, "0")}:00`;
-      chartPoints.push({ label, dayName: label, turnover: tOver, payouts: pOut, profit: prof, rounds: slotRounds.length, cards: slotRounds.reduce((s, r) => s + (r.totalCards || 0), 0) });
-    }
-  } else {
-    const dayCount = range === "last30days" ? 30 : 7;
-    for (let i = dayCount - 1; i >= 0; i--) {
-      const dStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 0, 0, 0).getTime();
-      const dEnd = dStart + 86400 * 1000;
-      const dRounds = rounds.filter((r) => {
-        const ts = r.timestamp || (r.created_at ? new Date(r.created_at).getTime() : 0);
-        return ts >= dStart && ts < dEnd;
-      });
-      const tOver = dRounds.reduce((sum, r) => sum + (Number(r.turnover) || 0), 0);
-      const pOut = dRounds.reduce((sum, r) => sum + (Number(r.prize) || 0), 0);
-      const prof = dRounds.reduce((sum, r) => sum + (Number(r.profit) || Math.round((Number(r.turnover) || 0) * 0.2)), 0);
-      const dDate = new Date(dStart);
-      const label = dDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      const dayName = dDate.toLocaleDateString("en-US", { weekday: "short" });
-      chartPoints.push({ label, dayName, turnover: tOver, payouts: pOut, profit: prof, rounds: dRounds.length, cards: dRounds.reduce((s, r) => s + (r.totalCards || 0), 0) });
-    }
-  }
-
-  return {
-    range,
-    summary: {
-      totalRounds,
-      totalTurnover,
-      totalPayouts,
-      totalProfit,
-      totalCards,
-      commissionRate: 20,
-    },
-    rooms: roomsMap,
-    chart: chartPoints,
-  };
-}
 
     // 4. Admin Overview (Live feed of rooms, transactions, players, settings, reports)
     if (pathname === "/api/admin/overview") {
@@ -2081,6 +2168,22 @@ function getReportsData(range = "last7days") {
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Waliya Bingo server running on port ${PORT}`);
   startTelegramBot();
+
+  // Scheduled Daily Profit Report at 23:59 EAT every night
+  setInterval(() => {
+    try {
+      const now = new Date();
+      const utcHours = now.getUTCHours();
+      const utcMins = now.getUTCMinutes();
+      // 20:59 UTC is 23:59 EAT (Addis Ababa)
+      if (utcHours === 20 && utcMins === 59 && now.getUTCSeconds() < 30) {
+        console.log("[SCHEDULED] Sending daily profit report to admins (23:59 EAT)...");
+        notifyTelegramAdmin(`📢 *የቀኑ ማጠቃለያ ሪፖርት (End of Day Daily & Weekly Report)*\n\n` + generateProfitReportMessage());
+      }
+    } catch (e) {
+      console.warn("[SCHEDULED REPORT ERROR]", e.message);
+    }
+  }, 30000);
 });
 
 // ==============================================================================
@@ -2244,6 +2347,17 @@ async function startTelegramBot() {
             try {
               telegramApi("answerCallbackQuery", { callback_query_id: cqId }).catch(() => {});
             } catch (e) {}
+
+            if (cqData === "admin_get_report") {
+              const reportMsg = generateProfitReportMessage();
+              await telegramApi("sendMessage", {
+                chat_id: cqChatId,
+                text: reportMsg,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+              continue;
+            }
 
             if (cqData.startsWith("dep_m:")) {
               const parts = cqData.split(":");
@@ -2437,13 +2551,35 @@ async function startTelegramBot() {
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
+            } else if (text.startsWith("/report") || text.startsWith("/profit") || text === "📊 Report" || text === "ሪፖርት" || text === "Report") {
+              if (isAdmin) {
+                const reportMsg = generateProfitReportMessage();
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: reportMsg,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+              } else {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `⛔ *ይቅርታ! ይህንን ሪፖርት ለመመልከት የአስተዳዳሪ (Admin) ፈቃድ ያስፈልጋል።*`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+              }
             } else if (text.startsWith("/admin")) {
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `🛡️ *Waliya Bingo — Admin Control Center*\n\nየአስተዳዳሪ ፓነልን ለመክፈት ከታች ያለውን ይጫኑ:\n👉 [Admin Console መክፈቻ](${WEB_APP_URL}admin.html?role=admin&u=${chatId})`,
+                  text: `🛡️ *Waliya Bingo — Admin Control Center*\n\n📊 ወቅታዊውን የቀንና የሳምንት ትርፍ ሪፖርት ለማየት: \`/report\` ይላኩ ወይም ከታች ያለውን ይጫኑ።\n👉 [Admin Console መክፈቻ](${WEB_APP_URL}admin.html?role=admin&u=${chatId})`,
                   parse_mode: "Markdown",
-                  reply_markup: MAIN_REPLY_KEYBOARD,
+                  reply_markup: {
+                    inline_keyboard: [
+                      [{ text: "📊 የቀንና የሳምንት ትርፍ ሪፖርት", callback_data: "admin_get_report" }],
+                      [{ text: "🖥️ Admin Console", url: `${WEB_APP_URL}admin.html?role=admin&u=${chatId}` }]
+                    ]
+                  }
                 });
               } else {
                 await telegramApi("sendMessage", {
@@ -2650,6 +2786,7 @@ async function startTelegramBot() {
               const safePlayerName = String(playerName).replace(/[_*`\[\]]/g, " ").trim();
               const safeRef = String(newCodes[0] || (text.length > 60 ? text.slice(0, 55) + "..." : text)).replace(/[`*]/g, "").trim();
               notifyTelegramAdmin(`📩 *አዲስ የተቀማጭ ደረሰኝ (New Bot SMS Deposit)*\n\n👤 *ተጫዋች:* ${safePlayerName} (\`${chatId}\`)\n💰 *የተገኘ መጠን:* \`${extractedAmount > 0 ? extractedAmount + " ETB" : "በአድሚን ይረጋገጥ"}\`\n🏦 *መንገድ:* ${detectedMethod}\n🧾 *ማጣቀሻ:* \`${safeRef}\`\n\n✅ ለማጽደቅ: ${WEB_APP_URL}admin.html`);
+              sendAdminProfitReportThrottled();
 
               await telegramApi("sendMessage", {
                 chat_id: chatId,
