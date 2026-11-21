@@ -645,27 +645,51 @@ function handleServerRoomState(sState) {
       clearInterval(callTimer);
       callTimer = null;
 
-      // Exactly 1.0s delay so the winning ball is called, seen, and heard before popup appears!
-      const delayMs = 1000;
+      // Ensure winning ball is processed, displayed, and voiced first!
+      if (res.winning_call && !called.includes(res.winning_call)) {
+        called.push(res.winning_call);
+        if (autoMarkingEnabled) manualMarked.add(res.winning_call);
+        handleSingleCall(res.winning_call);
+      }
+
+      // Delay winner overlay by 2.8s so the winning ball voice & animation finish clearly!
+      const delayMs = 2800;
       if (!winnerTimer && views.game && views.game.classList.contains("is-on")) {
         if (winnerPendingTimeout) clearTimeout(winnerPendingTimeout);
         winnerPendingTimeout = setTimeout(() => {
           winnerPendingTimeout = null;
           if (!winnerTimer) {
-            const isMe = res.winner_id && myId && String(res.winner_id) === String(myId);
-            const winPattern = res.pattern || (res.card_id ? (ensureCard(res.card_id) ? bestWinKind(ensureCard(res.card_id), new Set(called)) : "1 LINE") : "1 LINE");
+            const winnerIdList = Array.isArray(res.winner_ids)
+              ? res.winner_ids.map(String)
+              : (res.winner_id ? String(res.winner_id).split(",").map((s) => s.trim()) : []);
+            const isMe = myId && winnerIdList.includes(String(myId));
+
+            let myPrize = res.prize;
+            if (Array.isArray(res.winners)) {
+              const myW = res.winners.find((w) => String(w.user_id) === String(myId));
+              if (myW) myPrize = myW.prize;
+            } else if (winnerIdList.length > 1 && res.prize) {
+              myPrize = Math.floor(res.prize / winnerIdList.length);
+            }
+
+            const winPattern = res.pattern || (res.card_id ? (ensureCard(Array.isArray(res.card_id) ? res.card_id[0] : res.card_id) ? bestWinKind(ensureCard(Array.isArray(res.card_id) ? res.card_id[0] : res.card_id), new Set(called)) : "1 LINE") : "1 LINE");
+            const displayCardId = res.card_id || (isMe ? selected.values().next().value : null);
+
             if (isMe) {
               roundOutcome = "win";
               roundWinnerName = res.winner_name || PLAYER_NAME;
-              showRoundResult("win", roundWinnerName, winPattern, res.card_id || selected.values().next().value);
-              showWinnerOverlay("win", roundWinnerName, res.prize, res.card_id || selected.values().next().value, winPattern, res.winning_call);
-              toast("YOU WON!", "win");
+              showRoundResult("win", roundWinnerName, winPattern, displayCardId);
+              showWinnerOverlay("win", roundWinnerName, myPrize, displayCardId, winPattern, res.winning_call);
+              const toastMsg = winnerIdList.length > 1
+                ? `ተከፋፍለው አሸነፉ! +${fmt(myPrize)} ETB`
+                : `YOU WON! +${fmt(myPrize)} ETB`;
+              toast(toastMsg, "win");
             } else {
               roundOutcome = "lose";
               roundWinnerName = res.winner_name || "Opponent";
-              showRoundResult("lose", roundWinnerName, winPattern, res.card_id);
+              showRoundResult("lose", roundWinnerName, winPattern, displayCardId);
               markLoserCards();
-              showWinnerOverlay("lose", roundWinnerName, res.prize != null ? res.prize : stake, res.card_id, winPattern, res.winning_call);
+              showWinnerOverlay("lose", roundWinnerName, res.prize != null ? res.prize : stake, displayCardId, winPattern, res.winning_call);
               toast((roundWinnerName).toUpperCase() + " WON!", "lose");
             }
           }
@@ -3894,8 +3918,8 @@ function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kin
     cardIds = [169];
   }
 
-  // Support 1 or 2 cartelas
-  cardIds = cardIds.slice(0, 2);
+  // Support 1, 2, or 3 cartelas
+  cardIds = cardIds.slice(0, 3);
 
   if (container) {
     container.replaceChildren();
@@ -4361,39 +4385,48 @@ function playCallVoice(number, letter) {
 let currentBingoAudio = null;
 function playBingoVoice() {
   if (!soundEffectsEnabled) return;
-  try {
-    if (currentCallAudio) {
-      currentCallAudio.pause();
-      currentCallAudio.currentTime = 0;
-    }
-    if (currentBingoAudio) {
-      currentBingoAudio.pause();
-      currentBingoAudio.currentTime = 0;
-    }
-    const voice = getSelectedVoice();
-    const candidates = [
-      `assets/audio/${voice}/bingo.mp3`,
-      `assets/audio/${voice}/BINGO.mp3`,
-      "assets/audio/amharic/bingo.mp3",
-      "assets/audio/bingo.mp3",
-      "assets/audio/bingo.wav",
-      "assets/audio/bingo.m4a",
-    ];
-    let candidateIndex = 0;
-    const audio = new Audio();
-    audio.preload = "auto";
-    audio.onerror = () => {
-      candidateIndex++;
-      if (candidateIndex < candidates.length) {
-        audio.src = candidates[candidateIndex];
-        audio.play().catch(() => {});
+
+  const triggerBingoAudio = () => {
+    try {
+      if (currentBingoAudio) {
+        currentBingoAudio.pause();
+        currentBingoAudio.currentTime = 0;
       }
+      const voice = getSelectedVoice();
+      const candidates = [
+        `assets/audio/${voice}/bingo.mp3`,
+        `assets/audio/${voice}/BINGO.mp3`,
+        "assets/audio/amharic/bingo.mp3",
+        "assets/audio/bingo.mp3",
+        "assets/audio/bingo.wav",
+        "assets/audio/bingo.m4a",
+      ];
+      let candidateIndex = 0;
+      const audio = new Audio();
+      audio.preload = "auto";
+      audio.onerror = () => {
+        candidateIndex++;
+        if (candidateIndex < candidates.length) {
+          audio.src = candidates[candidateIndex];
+          audio.play().catch(() => {});
+        }
+      };
+      audio.src = candidates[0];
+      currentBingoAudio = audio;
+      audio.play().catch(() => {});
+    } catch (err) {
+      // Graceful ignore
+    }
+  };
+
+  // If the winning ball is still being called aloud, let the number finish being spoken!
+  if (currentCallAudio && !currentCallAudio.paused && !currentCallAudio.ended && currentCallAudio.currentTime < 2.2) {
+    currentCallAudio.onended = () => {
+      setTimeout(triggerBingoAudio, 300);
     };
-    audio.src = candidates[0];
-    currentBingoAudio = audio;
-    audio.play().catch(() => {});
-  } catch (err) {
-    // Graceful ignore
+    setTimeout(triggerBingoAudio, 2500); // Failsafe timeout
+  } else {
+    triggerBingoAudio();
   }
 }
 
@@ -4590,7 +4623,7 @@ function claimBingo() {
     }).catch(() => {});
   }
 
-  // Delay winner overlay by 1.0s so the winning ball voice & animation finish first!
+  // Delay winner overlay by 2.8s so the winning ball voice & animation finish first!
   if (winnerPendingTimeout) clearTimeout(winnerPendingTimeout);
   winnerPendingTimeout = setTimeout(() => {
     winnerPendingTimeout = null;
@@ -4599,7 +4632,7 @@ function claimBingo() {
       toast(`WON! +${fmt(win)} ETB`, "win");
       showWinnerOverlay("win", PLAYER_NAME, win, winCard, kind, (Array.isArray(called) && called.length) ? called[called.length - 1] : null);
     }
-  }, 1000);
+  }, 2800);
 }
 
 function botWins() {
@@ -4633,7 +4666,7 @@ function botWins() {
   markLoserCards();
   renderMineCards();
 
-  // Delay winner overlay by 1.0s so the winning ball voice & animation finish first!
+  // Delay winner overlay by 2.8s so the winning ball voice & animation finish first!
   if (winnerPendingTimeout) clearTimeout(winnerPendingTimeout);
   winnerPendingTimeout = setTimeout(() => {
     winnerPendingTimeout = null;
@@ -4642,7 +4675,7 @@ function botWins() {
       toast(`${winnerName} CLAIMED BINGO!`, "lose");
       showWinnerOverlay("lose", winnerName, botPrize, botCardId, "LINE", (Array.isArray(called) && called.length) ? called[called.length - 1] : null);
     }
-  }, 1000);
+  }, 2800);
 }
 
 function leaveGame() {

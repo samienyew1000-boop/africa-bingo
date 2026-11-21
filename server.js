@@ -729,9 +729,21 @@ function getCardWinningKind(cardNumbers, calledSet) {
   return onlyCorners ? "4 Corner" : "1 መስመር";
 }
 
-function checkCardBingo(cardNumbers, calledSet, pattern) {
+function cardHasWinningLineWithBall(cardNumbers, calledSet, lastBall) {
   if (!Array.isArray(cardNumbers) || cardNumbers.length !== 25) return false;
-  // Always 1 line bingo rule (includes rows, columns, diagonals, and 4 corners)
+  const lines = getCardCompletedLines(cardNumbers, calledSet);
+  if (!lines.length) return false;
+  if (lastBall == null) return lines.length >= 1;
+  const targetNum = Number(lastBall);
+  // Ensure the completed winning line specifically contains the last called ball
+  return lines.some((line) => line.some((idx) => idx !== 12 && Number(cardNumbers[idx]) === targetNum));
+}
+
+function checkCardBingo(cardNumbers, calledSet, pattern, lastBall = null) {
+  if (!Array.isArray(cardNumbers) || cardNumbers.length !== 25) return false;
+  if (lastBall != null) {
+    return cardHasWinningLineWithBall(cardNumbers, calledSet, lastBall);
+  }
   return countCompletedLines(cardNumbers, calledSet) >= 1;
 }
 
@@ -946,7 +958,7 @@ class LiveBingoRoom {
     }
 
     if (!this.deck.length) {
-      this.endRound(null, "No Winner", 0, null);
+      this.endRoundNoWinner();
       return;
     }
 
@@ -954,19 +966,27 @@ class LiveBingoRoom {
     this.calls.push(ball);
 
     const calledSet = new Set(this.calls);
-    const activePattern = this.currentPattern;
+    const winningEntries = [];
+
+    // Find ALL players and cards that completed Bingo on THIS winning ball!
     for (const player of this.players) {
       for (const cardId of (player.card_ids || [])) {
         const cardNumbers = cardCatalog[String(cardId)];
-        if (cardNumbers && checkCardBingo(cardNumbers, calledSet, activePattern)) {
-          const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
-          const prize = this.getDerash(totalCards);
-          const winKind = getCardWinningKind(cardNumbers, calledSet) || "1 መስመር";
-
-          this.endRound(player.user_id, player.first_name || player.username || "Player", prize, cardId, winKind);
-          return;
+        if (cardNumbers && cardHasWinningLineWithBall(cardNumbers, calledSet, ball)) {
+          winningEntries.push({
+            userId: player.user_id,
+            username: player.username,
+            firstName: player.first_name || player.username || `Player ${String(player.user_id).slice(-4)}`,
+            cardId: cardId,
+            winKind: getCardWinningKind(cardNumbers, calledSet) || "1 መስመር",
+          });
         }
       }
+    }
+
+    if (winningEntries.length > 0) {
+      this.endRoundWithWinners(winningEntries, ball);
+      return;
     }
   }
 
@@ -981,51 +1001,125 @@ class LiveBingoRoom {
 
     const cardNumbers = cardCatalog[String(cardId)];
     const calledSet = new Set(this.calls);
-    const activePattern = this.currentPattern;
-    if (!cardNumbers || !checkCardBingo(cardNumbers, calledSet, activePattern)) {
-      return { error: "Bingo not complete yet" };
+    const lastBall = this.calls.length ? this.calls[this.calls.length - 1] : null;
+
+    if (!cardNumbers || !cardHasWinningLineWithBall(cardNumbers, calledSet, lastBall)) {
+      return { error: "Bingo not complete yet on the latest called number" };
     }
 
-    const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
-    const prize = this.getDerash(totalCards);
-    const winKind = getCardWinningKind(cardNumbers, calledSet) || "1 መስመር";
+    // Collect all players/cards that completed bingo on this call
+    const winningEntries = [];
+    for (const p of this.players) {
+      for (const cid of (p.card_ids || [])) {
+        const cNums = cardCatalog[String(cid)];
+        if (cNums && cardHasWinningLineWithBall(cNums, calledSet, lastBall)) {
+          winningEntries.push({
+            userId: p.user_id,
+            username: p.username,
+            firstName: p.first_name || p.username || `Player ${String(p.user_id).slice(-4)}`,
+            cardId: cid,
+            winKind: getCardWinningKind(cNums, calledSet) || "1 መስመር",
+          });
+        }
+      }
+    }
 
-    this.endRound(userId, player.first_name || player.username || "Player", prize, cardId, winKind);
-    return { ok: true, winner: player.first_name, prize };
+    this.endRoundWithWinners(winningEntries, lastBall);
+    return { ok: true, winners: winningEntries.map(w => w.firstName), prize: this.lastResult?.prize };
   }
 
-  endRound(winnerId, winnerName, prize, cardId, winKind = null) {
+  endRoundWithWinners(winningEntries, winningCall) {
     if (this.callTimer) clearInterval(this.callTimer);
     this.callTimer = null;
     this.status = "ended";
 
     const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
     const turnover = totalCards * this.stake;
-    const profit = turnover > prize ? (turnover - prize) : Math.round(turnover * 0.20);
+    const totalPrize = this.getDerash(totalCards);
+    const profit = turnover > totalPrize ? (turnover - totalPrize) : Math.round(turnover * 0.20);
 
-    if (winnerId && prize > 0) {
-      const u = gameState.users[winnerId];
-      if (u) {
-        u.balance = (u.balance || 0) + prize;
-        u.games = (u.games || 0) + 1;
-        saveGameState();
-        updateSqliteUserBalance(winnerId, u.balance);
-      }
+    if (!winningEntries || !winningEntries.length) {
+      this.endRoundNoWinner(turnover, profit);
+      return;
     }
 
-    const patternLabel = winKind || (this.currentPattern ? (this.currentPattern.label || this.currentPattern.name) : "1 መስመር");
+    // Split prize equally among winning cards / players
+    const winningCardCount = winningEntries.length;
+    const prizePerCard = Math.floor(totalPrize / winningCardCount);
+
+    // Group by user so if a player has multiple winning cards, they receive their full multiple share
+    const userWinningMap = new Map();
+    for (const entry of winningEntries) {
+      const uid = String(entry.userId);
+      if (!userWinningMap.has(uid)) {
+        userWinningMap.set(uid, {
+          userId: entry.userId,
+          username: entry.username,
+          firstName: entry.firstName,
+          cardIds: [],
+          winKinds: [],
+        });
+      }
+      const uObj = userWinningMap.get(uid);
+      uObj.cardIds.push(entry.cardId);
+      uObj.winKinds.push(entry.winKind);
+    }
+
+    // Distribute balance to each winner
+    let totalCredited = 0;
+    const winnersDetail = [];
+    for (const [uid, uObj] of userWinningMap.entries()) {
+      const playerPrize = prizePerCard * uObj.cardIds.length;
+      uObj.prize = playerPrize;
+      totalCredited += playerPrize;
+
+      let u = gameState.users[uid];
+      if (!u) {
+        for (const [k, v] of Object.entries(gameState.users || {})) {
+          if (v && (String(v.id) === uid || (v.phone && v.phone.endsWith(uid.slice(-9))))) {
+            u = v;
+            break;
+          }
+        }
+      }
+      if (u) {
+        u.balance = (u.balance || 0) + playerPrize;
+        u.games = (u.games || 0) + 1;
+        saveGameState();
+        updateSqliteUserBalance(u.id || uid, u.balance);
+      }
+      winnersDetail.push({
+        user_id: uid,
+        name: uObj.firstName,
+        card_ids: uObj.cardIds,
+        prize: playerPrize,
+      });
+    }
+
+    const winnerNames = Array.from(userWinningMap.values()).map(u => u.firstName);
+    const winnerIds = Array.from(userWinningMap.keys());
+    const allCardIds = winningEntries.map(e => e.cardId);
+    const allWinKinds = Array.from(new Set(winningEntries.map(e => e.winKind))).join(", ");
+    const displayWinnerName = winnerNames.join(" & ");
+
+    const patternLabel = allWinKinds || (this.currentPattern ? (this.currentPattern.label || this.currentPattern.name) : "1 መስመር");
     const resultId = `RES_${this.id}_R${this.roundId}_${Math.floor(Date.now() / 1000)}`;
-    const winningCall = this.calls.length ? this.calls[this.calls.length - 1] : null;
+
     this.lastResult = {
       result_id: resultId,
       round_id: this.roundId,
-      winner_id: winnerId,
-      winner_name: winnerName,
-      prize: prize,
-      card_id: cardId,
+      winner_id: winnerIds.join(","),
+      winner_ids: winnerIds,
+      winner_name: displayWinnerName,
+      winner_names: winnerNames,
+      prize: totalPrize,
+      prize_per_winner: prizePerCard,
+      card_id: allCardIds,
+      card_ids: allCardIds,
       pattern: patternLabel,
       ended_at: Math.floor(Date.now() / 1000),
       winning_call: winningCall,
+      winners: winnersDetail,
     };
 
     if (totalCards > 0) {
@@ -1038,12 +1132,13 @@ class LiveBingoRoom {
         totalCards: totalCards,
         playerCount: this.players.length,
         turnover: turnover,
-        prize: prize,
+        prize: totalPrize,
         profit: profit,
-        winnerId: winnerId || null,
-        winnerName: winnerName || "No Winner",
-        cardId: cardId || null,
+        winnerId: winnerIds.join(","),
+        winnerName: displayWinnerName,
+        cardId: allCardIds.join(", "),
         pattern: patternLabel,
+        winningCall: winningCall,
         created_at: new Date().toISOString(),
         timestamp: Date.now(),
       };
@@ -1054,9 +1149,48 @@ class LiveBingoRoom {
       saveGameState();
     }
 
+    // Give 12 seconds: 2.8s for winning ball voice + 7s for winner overlay + 2s clean transition
     setTimeout(() => {
       this.resetRound();
-    }, 7500);
+    }, 12000);
+  }
+
+  endRoundNoWinner(turnover = 0, profit = 0) {
+    if (this.callTimer) clearInterval(this.callTimer);
+    this.callTimer = null;
+    this.status = "ended";
+    const resultId = `RES_${this.id}_R${this.roundId}_${Math.floor(Date.now() / 1000)}`;
+    this.lastResult = {
+      result_id: resultId,
+      round_id: this.roundId,
+      winner_id: null,
+      winner_ids: [],
+      winner_name: "No Winner",
+      winner_names: [],
+      prize: 0,
+      card_id: null,
+      pattern: "No Winner",
+      ended_at: Math.floor(Date.now() / 1000),
+      winning_call: null,
+      winners: [],
+    };
+    setTimeout(() => {
+      this.resetRound();
+    }, 6000);
+  }
+
+  endRound(winnerId, winnerName, prize, cardId, winKind = null) {
+    if (!winnerId) {
+      this.endRoundNoWinner();
+      return;
+    }
+    this.endRoundWithWinners([{
+      userId: winnerId,
+      username: winnerName,
+      firstName: winnerName,
+      cardId: cardId,
+      winKind: winKind || "1 መስመር",
+    }], this.calls.length ? this.calls[this.calls.length - 1] : null);
   }
 
   resetRound() {
