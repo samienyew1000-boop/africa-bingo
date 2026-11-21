@@ -1674,13 +1674,33 @@ const server = http.createServer(async (req, res) => {
         }, 400);
       }
 
+      const activeUser = getUserFromHeaders(req, body);
+      let depositUid = activeUser.id;
+      let depositUname = activeUser.name;
+      let depositPhone = phone || (cleanPhone(activeUser.username) || "");
+
+      if (!depositUid || depositUid === "LB-PLAYER") {
+        if (body.user_id && body.user_id !== "LB-PLAYER") {
+          depositUid = String(body.user_id);
+        } else if (phone && cleanPhone(phone)) {
+          depositUid = cleanPhone(phone);
+        }
+      }
+
+      if (gameState.users[depositUid]) {
+        depositUname = gameState.users[depositUid].name || gameState.users[depositUid].first_name || depositUname;
+        if (!depositPhone && gameState.users[depositUid].phone) {
+          depositPhone = gameState.users[depositUid].phone;
+        }
+      }
+
       const txId = `DEP-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
       const newTx = {
         id: txId,
-        playerId: `LB-${String(user.id).slice(-5)}`,
-        user_id: user.id,
-        player: user.name,
-        phone: phone,
+        playerId: `LB-${String(depositUid).slice(-5)}`,
+        user_id: String(depositUid),
+        player: depositUname,
+        phone: depositPhone,
         type: "deposit",
         method: method,
         amount: amount,
@@ -1694,8 +1714,8 @@ const server = http.createServer(async (req, res) => {
       if (cleanRefUpper.length >= 50 && !isInvalidTxCode(cleanRefUpper)) {
         gameState.usedDepositReferences[cleanRefUpper] = {
           txId: txId,
-          user_id: user.id,
-          player: user.name,
+          user_id: String(depositUid),
+          player: depositUname,
           amount: amount,
           created_at: new Date().toISOString()
         };
@@ -1704,8 +1724,8 @@ const server = http.createServer(async (req, res) => {
         if (!isInvalidTxCode(code)) {
           gameState.usedDepositReferences[code] = {
             txId: txId,
-            user_id: user.id,
-            player: user.name,
+            user_id: String(depositUid),
+            player: depositUname,
             amount: amount,
             created_at: new Date().toISOString()
           };
@@ -1716,10 +1736,10 @@ const server = http.createServer(async (req, res) => {
       saveGameState();
 
       // Record transaction into SQLite database so Telegram bot & admin see it
-      recordSqliteTransaction(txId, user.id, "deposit", method, amount, phone || user.id, "pending");
+      recordSqliteTransaction(txId, String(depositUid), "deposit", method, amount, depositPhone || String(depositUid), "pending");
 
       // Sanitize fields for Telegram Markdown to prevent parse entity failure
-      const safePlayerName = String(user.name || "Player").replace(/[_*`\[\]]/g, " ").trim();
+      const safePlayerName = String(depositUname || "Player").replace(/[_*`\[\]]/g, " ").trim();
       const safeRef = String(reference || "").slice(0, 160).replace(/[`*]/g, "").trim();
       const safeMethod = String(method || "Telebirr").replace(/[_*`\[\]]/g, " ").trim();
 
@@ -1882,35 +1902,109 @@ const server = http.createServer(async (req, res) => {
         tx.processedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
         // Find target user with flexible matching
-        let targetUser = tx.user_id ? gameState.users[tx.user_id] : null;
+        const cleanTxPhone = cleanPhone(tx.phone);
+        const txUid = tx.user_id ? String(tx.user_id).trim() : "";
+        let targetUser = txUid ? gameState.users[txUid] : null;
+
+        if (!targetUser && txUid) {
+          targetUser = Object.values(gameState.users).find((u) => String(u.id) === txUid);
+        }
+        if (!targetUser && cleanTxPhone) {
+          targetUser = Object.values(gameState.users).find((u) => u.phone && cleanPhone(u.phone) === cleanTxPhone);
+        }
+        if (!targetUser && tx.playerId) {
+          const pidDigits = String(tx.playerId).replace(/\D/g, "");
+          if (pidDigits) {
+            targetUser = Object.values(gameState.users).find((u) => String(u.id).endsWith(pidDigits));
+          }
+        }
+        if (!targetUser && tx.player) {
+          const normPlayer = String(tx.player).toLowerCase().replace(/^@/, "").trim();
+          targetUser = Object.values(gameState.users).find((u) => {
+            const uName = String(u.name || "").toLowerCase().replace(/^@/, "").trim();
+            const uFname = String(u.first_name || "").toLowerCase().replace(/^@/, "").trim();
+            const uUname = String(u.username || "").toLowerCase().replace(/^@/, "").trim();
+            return (uName && uName === normPlayer) || (uFname && uFname === normPlayer) || (uUname && uUname === normPlayer);
+          });
+        }
+
+        // Check SQLite if user not found in memory
         if (!targetUser) {
-          const cleanTxPhone = cleanPhone(tx.phone);
-          targetUser = Object.values(gameState.users).find(
-            (u) => (tx.user_id && String(u.id) === String(tx.user_id)) ||
-                   (cleanTxPhone && u.phone && cleanPhone(u.phone) === cleanTxPhone) ||
-                   (tx.playerId && String(u.id).endsWith(String(tx.playerId).replace(/\D/g, ""))) ||
-                   (tx.player && (u.name === tx.player || u.first_name === tx.player || u.username === tx.player))
-          );
+          try {
+            const { execSync } = require("child_process");
+            const pyExec = process.platform === "win32" ? "python" : "python3";
+            const helperPath = path.join(__dirname, "data", "waliya_bingo.db").replace(/\\/g, "/");
+            const safeId = (txUid || "").replace(/[^a-zA-Z0-9_\-+]/g, "");
+            const safePhone = (cleanTxPhone || "").replace(/[^0-9]/g, "");
+            const safeCheck = `${pyExec} -c "import sqlite3, json; conn = sqlite3.connect('${helperPath}'); conn.row_factory = sqlite3.Row; c = conn.cursor(); r = c.execute('SELECT * FROM users WHERE id = ? OR phone_number = ? OR phone_number LIKE ?', ('${safeId}', '${safePhone}', '%${safePhone.slice(-9)}')).fetchone(); print(json.dumps(dict(r) if r else None))"`;
+            const out = execSync(safeCheck, { encoding: "utf-8", timeout: 3000 });
+            const dbU = JSON.parse(out);
+            if (dbU) {
+              const uid = String(dbU.id);
+              gameState.users[uid] = {
+                id: uid,
+                username: dbU.username || uid,
+                phone: dbU.phone_number || cleanTxPhone || null,
+                first_name: dbU.first_name || tx.player || `Player ${uid.slice(-4)}`,
+                name: dbU.first_name || tx.player || `Player ${uid.slice(-4)}`,
+                balance: Number(dbU.balance) || 0,
+                bonus_balance: Number(dbU.bonus_balance) || 0,
+                bonus_claimed: 1,
+                role: dbU.role || "player",
+                status: dbU.status || "active",
+                created_at: dbU.registered_at || new Date().toISOString(),
+                source: "sqlite",
+              };
+              targetUser = gameState.users[uid];
+            }
+          } catch (e) {}
+        }
+
+        // If STILL not found, auto-create user record so balance is NEVER lost!
+        if (!targetUser) {
+          const finalUid = txUid || cleanTxPhone || `user_${Date.now()}`;
+          const finalPhone = cleanTxPhone || (finalUid.startsWith("09") ? finalUid : null);
+          const finalName = tx.player || `Player ${finalUid.slice(-4)}`;
+          targetUser = {
+            id: finalUid,
+            username: finalPhone || finalUid,
+            phone: finalPhone,
+            first_name: finalName,
+            name: finalName,
+            balance: 0,
+            bonus_balance: 0,
+            bonus_claimed: 1,
+            role: "player",
+            status: "active",
+            created_at: new Date().toISOString(),
+            source: "deposit",
+          };
+          gameState.users[finalUid] = targetUser;
+          console.log(`[APPROVE] Created missing user record for ${finalUid} (${finalName})`);
         }
 
         // DEPOSIT APPROVAL: Credit amount + 20% bonus
         if (action === "approve" && tx.type === "deposit") {
           const bonus = tx.amount >= 100 ? Math.floor(tx.amount * 0.2) : 0;
           const totalCredit = tx.amount + bonus;
-          if (targetUser) {
-            targetUser.balance = (Number(targetUser.balance) || 0) + totalCredit;
-            targetUser.updated_at = new Date().toISOString();
-            updateSqliteUserBalance(targetUser.id, targetUser.balance);
-
-            if (targetUser.id && /^\d+$/.test(targetUser.id) && !String(targetUser.id).startsWith("09")) {
-              telegramApi("sendMessage", {
-                chat_id: targetUser.id,
-                text: `✅ *ተቀማጭ ገንዘብዎ ጸድቋል!*\n\n💰 *የተጨመረ:* \`${totalCredit} ETB\`\n💵 *አሁን ያለዎት ቀሪ ሂሳብ:* \`${targetUser.balance} ETB\`\n\nመልካም ጨዋታ! 🎰`,
-                parse_mode: "Markdown",
-              }).catch(() => {});
-            }
+          targetUser.balance = (Number(targetUser.balance) || 0) + totalCredit;
+          targetUser.updated_at = new Date().toISOString();
+          saveGameState();
+          updateSqliteUserBalance(targetUser.id, targetUser.balance);
+          if (targetUser.phone) {
+            updateSqliteUserBalance(targetUser.phone, targetUser.balance);
           }
           updateSqliteTransactionStatus(txId, "approved");
+
+          console.log(`[DEPOSIT APPROVED] tx=${txId}, amount=${tx.amount}, bonus=${bonus}, totalCredit=${totalCredit}, targetUser=${targetUser.id} (${targetUser.name}), newBalance=${targetUser.balance}`);
+
+          if (targetUser.id && /^\d+$/.test(targetUser.id) && !String(targetUser.id).startsWith("09")) {
+            telegramApi("sendMessage", {
+              chat_id: targetUser.id,
+              text: `✅ *ተቀማጭ ገንዘብዎ ጸድቋል!*\n\n💰 *የተጨመረ:* \`${totalCredit} ETB\`${bonus > 0 ? ` (ከ20% ቦነስ \`${bonus} ETB\` ጋር)` : ""}\n💵 *አሁን ያለዎት ቀሪ ሂሳብ:* \`${targetUser.balance} ETB\`\n\nመልካም ጨዋታ! 🎰`,
+              parse_mode: "Markdown",
+            }).catch(() => {});
+          }
         }
 
         // WITHDRAW APPROVAL: Ensure balance is deducted from user
@@ -2077,6 +2171,8 @@ const server = http.createServer(async (req, res) => {
 
       if (body.balance !== undefined && !isNaN(Number(body.balance))) {
         targetUser.balance = Math.max(0, Math.round(Number(body.balance) * 100) / 100);
+        updateSqliteUserBalance(targetUser.id, targetUser.balance);
+        if (targetUser.phone) updateSqliteUserBalance(targetUser.phone, targetUser.balance);
       }
       if (body.bonus_balance !== undefined && !isNaN(Number(body.bonus_balance))) {
         targetUser.bonus_balance = Math.max(0, Math.round(Number(body.bonus_balance) * 100) / 100);

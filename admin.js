@@ -773,46 +773,40 @@ function updateTransaction(id, nextStatus) {
     (cleanTxPhone && curMobileUser.phone && curMobileUser.phone.replace(/[\s\-()]+/g, "").endsWith(cleanTxPhone))
   ));
 
-  const curLocalBal = Number(localStorage.getItem("lucky-bingo-balance") || 0);
+  const curLocalBal = Number(localStorage.getItem("waliya-bingo-balance") || localStorage.getItem("lucky-bingo-balance") || 0);
 
   if (nextStatus === "approved") {
     state.metrics.processedToday = (Number(state.metrics.processedToday) || 0) + amount;
 
     if (transaction.type === "deposit") {
-      // 1. Credit player balance in admin state
+      const bonus = amount >= 100 ? Math.floor(amount * 0.2) : 0;
+      const totalCredit = amount + bonus;
       if (player) {
-        player.balance = (Number(player.balance) || 0) + amount;
-        savePlayerBalance(player.id, player.balance);
+        player.balance = (Number(player.balance) || 0) + totalCredit;
       }
-      // 2. Credit active player game wallet ONLY if the transaction belongs to this device's active user
       if (isCurrentActiveUser) {
-        const nextBal = curLocalBal + amount;
-        localStorage.setItem("lucky-bingo-balance", String(nextBal));
+        const nextBal = curLocalBal + totalCredit;
+        localStorage.setItem("waliya-bingo-balance", String(nextBal));
       }
     } else if (transaction.type === "withdraw") {
-      // 1. Debit player balance in admin state ONLY if not already deducted upon request
       if (!transaction.heldFromBalance && !transaction.deducted) {
         if (player) {
           player.balance = Math.max(0, (Number(player.balance) || 0) - amount);
-          savePlayerBalance(player.id, player.balance);
         }
-        // 2. Debit game wallet ONLY if the transaction belongs to this device's active user and wasn't held
         if (isCurrentActiveUser) {
           const nextBal = Math.max(0, curLocalBal - amount);
-          localStorage.setItem("lucky-bingo-balance", String(nextBal));
+          localStorage.setItem("waliya-bingo-balance", String(nextBal));
         }
       }
     }
   } else if (nextStatus === "rejected") {
-    // If a withdrawal was held from player balance upon request, refund it upon rejection!
     if (transaction.type === "withdraw" && (transaction.heldFromBalance || transaction.deducted)) {
       if (player) {
         player.balance = (Number(player.balance) || 0) + amount;
-        savePlayerBalance(player.id, player.balance);
       }
       if (isCurrentActiveUser) {
         const nextBal = curLocalBal + amount;
-        localStorage.setItem("lucky-bingo-balance", String(nextBal));
+        localStorage.setItem("waliya-bingo-balance", String(nextBal));
       }
     }
   }
@@ -833,9 +827,25 @@ function updateTransaction(id, nextStatus) {
         const pIdx = state.players.findIndex(p => String(p.id) === uId || (p.phone && p.phone === res.user.phone));
         if (pIdx !== -1) {
           state.players[pIdx].balance = res.user.balance;
-          renderPlayers();
-          renderDashboard();
+          if (res.user.phone) state.players[pIdx].phone = res.user.phone;
+          if (res.user.name) state.players[pIdx].name = res.user.name;
+        } else {
+          state.players.unshift({
+            id: uId,
+            userId: uId,
+            name: res.user.first_name || res.user.name || `Player ${uId.slice(-4)}`,
+            balance: Number(res.user.balance) || 0,
+            phone: res.user.phone || "",
+            role: res.user.role || "player",
+            status: res.user.status || "active",
+          });
         }
+        if (isCurrentActiveUser) {
+          localStorage.setItem("waliya-bingo-balance", String(res.user.balance));
+        }
+        renderPlayers();
+        renderDashboard();
+        renderFinanceSummary();
       }
     }).catch(() => {});
   }
