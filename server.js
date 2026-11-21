@@ -94,51 +94,130 @@ const DEFAULT_STATE = {
 
 let gameState = DEFAULT_STATE;
 
-const COMMON_SMS_WORDS = new Set([
+const BLACKLISTED_DEPOSIT_TOKENS = new Set([
+  // Admin recipient bank account
+  "1000817750552", "100081775055", "1000817750", "100081775",
+  // Admin recipient phones & variations
+  "0963344995", "251963344995", "963344995",
+  "0700000000", "251700000000", "700000000",
+  "0918151485", "251918151485", "918151485",
+  "0939030118", "251939030118", "939030118",
+  // CBE Google feedback form URL token (present on ALL CBE SMS!)
+  "KGNGQPG3MQCCK3ID6",
+  // Names
+  "KALKIDAN", "ENYEW", "AYALEW", "WALIYA", "BINGO", "TEDY12W",
+  // Common URLs, domains & protocols
+  "HTTP", "HTTPS", "WWW", "COM", "ET", "MBRECIEPT", "ETHIOTELECOM",
+  "TRANSACTIONINFO", "RECEIPT", "FORMS", "GLE", "FORMS.GLE",
+  // Common English SMS words and bank terms
   "CUSTOMER", "TRANSFERRED", "TRANSACTION", "COMPLETED", "SUCCESSFUL",
   "SUCCESSFULLY", "DEPOSITED", "CONFIRMED", "PAYMENT", "ACCOUNT",
   "TELEBIRR", "SERVICE", "TRANSFER", "RECEIVED", "BALANCE", "TELECOM",
-  "ETHIOTELECOM", "COMMERCIAL", "DEAR", "YOUR", "HAVE", "WITH", "FROM", "FOR"
+  "ETHIOTELECOM", "COMMERCIAL", "DEAR", "YOUR", "HAVE", "WITH", "FROM", "FOR",
+  "NUMBER", "RECOVERY", "DISASTER", "BANKING", "FEEDBACK", "CHARGE", "CURRENT",
+  "ETHIOPIA", "INVOICE", "BRANCH", "REMARK", "REMARKS", "TOTAL", "AMOUNT", "VAT",
+  "THANK", "THANKS", "USING", "CLICK", "LINK", "DOWNLOAD", "MONEY", "E-MONEY",
+  "BIRR", "ETB"
 ]);
+
+const COMMON_SMS_WORDS = BLACKLISTED_DEPOSIT_TOKENS;
+
+function isInvalidTxCode(code) {
+  if (!code || typeof code !== "string") return true;
+  const s = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (s.length < 5 || s.length > 36) return true;
+  if (BLACKLISTED_DEPOSIT_TOKENS.has(s)) return true;
+  // Pure digits: account numbers or phone numbers or amounts
+  if (/^\d+$/.test(s)) {
+    if (/^1000\d{8,10}$/.test(s)) return true; // CBE accounts
+    if (/^(?:251|0)?[79]\d{8}$/.test(s)) return true; // Phone numbers
+    if (s.length <= 8) return true; // short numbers like amounts
+    return true; // Any pure numeric code is unsafe to treat as unique tx id without letters!
+  }
+  // Pure letters: dictionary words
+  if (/^[A-Z]+$/.test(s)) return true;
+  return false;
+}
 
 function extractTxCodes(text) {
   if (!text || typeof text !== "string") return [];
   const trimmed = text.trim();
   const codes = new Set();
 
-  if (!trimmed.includes(" ") && !trimmed.includes("\n") && trimmed.length >= 4) {
-    codes.add(trimmed.toUpperCase());
+  // If user entered a single code directly
+  if (!trimmed.includes(" ") && !trimmed.includes("\n")) {
+    const cleanSingle = trimmed.toUpperCase().replace(/[^A-Z0-9_-]/g, "").replace(/^V2-/, "");
+    if (!isInvalidTxCode(cleanSingle)) {
+      codes.add(cleanSingle);
+    }
   }
 
+  // 1. CBE Receipt URL: mbreciept.cbe.com.et/(?:v2-)?([a-zA-Z0-9]{8,36})
+  const cbeUrlPattern = /mbreciept\.cbe\.com\.et\/(?:v2-)?([a-zA-Z0-9]{8,36})/gi;
+  let cbeMatch;
+  while ((cbeMatch = cbeUrlPattern.exec(trimmed)) !== null) {
+    if (cbeMatch[1]) {
+      const code = cbeMatch[1].toUpperCase().replace(/^V2-/, "");
+      if (!isInvalidTxCode(code)) codes.add(code);
+    }
+  }
+
+  // 2. Telebirr Receipt URL: transactioninfo.ethiotelecom.et/receipt/([a-zA-Z0-9]{6,25})
+  const tbUrlPattern = /transactioninfo\.ethiotelecom\.et\/receipt\/([a-zA-Z0-9]{6,25})/gi;
+  let tbMatch;
+  while ((tbMatch = tbUrlPattern.exec(trimmed)) !== null) {
+    if (tbMatch[1] && !isInvalidTxCode(tbMatch[1])) {
+      codes.add(tbMatch[1].toUpperCase());
+    }
+  }
+
+  // 3. Telebirr Txn Number (DK...): DKK4FHLW0E, DKL5GJ0C0D, etc.
+  const tbCodePattern = /\b(DK[A-HJ-NP-Z0-9]{8,15})\b/gi;
+  let tbCodeMatch;
+  while ((tbCodeMatch = tbCodePattern.exec(trimmed)) !== null) {
+    if (tbCodeMatch[1] && !isInvalidTxCode(tbCodeMatch[1])) {
+      codes.add(tbCodeMatch[1].toUpperCase());
+    }
+  }
+
+  // 4. CBE FT code: FT24... or TXN...
+  const cbeFtPattern = /\b(FT\d{8,22}[A-Z0-9]*)\b/gi;
+  let cbeFtMatch;
+  while ((cbeFtMatch = cbeFtPattern.exec(trimmed)) !== null) {
+    if (cbeFtMatch[1] && !isInvalidTxCode(cbeFtMatch[1])) {
+      codes.add(cbeFtMatch[1].toUpperCase());
+    }
+  }
+
+  // 5. Keyword patterns with label prefixes
   const keywordPatterns = [
     /(?:trans(?:action)?\.?\s*(?:id|no|number|num)?[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
     /(?:txn\s*(?:id|no|num)?[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
     /(?:ref(?:\.|erence)?[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
-    /(?:code[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
     /(?:fs\s*no[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
-    /(?:ቁጥር[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
+    /(?:የግብይት\s*(?:መለያ|ቁጥር)?[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
+    /(?:የሂሳብ\s*እንቅስቃሴ\s*ቁጥር(?:ዎ)?[:\s]+)([a-zA-Z0-9_-]{5,32})/gi,
   ];
-
   for (const pat of keywordPatterns) {
     let match;
     while ((match = pat.exec(trimmed)) !== null) {
       if (match[1]) {
-        const c = match[1].trim().toUpperCase();
-        if (c.length >= 5 && !COMMON_SMS_WORDS.has(c)) {
+        const c = match[1].trim().toUpperCase().replace(/^V2-/, "");
+        if (!isInvalidTxCode(c)) {
           codes.add(c);
         }
       }
     }
   }
 
-  const tokenMatches = trimmed.match(/\b([A-Za-z0-9]{7,30})\b/g);
+  // 6. Alphanumeric token fallback (must have >= 2 letters AND >= 2 digits, length 8..32)
+  const tokenMatches = trimmed.match(/\b([A-Za-z0-9_-]{8,32})\b/g);
   if (tokenMatches) {
     for (const rawToken of tokenMatches) {
-      const token = rawToken.toUpperCase();
-      if (COMMON_SMS_WORDS.has(token)) continue;
-      const hasDigit = /\d/.test(token);
-      const hasAlpha = /[A-Z]/.test(token);
-      if ((hasDigit && hasAlpha) || (hasDigit && token.length >= 10)) {
+      const token = rawToken.toUpperCase().replace(/^V2-/, "");
+      const letters = (token.match(/[A-Z]/g) || []).length;
+      const digits = (token.match(/\d/g) || []).length;
+      if (letters >= 2 && digits >= 2 && !isInvalidTxCode(token)) {
         codes.add(token);
       }
     }
@@ -324,6 +403,13 @@ function loadGameState() {
       ? fileData.roundHistory
       : (backupRounds.length > 0 ? backupRounds : []);
 
+    const cleanedRegistry = {};
+    for (const [k, v] of Object.entries(fileData?.usedDepositReferences || {})) {
+      if (!isInvalidTxCode(k)) {
+        cleanedRegistry[k] = v;
+      }
+    }
+
     gameState = {
       ...DEFAULT_STATE,
       ...(fileData || {}),
@@ -341,9 +427,7 @@ function loadGameState() {
       users: mergedUsers,
       transactions: mergedTxns,
       roundHistory: mergedRounds,
-      usedDepositReferences: {
-        ...(fileData?.usedDepositReferences || {}),
-      },
+      usedDepositReferences: cleanedRegistry,
     };
 
     if (!Array.isArray(gameState.roundHistory) || gameState.roundHistory.length === 0) {
@@ -357,12 +441,14 @@ function loadGameState() {
           const rawRef = String(tx.reference || "").trim();
           if (rawRef) {
             const rawUpper = rawRef.replace(/\s+/g, " ").toUpperCase();
-            if (!gameState.usedDepositReferences[rawUpper]) {
-              gameState.usedDepositReferences[rawUpper] = { txId: tx.id, at: tx.created_at || "" };
+            if (rawUpper.length >= 50 && !isInvalidTxCode(rawUpper)) {
+              if (!gameState.usedDepositReferences[rawUpper]) {
+                gameState.usedDepositReferences[rawUpper] = { txId: tx.id, at: tx.created_at || "" };
+              }
             }
             const codes = extractTxCodes(rawRef);
             for (const c of codes) {
-              if (!gameState.usedDepositReferences[c]) {
+              if (!isInvalidTxCode(c) && !gameState.usedDepositReferences[c]) {
                 gameState.usedDepositReferences[c] = { txId: tx.id, at: tx.created_at || "" };
               }
             }
@@ -1317,22 +1403,27 @@ const server = http.createServer(async (req, res) => {
         gameState.usedDepositReferences = {};
       }
 
+      const cleanSingle = reference.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (cleanSingle && (BLACKLISTED_DEPOSIT_TOKENS.has(cleanSingle) || cleanSingle === "1000817750552" || cleanSingle === "0963344995")) {
+        return sendJson(res, {
+          ok: false,
+          error: "ያስገቡት ቁጥር የተቀባይ ሂሳብ ወይም ስልክ ቁጥር ነው። እባክዎ ከባንክ የደረሰዎትን የግብይት ቁጥር (Txn Ref) ወይም የ SMS መልዕክት ያስገቡ።"
+        }, 400);
+      }
+
       const cleanRefUpper = reference.replace(/\s+/g, " ").toUpperCase();
       const newCodes = extractTxCodes(reference);
-      if (newCodes.length === 0) {
-        newCodes.push(cleanRefUpper);
-      }
 
       let isDuplicate = false;
       let matchedRef = "";
 
       // 1. Check against the persistent usedDepositReferences registry
-      if (gameState.usedDepositReferences[cleanRefUpper]) {
+      if (cleanRefUpper.length >= 40 && !isInvalidTxCode(cleanRefUpper) && gameState.usedDepositReferences[cleanRefUpper]) {
         isDuplicate = true;
         matchedRef = cleanRefUpper;
       } else {
         for (const code of newCodes) {
-          if (gameState.usedDepositReferences[code]) {
+          if (!isInvalidTxCode(code) && gameState.usedDepositReferences[code]) {
             isDuplicate = true;
             matchedRef = code;
             break;
@@ -1340,7 +1431,7 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // 2. Check against all past transactions in memory (regardless of status: pending, approved, or rejected!)
+      // 2. Check against past transactions in memory
       if (!isDuplicate && Array.isArray(gameState.transactions)) {
         for (const tx of gameState.transactions) {
           if (tx.type !== "deposit" && !tx.reference) continue;
@@ -1348,33 +1439,22 @@ const server = http.createServer(async (req, res) => {
           if (!existingRef) continue;
           const existingUpper = existingRef.replace(/\s+/g, " ").toUpperCase();
 
-          if (existingUpper === cleanRefUpper) {
+          // Full identical SMS text match
+          if (cleanRefUpper.length >= 40 && existingUpper === cleanRefUpper) {
             isDuplicate = true;
             matchedRef = existingUpper;
             break;
           }
 
-          const existingCodes = extractTxCodes(existingRef);
-          if (newCodes.some((c) => existingCodes.includes(c))) {
-            isDuplicate = true;
-            matchedRef = existingUpper;
-            break;
-          }
-
-          for (const c of newCodes) {
-            if (c.length >= 6 && existingUpper.includes(c)) {
-              isDuplicate = true;
-              matchedRef = c;
-              break;
-            }
-          }
-          if (isDuplicate) break;
-
-          for (const ec of existingCodes) {
-            if (ec.length >= 6 && cleanRefUpper.includes(ec)) {
-              isDuplicate = true;
-              matchedRef = ec;
-              break;
+          // Exact matching on valid unique transaction codes
+          if (newCodes.length > 0) {
+            const existingCodes = extractTxCodes(existingRef);
+            for (const c of newCodes) {
+              if (!isInvalidTxCode(c) && existingCodes.includes(c)) {
+                isDuplicate = true;
+                matchedRef = c;
+                break;
+              }
             }
           }
           if (isDuplicate) break;
@@ -1406,21 +1486,25 @@ const server = http.createServer(async (req, res) => {
       };
 
       // Record into persistent used registry so this reference/SMS can never be submitted again
-      gameState.usedDepositReferences[cleanRefUpper] = {
-        txId: txId,
-        user_id: user.id,
-        player: user.name,
-        amount: amount,
-        created_at: new Date().toISOString()
-      };
-      for (const code of newCodes) {
-        gameState.usedDepositReferences[code] = {
+      if (cleanRefUpper.length >= 50 && !isInvalidTxCode(cleanRefUpper)) {
+        gameState.usedDepositReferences[cleanRefUpper] = {
           txId: txId,
           user_id: user.id,
           player: user.name,
           amount: amount,
           created_at: new Date().toISOString()
         };
+      }
+      for (const code of newCodes) {
+        if (!isInvalidTxCode(code)) {
+          gameState.usedDepositReferences[code] = {
+            txId: txId,
+            user_id: user.id,
+            player: user.name,
+            amount: amount,
+            created_at: new Date().toISOString()
+          };
+        }
       }
 
       gameState.transactions.unshift(newTx);
@@ -2418,6 +2502,17 @@ async function startTelegramBot() {
               /(?:transferred|ልከዋል|ተቀብለዋል|telebirr|cbe birr|deposited|receipt)/i.test(text) ||
               (botUserStates[chatId]?.step === "awaiting_deposit_sms" && text.length >= 4)
             ) {
+              const cleanSingle = text.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+              if (cleanSingle && (BLACKLISTED_DEPOSIT_TOKENS.has(cleanSingle) || cleanSingle === "1000817750552" || cleanSingle === "0963344995")) {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `⚠️ *ያስገቡት ቁጥር የተቀባይ ሂሳብ ወይም ስልክ ቁጥር ነው!*\n\nገንዘብ ካስተላለፉ በኋላ ከባንኩ (CBE ወይም Telebirr) የደረሰዎትን አጭር የጽሑፍ መልዕክት (SMS) ሙሉውን ኮፒ አድርገው እዚህ ይላኩ ወይም የደረሰኝ ቁጥሩን (Transaction Ref) ያስገቡ።`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+                continue;
+              }
+
               let userRecord = gameState.users[chatId];
               if (!userRecord) {
                 userRecord = {
@@ -2439,22 +2534,49 @@ async function startTelegramBot() {
 
               const cleanRefUpper = text.trim().replace(/\s+/g, " ").toUpperCase();
               const newCodes = extractTxCodes(text);
-              if (newCodes.length === 0) {
-                newCodes.push(cleanRefUpper.slice(0, 40));
-              }
 
               let isDuplicate = false;
               let matchedRef = "";
-              if (gameState.usedDepositReferences[cleanRefUpper]) {
+
+              // 1. Check against the persistent usedDepositReferences registry
+              if (cleanRefUpper.length >= 40 && !isInvalidTxCode(cleanRefUpper) && gameState.usedDepositReferences[cleanRefUpper]) {
                 isDuplicate = true;
                 matchedRef = cleanRefUpper;
               } else {
                 for (const code of newCodes) {
-                  if (gameState.usedDepositReferences[code]) {
+                  if (!isInvalidTxCode(code) && gameState.usedDepositReferences[code]) {
                     isDuplicate = true;
                     matchedRef = code;
                     break;
                   }
+                }
+              }
+
+              // 2. Check against past transactions in memory
+              if (!isDuplicate && Array.isArray(gameState.transactions)) {
+                for (const tx of gameState.transactions) {
+                  if (tx.type !== "deposit" && !tx.reference) continue;
+                  const existingRef = String(tx.reference || "").trim();
+                  if (!existingRef) continue;
+                  const existingUpper = existingRef.replace(/\s+/g, " ").toUpperCase();
+
+                  if (cleanRefUpper.length >= 40 && existingUpper === cleanRefUpper) {
+                    isDuplicate = true;
+                    matchedRef = existingUpper;
+                    break;
+                  }
+
+                  if (newCodes.length > 0) {
+                    const existingCodes = extractTxCodes(existingRef);
+                    for (const c of newCodes) {
+                      if (!isInvalidTxCode(c) && existingCodes.includes(c)) {
+                        isDuplicate = true;
+                        matchedRef = c;
+                        break;
+                      }
+                    }
+                  }
+                  if (isDuplicate) break;
                 }
               }
 
@@ -2500,15 +2622,8 @@ async function startTelegramBot() {
                 created_at: new Date().toISOString(),
               };
 
-              gameState.usedDepositReferences[cleanRefUpper] = {
-                txId: txId,
-                user_id: String(chatId),
-                player: playerName,
-                amount: extractedAmount,
-                created_at: new Date().toISOString(),
-              };
-              for (const code of newCodes) {
-                gameState.usedDepositReferences[code] = {
+              if (cleanRefUpper.length >= 50 && !isInvalidTxCode(cleanRefUpper)) {
+                gameState.usedDepositReferences[cleanRefUpper] = {
                   txId: txId,
                   user_id: String(chatId),
                   player: playerName,
@@ -2516,13 +2631,24 @@ async function startTelegramBot() {
                   created_at: new Date().toISOString(),
                 };
               }
+              for (const code of newCodes) {
+                if (!isInvalidTxCode(code)) {
+                  gameState.usedDepositReferences[code] = {
+                    txId: txId,
+                    user_id: String(chatId),
+                    player: playerName,
+                    amount: extractedAmount,
+                    created_at: new Date().toISOString(),
+                  };
+                }
+              }
 
               gameState.transactions.unshift(newTx);
               saveGameState();
               recordSqliteTransaction(txId, String(chatId), "deposit", detectedMethod, extractedAmount, String(chatId), "pending");
 
               const safePlayerName = String(playerName).replace(/[_*`\[\]]/g, " ").trim();
-              const safeRef = String(newCodes[0] || text.slice(0, 50)).replace(/[`*]/g, "").trim();
+              const safeRef = String(newCodes[0] || (text.length > 60 ? text.slice(0, 55) + "..." : text)).replace(/[`*]/g, "").trim();
               notifyTelegramAdmin(`📩 *አዲስ የተቀማጭ ደረሰኝ (New Bot SMS Deposit)*\n\n👤 *ተጫዋች:* ${safePlayerName} (\`${chatId}\`)\n💰 *የተገኘ መጠን:* \`${extractedAmount > 0 ? extractedAmount + " ETB" : "በአድሚን ይረጋገጥ"}\`\n🏦 *መንገድ:* ${detectedMethod}\n🧾 *ማጣቀሻ:* \`${safeRef}\`\n\n✅ ለማጽደቅ: ${WEB_APP_URL}admin.html`);
 
               await telegramApi("sendMessage", {
