@@ -43,24 +43,85 @@ const LuckyBingoAPI = (() => {
     }
   }
 
+  function getTelegramUser() {
+    try {
+      // 1. Highest priority: URL search params (?u=... or ?user_id=...)
+      const params = new URLSearchParams(window.location.search);
+      const urlUid = params.get("u") || params.get("user_id") || params.get("tg_user_id");
+      if (urlUid && /^\d+$/.test(urlUid)) {
+        const u = {
+          id: Number(urlUid),
+          username: params.get("username") || params.get("uname") || `Player_${urlUid.slice(-4)}`,
+          first_name: params.get("name") || params.get("first_name") || "Player",
+          phone: params.get("phone") || "",
+        };
+        localStorage.setItem("lb_tg_user", JSON.stringify(u));
+        localStorage.removeItem("lb_device_player_id");
+        return u;
+      }
+
+      // 2. Real Telegram WebApp user object from Telegram SDK
+      const webAppUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (webAppUser?.id) {
+        const u = {
+          id: Number(webAppUser.id),
+          username: webAppUser.username || `Player_${String(webAppUser.id).slice(-4)}`,
+          first_name: webAppUser.first_name || "Player",
+          phone: webAppUser.phone || "",
+        };
+        localStorage.setItem("lb_tg_user", JSON.stringify(u));
+        localStorage.removeItem("lb_device_player_id");
+        return u;
+      }
+
+      // 3. Explicit mobile login (phone + password login)
+      const rawMobile = localStorage.getItem("lb_mobile_user");
+      if (rawMobile) {
+        try {
+          const parsed = JSON.parse(rawMobile);
+          if (parsed && (parsed.id || parsed.phone) && !parsed.isGuest) {
+            return parsed;
+          }
+        } catch (_) {}
+      }
+
+      // 4. Cached real telegram user from previous session (only if NOT a guest)
+      const cached = localStorage.getItem("lb_tg_user");
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.id && !parsed.isGuest && !localStorage.getItem("lb_device_player_id")) {
+            return parsed;
+          }
+        } catch (_) {}
+      }
+
+      // 5. Fallback for standalone browser testing outside Telegram (guest only)
+      let deviceId = localStorage.getItem("lb_device_player_id");
+      if (!deviceId || !/^\d+$/.test(deviceId)) {
+        deviceId = String(Math.floor(8000000000 + Math.random() * 1999999999));
+        localStorage.setItem("lb_device_player_id", deviceId);
+      }
+      return {
+        id: Number(deviceId),
+        username: `Player_${deviceId.slice(-4)}`,
+        first_name: "Waliya Player",
+        isGuest: true,
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
   function getMobileUser() {
     try {
       const raw = localStorage.getItem("lb_mobile_user");
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && (parsed.id || parsed.phone)) return parsed;
+        if (parsed && (parsed.id || parsed.phone) && !parsed.isGuest) return parsed;
       }
     } catch (e) {}
-    const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (tg?.id) return tg;
-    const cached = localStorage.getItem("lb_tg_user");
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (parsed && parsed.id) return parsed;
-      } catch (e) {}
-    }
-    return null;
+    return getTelegramUser();
   }
 
   function logoutMobile() {
@@ -99,52 +160,6 @@ const LuckyBingoAPI = (() => {
       localStorage.setItem("lb_tg_user", JSON.stringify(res.user));
     }
     return res;
-  }
-
-  function getTelegramUser() {
-    try {
-      const mobileUser = getMobileUser();
-      if (mobileUser && mobileUser.id) {
-        return mobileUser;
-      }
-
-      const webAppUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-      if (webAppUser?.id) {
-        localStorage.setItem("lb_tg_user", JSON.stringify(webAppUser));
-        return webAppUser;
-      }
-
-      const params = new URLSearchParams(window.location.search);
-      const uid = params.get("u") || params.get("user_id") || params.get("tg_user_id");
-      if (uid && /^\d+$/.test(uid)) {
-        const u = { id: Number(uid), username: params.get("username") || `Player_${uid.slice(-4)}`, first_name: "Player" };
-        localStorage.setItem("lb_tg_user", JSON.stringify(u));
-        return u;
-      }
-
-      const cached = localStorage.getItem("lb_tg_user");
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (parsed && parsed.id) return parsed;
-        } catch (e) {}
-      }
-
-      let deviceId = localStorage.getItem("lb_device_player_id");
-      if (!deviceId || !/^\d+$/.test(deviceId)) {
-        deviceId = String(Math.floor(8000000000 + Math.random() * 1999999999));
-        localStorage.setItem("lb_device_player_id", deviceId);
-      }
-      const deviceUser = {
-        id: Number(deviceId),
-        username: `Player_${deviceId.slice(-4)}`,
-        first_name: "Waliya Player",
-      };
-      localStorage.setItem("lb_tg_user", JSON.stringify(deviceUser));
-      return deviceUser;
-    } catch (e) {
-      return null;
-    }
   }
 
   async function apiRequest(path, options = {}) {

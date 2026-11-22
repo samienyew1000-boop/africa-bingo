@@ -1238,10 +1238,29 @@ function parseJsonBody(req) {
   });
 }
 
+function extractUserFromInitData(initData) {
+  if (!initData || typeof initData !== "string") return null;
+  try {
+    const params = new URLSearchParams(initData);
+    const userJson = params.get("user");
+    if (userJson) {
+      const parsed = JSON.parse(userJson);
+      if (parsed && parsed.id) return parsed;
+    }
+  } catch (e) {}
+  return null;
+}
+
 function getUserFromHeaders(req, body = null) {
-  const uid = (body && body.user_id) || req.headers["x-mobile-user-id"] || req.headers["x-telegram-user-id"] || "LB-PLAYER";
-  const uname = (body && body.username) || req.headers["x-mobile-phone"] || req.headers["x-telegram-user-name"] || "";
-  const name = uname ? (uname.startsWith("09") || uname.startsWith("+") || uname.startsWith("07") ? uname : `@${uname}`) : (uid !== "LB-PLAYER" ? `Player ${String(uid).slice(-4)}` : "Waliya Player");
+  const initUser = extractUserFromInitData(req.headers["x-telegram-init-data"]);
+  const initUid = initUser ? String(initUser.id) : null;
+
+  const rawUid = (body && body.user_id) || req.headers["x-telegram-user-id"] || req.headers["x-mobile-user-id"] || initUid || "LB-PLAYER";
+  // If the passed header is a guest/fake ID (e.g. starts with 8/9 and 10 digits) but we have a real Telegram initUser, use the real Telegram ID!
+  const uid = (initUid && String(rawUid).startsWith("9") && !gameState.users[rawUid]) ? initUid : (initUid || rawUid);
+
+  const uname = (body && body.username) || (initUser && initUser.username) || req.headers["x-telegram-user-name"] || req.headers["x-mobile-phone"] || "";
+  const name = (initUser && (initUser.first_name || initUser.name)) || (uname ? (uname.startsWith("09") || uname.startsWith("+") || uname.startsWith("07") ? uname : `@${uname}`) : (uid !== "LB-PLAYER" ? `Player ${String(uid).slice(-4)}` : "Waliya Player"));
   return { id: uid, username: uname, name };
 }
 
@@ -2531,29 +2550,38 @@ async function startTelegramBot() {
 
   const botUserStates = {};
 
-  const MAIN_REPLY_KEYBOARD = {
-    keyboard: [
-      [
-        { text: "🎮 Play Game", web_app: { url: WEB_APP_URL } }
+  function getMainKeyboard(chatId = null, userPhone = "", userName = "") {
+    let playUrl = WEB_APP_URL;
+    if (chatId) {
+      playUrl = `${WEB_APP_URL}?u=${chatId}${userPhone ? `&phone=${encodeURIComponent(userPhone)}` : ""}${userName ? `&name=${encodeURIComponent(userName)}` : ""}`;
+    }
+    return {
+      keyboard: [
+        [
+          { text: "🎮 Play Game", web_app: { url: playUrl } }
+        ],
+        [
+          { text: "💰 Deposit" },
+          { text: "💸 Withdraw" }
+        ],
+        [
+          { text: "💳 Balance" }
+        ],
+        [
+          { text: "📞 Support" },
+          { text: "📖 Instructions" }
+        ],
+        [
+          { text: "🎁 Invite Friends" }
+        ]
       ],
-      [
-        { text: "💰 Deposit" },
-        { text: "💸 Withdraw" }
-      ],
-      [
-        { text: "💳 Balance" }
-      ],
-      [
-        { text: "📞 Support" },
-        { text: "📖 Instructions" }
-      ],
-      [
-        { text: "🎁 Invite Friends" }
-      ]
-    ],
-    resize_keyboard: true,
-    is_persistent: true
-  };
+      resize_keyboard: true,
+      is_persistent: true
+    };
+  }
+
+  const DEFAULT_MAIN_REPLY_KEYBOARD = getMainKeyboard();
+  const MAIN_REPLY_KEYBOARD = DEFAULT_MAIN_REPLY_KEYBOARD;
 
   let offset = 0;
   async function poll() {
@@ -2640,6 +2668,22 @@ async function startTelegramBot() {
             const firstName = msg.from?.first_name || "Player";
             const rawUname = msg.from && msg.from.username ? msg.from.username : "";
             const uname = rawUname.toLowerCase().replace(/^@/, "");
+
+            const userPhone = gameState.users[chatId]?.phone || "";
+            const userName = gameState.users[chatId]?.first_name || firstName;
+            const MAIN_REPLY_KEYBOARD = getMainKeyboard(chatId, userPhone, userName);
+
+            // Sync Telegram bottom menu button directly to user account
+            try {
+              telegramApi("setChatMenuButton", {
+                chat_id: chatId,
+                menu_button: {
+                  type: "web_app",
+                  text: "Play Bingo 🎰",
+                  web_app: { url: `${WEB_APP_URL}?u=${chatId}${userPhone ? `&phone=${encodeURIComponent(userPhone)}` : ""}` },
+                },
+              }).catch(() => {});
+            } catch (_) {}
 
             console.log(`[TG BOT INCOMING] chatId: ${chatId}, uname: @${uname}, name: ${firstName}, text: "${text}"`);
 
