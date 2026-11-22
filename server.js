@@ -611,7 +611,7 @@ function syncFromSQLite(force = false) {
             gameState.users[uid].balance = dbBal;
             updated = true;
           }
-          if (!gameState.users[uid].phone && phone) {
+          if (phone && (!gameState.users[uid].phone || gameState.users[uid].phone === uid)) {
             gameState.users[uid].phone = phone;
             updated = true;
           }
@@ -1252,14 +1252,24 @@ function extractUserFromInitData(initData) {
 }
 
 function getUserFromHeaders(req, body = null) {
+  let urlUid = null;
+  let urlUname = null;
+  try {
+    const parsedUrl = new URL(req.url, "http://127.0.0.1");
+    urlUid = parsedUrl.searchParams.get("u") || parsedUrl.searchParams.get("user_id") || parsedUrl.searchParams.get("tg_user_id");
+    urlUname = parsedUrl.searchParams.get("username") || parsedUrl.searchParams.get("phone");
+  } catch (_) {}
+
   const initUser = extractUserFromInitData(req.headers["x-telegram-init-data"]);
   const initUid = initUser ? String(initUser.id) : null;
 
-  const rawUid = (body && body.user_id) || req.headers["x-telegram-user-id"] || req.headers["x-mobile-user-id"] || initUid || "LB-PLAYER";
-  // If the passed header is a guest/fake ID (e.g. starts with 8/9 and 10 digits) but we have a real Telegram initUser, use the real Telegram ID!
-  const uid = (initUid && String(rawUid).startsWith("9") && !gameState.users[rawUid]) ? initUid : (initUid || rawUid);
+  const rawUid = (body && body.user_id) || urlUid || req.headers["x-telegram-user-id"] || req.headers["x-mobile-user-id"] || initUid || "LB-PLAYER";
+  // If the passed header is a guest/fake ID (e.g. starts with 8/9 and 10 digits) but we have a real Telegram initUser or urlUid, use the real Telegram ID!
+  const uid = (urlUid && /^\d+$/.test(urlUid))
+    ? urlUid
+    : ((initUid && String(rawUid).startsWith("9") && !gameState.users[rawUid]) ? initUid : (initUid || rawUid));
 
-  const uname = (body && body.username) || (initUser && initUser.username) || req.headers["x-telegram-user-name"] || req.headers["x-mobile-phone"] || "";
+  const uname = (body && body.username) || urlUname || (initUser && initUser.username) || req.headers["x-telegram-user-name"] || req.headers["x-mobile-phone"] || "";
   const name = (initUser && (initUser.first_name || initUser.name)) || (uname ? (uname.startsWith("09") || uname.startsWith("+") || uname.startsWith("07") ? uname : `@${uname}`) : (uid !== "LB-PLAYER" ? `Player ${String(uid).slice(-4)}` : "Waliya Player"));
   return { id: uid, username: uname, name };
 }
