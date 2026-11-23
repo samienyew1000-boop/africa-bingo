@@ -707,6 +707,21 @@ const BINGO_PATTERNS = [
   { id: "1_line", name: "1 መስመር", targetLines: 1, label: "1 መስመር ዝግ", description: "1 መስመር ሲዘጋ" }
 ];
 
+const HABESHA_NAMES = [
+  "Abebe T.", "Dawit K.", "Tigist M.", "Kalkidan E.", "Bereket F.",
+  "Selamawit T.", "Yohannes A.", "Samuel G.", "Sara B.", "Henok L.",
+  "Meron K.", "Feven M.", "Natnael D.", "Eden W.", "Eyob T.",
+  "Bethlehem D.", "Robel H.", "Hanan S.", "Alazar B.", "Hiwot Z.",
+  "Daniel M.", "Tsion A.", "Binyam Y.", "Marta G.", "Solomon K.",
+  "Nahom E.", "Lidia S.", "Abel D.", "Rahel T.", "Ermias B.",
+  "Sosina H.", "Fitsum T.", "Genet A.", "Kirubel A.", "Desta W.",
+  "Meseret T.", "Tamirat B.", "Eyerusalem W.", "Girma A.", "Senait K.",
+  "Kassahun M.", "Danait G.", "Mulugeta T.", "Blen S.", "Fikirte N.",
+  "Hermela A.", "Zelalem F.", "Amanuel G.", "Aster T.", "Getachew D.",
+  "Worku B.", "Tewodros K.", "Helen S.", "Mahlet T.", "Elias M.",
+  "Nebiyu A.", "Saron T.", "Biruk D.", "Rediet M.", "Yared B."
+];
+
 function getCardCompletedLines(cardNumbers, calledSet) {
   if (!Array.isArray(cardNumbers) || cardNumbers.length !== 25) return [];
   const lines = [];
@@ -754,7 +769,7 @@ class LiveBingoRoom {
     this.status = "open"; // "open", "countdown", "live", "ended"
     this.roundId = 100 + (parseInt(id) || 10) + (String(id).includes("-2") ? 1 : 0);
     this.patternIndex = 0;
-    this.players = []; // [{ user_id, username, first_name, card_ids: [1, 2], joined_at }]
+    this.players = []; // [{ user_id, username, first_name, card_ids: [1, 2], is_bot, joined_at }]
     this.calls = []; // [14, 55, ...]
     this.deck = [];
     this.countdownEndsAt = 0;
@@ -763,6 +778,71 @@ class LiveBingoRoom {
     this.countdownTimer = null;
     this.lastResult = null;
     this.enabled = true;
+    this.populateSystemCartelas();
+  }
+
+  populateSystemCartelas() {
+    // Specifically enabled for room 20 ("bale 20") or if configured in settings
+    const isBotRoom = this.id === "20" || (gameState.settings?.systemBotsRooms && gameState.settings.systemBotsRooms.includes(this.id));
+    if (!isBotRoom) return;
+
+    const minCards = Math.max(10, Number(gameState.settings?.systemBotsMinCards || 50));
+    const maxCards = Math.max(minCards, Number(gameState.settings?.systemBotsMaxCards || 150));
+    const targetCount = Math.floor(Math.random() * (maxCards - minCards + 1)) + minCards;
+
+    // Retain any existing real player cards to prevent overlap
+    const realCards = new Set();
+    for (const p of this.players) {
+      if (!p.is_bot) {
+        for (const cid of (p.card_ids || [])) realCards.add(Number(cid));
+      }
+    }
+
+    const catalogKeys = Object.keys(cardCatalog);
+    const maxCatalogId = catalogKeys.length > 0 ? catalogKeys.length : 1000;
+    const available = [];
+    for (let i = 1; i <= maxCatalogId; i++) {
+      if (!realCards.has(i)) available.push(i);
+    }
+
+    // Shuffle available cards
+    for (let i = available.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [available[i], available[j]] = [available[j], available[i]];
+    }
+
+    const selectedCards = available.slice(0, targetCount);
+
+    // Shuffle Habesha names
+    const names = [...HABESHA_NAMES];
+    for (let i = names.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [names[i], names[j]] = [names[j], names[i]];
+    }
+
+    // Keep only real players, replace bot players
+    this.players = this.players.filter(p => !p.is_bot);
+
+    let cardIdx = 0;
+    let botIdx = 0;
+    while (cardIdx < selectedCards.length) {
+      // 1 to 3 cartelas per Habesha player
+      const take = Math.min(selectedCards.length - cardIdx, Math.floor(Math.random() * 3) + 1);
+      const bCards = selectedCards.slice(cardIdx, cardIdx + take);
+      const botName = names[botIdx % names.length];
+      botIdx++;
+
+      this.players.push({
+        user_id: `bot_${this.id}_${botIdx}_${this.roundId}`,
+        username: "",
+        first_name: botName,
+        card_ids: bCards,
+        is_bot: true,
+        joined_at: new Date().toISOString(),
+      });
+
+      cardIdx += take;
+    }
   }
 
   getDerash(totalCards) {
@@ -902,7 +982,8 @@ class LiveBingoRoom {
         }
       }
       this.players.splice(idx, 1);
-      if (this.players.length === 0 && this.status === "countdown") {
+      const hasRealPlayers = this.players.some(player => !player.is_bot);
+      if (!hasRealPlayers && this.status === "countdown") {
         if (this.countdownTimer) clearTimeout(this.countdownTimer);
         this.status = "open";
         this.countdownEndsAt = 0;
@@ -923,8 +1004,9 @@ class LiveBingoRoom {
   }
 
   startLiveGame() {
+    const hasRealPlayers = this.players.some(p => !p.is_bot);
     const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
-    if (this.players.length === 0 || totalCards === 0) {
+    if (!hasRealPlayers || this.players.length === 0 || totalCards === 0) {
       this.status = "open";
       this.countdownEndsAt = 0;
       this.calls = [];
@@ -962,6 +1044,50 @@ class LiveBingoRoom {
       return;
     }
 
+    // In rooms with bots and real players, ensure system card wins
+    const hasRealPlayers = this.players.some(p => !p.is_bot);
+    const hasBots = this.players.some(p => p.is_bot);
+
+    if (hasRealPlayers && hasBots && this.deck.length > 1) {
+      const calledSet = new Set(this.calls);
+      const realCards = [];
+      const botCards = [];
+      for (const p of this.players) {
+        for (const cid of (p.card_ids || [])) {
+          const cNums = cardCatalog[String(cid)];
+          if (cNums) {
+            if (p.is_bot) botCards.push(cNums);
+            else realCards.push(cNums);
+          }
+        }
+      }
+
+      const testBall = this.deck[0];
+      const testSet = new Set(calledSet);
+      testSet.add(testBall);
+
+      const realWins = realCards.some(cNums => cardHasWinningLineWithBall(cNums, testSet, testBall));
+      const botWins = botCards.some(cNums => cardHasWinningLineWithBall(cNums, testSet, testBall));
+
+      if (realWins && !botWins) {
+        let swapIdx = -1;
+        for (let i = 1; i < this.deck.length; i++) {
+          const altBall = this.deck[i];
+          const altSet = new Set(calledSet);
+          altSet.add(altBall);
+          if (!realCards.some(cNums => cardHasWinningLineWithBall(cNums, altSet, altBall))) {
+            swapIdx = i;
+            break;
+          }
+        }
+        if (swapIdx !== -1) {
+          const tmp = this.deck[0];
+          this.deck[0] = this.deck[swapIdx];
+          this.deck[swapIdx] = tmp;
+        }
+      }
+    }
+
     const ball = this.deck.shift();
     this.calls.push(ball);
 
@@ -979,6 +1105,7 @@ class LiveBingoRoom {
             firstName: player.first_name || player.username || `Player ${String(player.user_id).slice(-4)}`,
             cardId: cardId,
             winKind: getCardWinningKind(cardNumbers, calledSet) || "1 መስመር",
+            isBot: Boolean(player.is_bot),
           });
         }
       }
@@ -1019,6 +1146,7 @@ class LiveBingoRoom {
             firstName: p.first_name || p.username || `Player ${String(p.user_id).slice(-4)}`,
             cardId: cid,
             winKind: getCardWinningKind(cNums, calledSet) || "1 መስመር",
+            isBot: Boolean(p.is_bot),
           });
         }
       }
@@ -1058,6 +1186,7 @@ class LiveBingoRoom {
           firstName: entry.firstName,
           cardIds: [],
           winKinds: [],
+          isBot: Boolean(entry.isBot || uid.startsWith("bot_")),
         });
       }
       const uObj = userWinningMap.get(uid);
@@ -1071,28 +1200,31 @@ class LiveBingoRoom {
     for (const [uid, uObj] of userWinningMap.entries()) {
       const playerPrize = prizePerCard * uObj.cardIds.length;
       uObj.prize = playerPrize;
-      totalCredited += playerPrize;
 
-      let u = gameState.users[uid];
-      if (!u) {
-        for (const [k, v] of Object.entries(gameState.users || {})) {
-          if (v && (String(v.id) === uid || (v.phone && v.phone.endsWith(uid.slice(-9))))) {
-            u = v;
-            break;
+      if (!uObj.isBot) {
+        totalCredited += playerPrize;
+        let u = gameState.users[uid];
+        if (!u) {
+          for (const [k, v] of Object.entries(gameState.users || {})) {
+            if (v && (String(v.id) === uid || (v.phone && v.phone.endsWith(uid.slice(-9))))) {
+              u = v;
+              break;
+            }
           }
         }
-      }
-      if (u) {
-        u.balance = (u.balance || 0) + playerPrize;
-        u.games = (u.games || 0) + 1;
-        saveGameState();
-        updateSqliteUserBalance(u.id || uid, u.balance);
+        if (u) {
+          u.balance = (u.balance || 0) + playerPrize;
+          u.games = (u.games || 0) + 1;
+          saveGameState();
+          updateSqliteUserBalance(u.id || uid, u.balance);
+        }
       }
       winnersDetail.push({
         user_id: uid,
         name: uObj.firstName,
         card_ids: uObj.cardIds,
         prize: playerPrize,
+        is_bot: uObj.isBot,
       });
     }
 
@@ -1202,6 +1334,7 @@ class LiveBingoRoom {
     this.deck = [];
     this.countdownEndsAt = 0;
     this.lastResult = null;
+    this.populateSystemCartelas();
   }
 }
 
