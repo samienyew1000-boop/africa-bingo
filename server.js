@@ -776,64 +776,72 @@ class LiveBingoRoom {
     this.callIntervalMs = 3500;
     this.callTimer = null;
     this.countdownTimer = null;
+    this.botJoinTimer = null;
+    this.targetBotCards = 0;
+    this.availableBotNames = [];
+    this.botNameIndex = 0;
     this.lastResult = null;
     this.enabled = true;
-    this.populateSystemCartelas();
+    if (this.id === "20") {
+      this.initBotRound();
+      this.startCountdown();
+    }
   }
 
-  populateSystemCartelas() {
-    // Specifically enabled for room 20 ("bale 20") or if configured in settings
+  initBotRound() {
+    if (this.botJoinTimer) {
+      clearInterval(this.botJoinTimer);
+      this.botJoinTimer = null;
+    }
     const isBotRoom = this.id === "20" || (gameState.settings?.systemBotsRooms && gameState.settings.systemBotsRooms.includes(this.id));
     if (!isBotRoom) return;
 
     const minCards = Math.max(10, Number(gameState.settings?.systemBotsMinCards || 50));
     const maxCards = Math.max(minCards, Number(gameState.settings?.systemBotsMaxCards || 150));
-    const targetCount = Math.floor(Math.random() * (maxCards - minCards + 1)) + minCards;
+    this.targetBotCards = Math.floor(Math.random() * (maxCards - minCards + 1)) + minCards;
 
-    // Retain any existing real player cards to prevent overlap
-    const realCards = new Set();
+    this.availableBotNames = [...HABESHA_NAMES].sort(() => Math.random() - 0.5);
+    this.botNameIndex = 0;
+
+    // Retain only real players, wipe old bots
+    this.players = this.players.filter(p => !p.is_bot);
+
+    // Initial small seed: 2 to 4 cards at second 30 so cards start low and grow gradually
+    const seedCount = Math.min(this.targetBotCards, Math.floor(Math.random() * 3) + 2);
+    this.addBotPlayersWithCards(seedCount);
+  }
+
+  addBotPlayersWithCards(count) {
+    if (count <= 0) return;
+    const existingCards = new Set();
     for (const p of this.players) {
-      if (!p.is_bot) {
-        for (const cid of (p.card_ids || [])) realCards.add(Number(cid));
-      }
+      for (const cid of (p.card_ids || [])) existingCards.add(Number(cid));
     }
 
     const catalogKeys = Object.keys(cardCatalog);
     const maxCatalogId = catalogKeys.length > 0 ? catalogKeys.length : 1000;
     const available = [];
     for (let i = 1; i <= maxCatalogId; i++) {
-      if (!realCards.has(i)) available.push(i);
+      if (!existingCards.has(i)) available.push(i);
     }
 
-    // Shuffle available cards
     for (let i = available.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [available[i], available[j]] = [available[j], available[i]];
     }
 
-    const selectedCards = available.slice(0, targetCount);
-
-    // Shuffle Habesha names
-    const names = [...HABESHA_NAMES];
-    for (let i = names.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [names[i], names[j]] = [names[j], names[i]];
-    }
-
-    // Keep only real players, replace bot players
-    this.players = this.players.filter(p => !p.is_bot);
+    const selectedCards = available.slice(0, count);
+    if (!selectedCards.length) return;
 
     let cardIdx = 0;
-    let botIdx = 0;
     while (cardIdx < selectedCards.length) {
-      // 1 to 3 cartelas per Habesha player
       const take = Math.min(selectedCards.length - cardIdx, Math.floor(Math.random() * 3) + 1);
       const bCards = selectedCards.slice(cardIdx, cardIdx + take);
-      const botName = names[botIdx % names.length];
-      botIdx++;
+      const botName = this.availableBotNames[this.botNameIndex % this.availableBotNames.length];
+      this.botNameIndex++;
 
       this.players.push({
-        user_id: `bot_${this.id}_${botIdx}_${this.roundId}`,
+        user_id: `bot_${this.id}_${this.botNameIndex}_${this.roundId}`,
         username: "",
         first_name: botName,
         card_ids: bCards,
@@ -843,6 +851,38 @@ class LiveBingoRoom {
 
       cardIdx += take;
     }
+  }
+
+  startGradualBotJoins() {
+    if (this.botJoinTimer) clearInterval(this.botJoinTimer);
+    const isBotRoom = this.id === "20" || (gameState.settings?.systemBotsRooms && gameState.settings.systemBotsRooms.includes(this.id));
+    if (!isBotRoom) return;
+
+    this.botJoinTimer = setInterval(() => {
+      if (this.status !== "countdown") {
+        clearInterval(this.botJoinTimer);
+        this.botJoinTimer = null;
+        return;
+      }
+
+      const timeLeft = Math.max(0, Math.ceil((this.countdownEndsAt - Date.now()) / 1000));
+      const currentBotCards = this.players.filter(p => p.is_bot).reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
+      const remaining = Math.max(0, this.targetBotCards - currentBotCards);
+
+      if (timeLeft <= 1 || remaining <= 0) {
+        if (remaining > 0 && timeLeft <= 2) {
+          this.addBotPlayersWithCards(remaining);
+        }
+        clearInterval(this.botJoinTimer);
+        this.botJoinTimer = null;
+        return;
+      }
+
+      const rate = remaining / Math.max(1, timeLeft - 1);
+      const jitter = (Math.random() * 1.6 - 0.8);
+      const take = Math.max(1, Math.min(remaining, Math.round(rate + jitter)));
+      this.addBotPlayersWithCards(take);
+    }, 1200);
   }
 
   getDerash(totalCards) {
@@ -997,6 +1037,8 @@ class LiveBingoRoom {
     const durationSec = Math.max(10, Number(gameState.settings?.countdown || 30));
     this.countdownEndsAt = Date.now() + durationSec * 1000;
 
+    this.startGradualBotJoins();
+
     if (this.countdownTimer) clearTimeout(this.countdownTimer);
     this.countdownTimer = setTimeout(() => {
       this.startLiveGame();
@@ -1004,9 +1046,12 @@ class LiveBingoRoom {
   }
 
   startLiveGame() {
-    const hasRealPlayers = this.players.some(p => !p.is_bot);
+    if (this.botJoinTimer) {
+      clearInterval(this.botJoinTimer);
+      this.botJoinTimer = null;
+    }
     const totalCards = this.players.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
-    if (!hasRealPlayers || this.players.length === 0 || totalCards === 0) {
+    if (totalCards === 0) {
       this.status = "open";
       this.countdownEndsAt = 0;
       this.calls = [];
@@ -1334,7 +1379,14 @@ class LiveBingoRoom {
     this.deck = [];
     this.countdownEndsAt = 0;
     this.lastResult = null;
-    this.populateSystemCartelas();
+    if (this.botJoinTimer) {
+      clearInterval(this.botJoinTimer);
+      this.botJoinTimer = null;
+    }
+    if (this.id === "20") {
+      this.initBotRound();
+      this.startCountdown();
+    }
   }
 }
 
