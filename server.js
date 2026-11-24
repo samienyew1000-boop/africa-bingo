@@ -1693,10 +1693,11 @@ function generateProfitReportMessage() {
     }
   }
 
-  // 2. Real Players Wallet Balance (Total balance currently on players)
+  // 2. Real Players Wallet Balance (Total balance currently on players, excluding admins)
   let totalPlayerBalance = 0;
   for (const u of Object.values(gameState.users || {})) {
     if (u && !u.is_bot && !String(u.id).startsWith("bot_")) {
+      if (u.role === "admin" || ADMIN_IDS.includes(String(u.id))) continue;
       const bal = Number(u.balance) || 0;
       if (bal > 0) totalPlayerBalance += bal;
     }
