@@ -2964,6 +2964,90 @@ async function startTelegramBot() {
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
+            } else if (cqData.startsWith("wth_m:")) {
+              const parts = cqData.split(":");
+              const method = parts[1] || "Telebirr";
+              const amount = parseFloat(parts[2]) || botUserStates[cqChatId]?.amount || 50;
+
+              botUserStates[cqChatId] = {
+                step: "awaiting_withdraw_phone",
+                amount: amount,
+                method: method,
+                updatedAt: Date.now()
+              };
+
+              await telegramApi("sendMessage", {
+                chat_id: cqChatId,
+                text: `📱 *${method} — ገንዘብ ማውጣት*\n\n💰 *መጠን:* \`${amount.toFixed(2)} ETB\`\n\nእባክዎ ገንዘቡ እንዲላክልዎ የሚፈልጉትን የ ${method} ሂሳብ ወይም ስልክ ቁጥር እዚህ ይላኩ::\n*(ለምሳሌ: \`0912345678\`)*`,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+            } else if (cqData.startsWith("wth_use_reg:")) {
+              const parts = cqData.split(":");
+              const amount = parseFloat(parts[1]) || 50;
+              const regPhone = parts[2] || "";
+              const strChatId = String(cqChatId);
+              let targetUser = gameState.users[strChatId];
+              if (!targetUser) {
+                targetUser = Object.values(gameState.users).find(u => String(u.id) === strChatId);
+              }
+
+              const curBal = Number(targetUser?.balance || 0);
+              if (curBal < amount) {
+                await telegramApi("sendMessage", {
+                  chat_id: cqChatId,
+                  text: `⛔ *ያለዎት ቀሪ ሂሳብ በቂ አይደለም!*\n\n💳 *ያለዎት ቀሪ ሂሳብ:* \`${curBal} ETB\``,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+                delete botUserStates[cqChatId];
+                continue;
+              }
+
+              if (targetUser) {
+                targetUser.balance = Math.max(0, curBal - amount);
+                targetUser.updated_at = new Date().toISOString();
+                saveGameState();
+                updateSqliteUserBalance(targetUser.id, targetUser.balance);
+                if (targetUser.phone) updateSqliteUserBalance(targetUser.phone, targetUser.balance);
+              }
+
+              const txId = `WTH-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
+              const playerName = targetUser ? (targetUser.name || targetUser.first_name) : `User_${strChatId.slice(-4)}`;
+              const newTx = {
+                id: txId,
+                playerId: `TG-${strChatId.slice(-5)}`,
+                user_id: strChatId,
+                player: playerName,
+                phone: regPhone,
+                type: "withdraw",
+                method: "Telebirr",
+                amount: amount,
+                requested: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                status: "pending",
+                heldFromBalance: true,
+                deducted: true,
+                created_at: new Date().toISOString(),
+              };
+
+              gameState.transactions.unshift(newTx);
+              saveGameState();
+              recordSqliteTransaction(txId, strChatId, "withdraw", "Telebirr", amount, regPhone, "pending");
+
+              const safePlayer = String(playerName).replace(/[_*`\[\]]/g, " ").trim();
+              const safePhone = String(regPhone).replace(/[`*]/g, "").trim();
+
+              notifyTelegramAdmin(`📤 *አዲስ የገንዘብ ማውጣት ጥያቄ (New Bot Withdrawal Request)*\n\n👤 *ተጫዋች:* ${safePlayer} (\`${cqChatId}\`)\n💰 *መጠን:* \`${amount} ETB\`\n📱 *ስልክ:* \`${safePhone}\`\n🏦 *መንገድ:* Telebirr\n\n✅ ለማጽደቅ: ${WEB_APP_URL}admin.html`);
+              sendAdminProfitReportThrottled();
+
+              await telegramApi("sendMessage", {
+                chat_id: cqChatId,
+                text: `✅ *የገንዘብ ማውጣት ጥያቄዎ በተሳካ ሁኔታ ቀርቧል!*\n\n💰 *መጠን:* \`${amount} ETB\`\n📱 *ስልክ:* \`${safePhone}\`\n🏦 *መንገድ:* Telebirr\n💵 *አሁን ያለዎት ቀሪ ሂሳብ:* \`${targetUser ? targetUser.balance : 0} ETB\`\n\n📌 ጥያቄዎ በአስተዳዳሪው ተረጋግጦ በቴሌብር ይላክልዎታል። ጥቂት ደቂቃዎች ይጠብቁ!`,
+                parse_mode: "Markdown",
+                reply_markup: MAIN_REPLY_KEYBOARD,
+              });
+
+              delete botUserStates[cqChatId];
             }
             continue;
           }
@@ -3097,12 +3181,33 @@ async function startTelegramBot() {
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
             } else if (text.includes("Withdraw") || text.includes("ማውጣት") || text === "/withdraw") {
-              await telegramApi("sendMessage", {
-                chat_id: chatId,
-                text: `💸 *ገንዘብ ማውጣት (Withdraw)*\n\nያሸነፉትን ገንዘብ በቀላሉ ለማውጣት:\n1. ከታች **🎮 Play Game** የሚለውን ይጫኑ\n2. በጨዋታው ውስጥ የ **Wallet** ገጽ ይክፈቱ\n3. ማውጣት የሚፈልጉትን መጠን እና የቴሌብር ወይም የባንክ ሂሳብ ቁጥርዎን ያስገቡ\n\n📌 *ዝቅተኛው ማውጣት የሚቻለው:* \`50 ETB\`\n⚡ *ክፍያ:* በጥቂት ደቂቃዎች ውስጥ ይፈጸማል!`,
-                parse_mode: "Markdown",
-                reply_markup: MAIN_REPLY_KEYBOARD,
-              });
+              const strChatId = String(chatId);
+              let curUser = gameState.users[strChatId];
+              if (!curUser) {
+                curUser = Object.values(gameState.users).find(u => String(u.id) === strChatId || (u.username && u.username.toLowerCase() === (uname || "").toLowerCase()));
+              }
+              const curBal = Number(curUser?.balance != null ? curUser.balance : 0);
+
+              if (curBal < 50) {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `💸 *ገንዘብ ማውጣት (Withdraw)*\n\n💳 *አሁን ያለዎት ቀሪ ሂሳብ:* \`${curBal} ETB\`\n📌 *ዝቅተኛው ማውጣት የሚቻለው:* \`50 ETB\`\n\n⚠️ *ይቅርታ! ገንዘብ ለማውጣት በቂ ቀሪ ሂሳብ የለዎትም። ለማውጣት ቢያንስ 50 ETB ሊኖርዎት ይገባል።*\n\n🎲 ለመጫወት ከታች **🎮 Play Game** የሚለውን ይጫኑ!`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+              } else {
+                botUserStates[chatId] = {
+                  step: "awaiting_withdraw_amount",
+                  updatedAt: Date.now()
+                };
+
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `💸 *ገንዘብ ማውጣት (Withdraw)*\n\n💳 *አሁን ያለዎት ቀሪ ሂሳብ:* \`${curBal} ETB\`\n📌 *ዝቅተኛው ማውጣት የሚቻለው:* \`50 ETB\`\n\n💰 *ማውጣት የሚፈልጉትን የገንዘብ መጠን ያስገቡ (ለምሳሌ: 50, 100, 200):*`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+              }
             } else if (text.includes("Balance") || text.includes("ሂሳብ") || text === "/balance") {
               const curUser = gameState.users[chatId] || {};
               const curBal = Number(curUser.balance != null ? curUser.balance : 0);
@@ -3178,7 +3283,133 @@ async function startTelegramBot() {
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
+            } else if (botUserStates[chatId]?.step === "awaiting_withdraw_amount") {
+              const amountMatch = text.replace(/,/g, "").trim().match(/^(\d+(?:\.\d+)?)/);
+              const wAmount = amountMatch ? parseFloat(amountMatch[1]) : 0;
+              const strChatId = String(chatId);
+              let curUser = gameState.users[strChatId];
+              if (!curUser) {
+                curUser = Object.values(gameState.users).find(u => String(u.id) === strChatId || (u.username && u.username.toLowerCase() === (uname || "").toLowerCase()));
+              }
+              const curBal = Number(curUser?.balance != null ? curUser.balance : 0);
+
+              if (!wAmount || isNaN(wAmount) || wAmount <= 0) {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `⚠️ *እባክዎ ትክክለኛ የገንዘብ መጠን ያስገቡ (ለምሳሌ: 50, 100):*`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+              } else if (wAmount < 50) {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `⚠️ *ዝቅተኛው የማውጣት መጠን 50 ETB ነው።* እባክዎ ከ50 ብር ጀምሮ ያስገቡ::`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+              } else if (wAmount > curBal) {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `⛔ *ያለዎት ቀሪ ሂሳብ በቂ አይደለም!*\n\n💳 *ያለዎት ቀሪ ሂሳብ:* \`${curBal} ETB\`\n💰 *እርስዎ የጠየቁት መጠን:* \`${wAmount} ETB\`\n\nእባክዎ ካለዎት ቀሪ ሂሳብ እኩል ወይም ያነሰ መጠን ያስገቡ::`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+              } else {
+                botUserStates[chatId] = {
+                  step: "awaiting_withdraw_phone",
+                  amount: wAmount,
+                  method: "Telebirr",
+                  updatedAt: Date.now()
+                };
+
+                const regPhone = curUser?.phone ? cleanPhone(curUser.phone) : "";
+                const inlineKb = [
+                  [
+                    { text: "🟩 Telebirr", callback_data: `wth_m:Telebirr:${wAmount}` },
+                    { text: "🟨 CBE Birr", callback_data: `wth_m:CBE Birr:${wAmount}` }
+                  ]
+                ];
+                if (regPhone) {
+                  inlineKb.push([{ text: `📱 በተመዘገበው ስልክ (${regPhone}) ላክ`, callback_data: `wth_use_reg:${wAmount}:${regPhone}` }]);
+                }
+
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `💸 *የማውጣት ዝርዝር (Withdraw Details)*\n\n💰 *መጠን:* \`${wAmount.toFixed(2)} ETB\`\n\n*ዘዴ ይምረጡ ወይም ገንዘቡ እንዲላክልዎ የሚፈልጉትን ስልክ ቁጥር ያስገቡ:-*`,
+                  parse_mode: "Markdown",
+                  reply_markup: {
+                    inline_keyboard: inlineKb
+                  }
+                });
+              }
+            } else if (botUserStates[chatId]?.step === "awaiting_withdraw_phone") {
+              const phoneInput = text.trim();
+              const wAmount = botUserStates[chatId]?.amount || 50;
+              const method = botUserStates[chatId]?.method || (/^1000\d{8,}/.test(phoneInput) ? "CBE Birr" : "Telebirr");
+
+              const strChatId = String(chatId);
+              let targetUser = gameState.users[strChatId];
+              if (!targetUser) {
+                targetUser = Object.values(gameState.users).find(u => String(u.id) === strChatId || (u.username && u.username.toLowerCase() === (uname || "").toLowerCase()));
+              }
+
+              const curBal = Number(targetUser?.balance != null ? targetUser.balance : 0);
+              if (curBal < wAmount) {
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `⛔ *ያለዎት ቀሪ ሂሳብ በቂ አይደለም!*\n\n💳 *ያለዎት ቀሪ ሂሳብ:* \`${curBal} ETB\`\n\nገንዘብ ማውጣት አልተቻለም።`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+                delete botUserStates[chatId];
+              } else {
+                if (targetUser) {
+                  targetUser.balance = Math.max(0, curBal - wAmount);
+                  targetUser.updated_at = new Date().toISOString();
+                  saveGameState();
+                  updateSqliteUserBalance(targetUser.id, targetUser.balance);
+                  if (targetUser.phone) updateSqliteUserBalance(targetUser.phone, targetUser.balance);
+                }
+
+                const txId = `WTH-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
+                const playerName = targetUser ? (targetUser.name || targetUser.first_name || firstName) : firstName;
+                const newTx = {
+                  id: txId,
+                  playerId: `TG-${strChatId.slice(-5)}`,
+                  user_id: strChatId,
+                  player: playerName,
+                  phone: phoneInput,
+                  type: "withdraw",
+                  method: method,
+                  amount: wAmount,
+                  requested: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                  status: "pending",
+                  heldFromBalance: true,
+                  deducted: true,
+                  created_at: new Date().toISOString(),
+                };
+
+                gameState.transactions.unshift(newTx);
+                saveGameState();
+                recordSqliteTransaction(txId, strChatId, "withdraw", method, wAmount, phoneInput, "pending");
+
+                const safePlayer = String(playerName).replace(/[_*`\[\]]/g, " ").trim();
+                const safePhone = String(phoneInput).replace(/[`*]/g, "").trim();
+
+                notifyTelegramAdmin(`📤 *አዲስ የገንዘብ ማውጣት ጥያቄ (New Bot Withdrawal Request)*\n\n👤 *ተጫዋች:* ${safePlayer} (\`${chatId}\`)\n💰 *መጠን:* \`${wAmount} ETB\`\n📱 *ስልክ:* \`${safePhone}\`\n🏦 *መንገድ:* ${method}\n\n✅ ለማጽደቅ: ${WEB_APP_URL}admin.html`);
+                sendAdminProfitReportThrottled();
+
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `✅ *የገንዘብ ማውጣት ጥያቄዎ በተሳካ ሁኔታ ቀርቧል!*\n\n💰 *መጠን:* \`${wAmount} ETB\`\n📱 *ስልክ:* \`${safePhone}\`\n🏦 *መንገድ:* ${method}\n💵 *አሁን ያለዎት ቀሪ ሂሳብ:* \`${targetUser ? targetUser.balance : 0} ETB\`\n\n📌 ጥያቄዎ በአስተዳዳሪው ተረጋግጦ በ ${method} ይላክልዎታል። ጥቂት ደቂቃዎች ይጠብቁ!`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+
+                delete botUserStates[chatId];
+              }
             } else if (
+              !botUserStates[chatId]?.step?.startsWith("awaiting_withdraw") &&
               /^(\d+(?:\.\d+)?)\s*(?:birr|etb|ብር)?$/i.test(text.replace(/,/g, "").trim()) &&
               (botUserStates[chatId]?.step === "awaiting_deposit_amount" || (!text.startsWith("/") && parseFloat(text.replace(/,/g, "").trim()) >= 10))
             ) {
