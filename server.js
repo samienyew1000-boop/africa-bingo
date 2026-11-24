@@ -1351,6 +1351,13 @@ class LiveBingoRoom {
       winners: winnersDetail,
     };
 
+    const realPlayers = (this.players || []).filter(p => !p.is_bot && !String(p.user_id).startsWith("bot_"));
+    const realPlayerCards = realPlayers.reduce((sum, p) => sum + (p.card_ids?.length || 0), 0);
+    const realPlayerStake = realPlayerCards * this.stake;
+    const realWinners = winnersDetail.filter(w => !w.is_bot && !String(w.user_id).startsWith("bot_"));
+    const realPlayerPayout = realWinners.reduce((sum, w) => sum + (Number(w.prize) || 0), 0);
+    const realGameProfit = realPlayerStake - realPlayerPayout;
+
     if (totalCards > 0) {
       if (!Array.isArray(gameState.roundHistory)) gameState.roundHistory = [];
       const roundRecord = {
@@ -1359,7 +1366,12 @@ class LiveBingoRoom {
         stake: this.stake,
         roundId: this.roundId,
         totalCards: totalCards,
+        realCards: realPlayerCards,
+        realStake: realPlayerStake,
+        realPayout: realPlayerPayout,
+        realProfit: realGameProfit,
         playerCount: this.players.length,
+        realPlayerCount: realPlayers.length,
         turnover: turnover,
         prize: totalPrize,
         profit: profit,
@@ -1636,67 +1648,105 @@ function getReportsData(range = "last7days") {
 
 
 function generateProfitReportMessage() {
-  const daily = getReportsData("today");
-  const weekly = getReportsData("last7days");
+  const now = new Date();
+  const eatOptions = { timeZone: "Africa/Addis_Ababa" };
+  const eatDateStr = now.toLocaleDateString("en-CA", eatOptions); // "YYYY-MM-DD"
+  const eatTimeStr = now.toLocaleTimeString("en-US", { ...eatOptions, hour: "2-digit", minute: "2-digit" });
+  const startOfEatToday = new Date(`${eatDateStr}T00:00:00+03:00`).getTime();
+  const endOfEatToday = startOfEatToday + 24 * 60 * 60 * 1000;
 
-  const todayStr = new Date().toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  });
-  const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  // 1. Approved Deposits & Withdrawals for Today
+  const txList = Array.isArray(gameState.transactions) ? gameState.transactions : [];
+  let approvedDepositsTotal = 0;
+  let approvedDepositsCount = 0;
+  let approvedWithdrawalsTotal = 0;
+  let approvedWithdrawalsCount = 0;
 
-  const dSummary = daily.summary;
-  const dRooms = daily.rooms || {};
-  const d10 = dRooms["10"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0 };
-  const d20 = dRooms["20"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0 };
-  const d50 = dRooms["50"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0 };
+  for (const tx of txList) {
+    let ts = 0;
+    if (tx.approved_at && typeof tx.approved_at === "number") {
+      ts = tx.approved_at;
+    } else if (tx.processed_timestamp && typeof tx.processed_timestamp === "number") {
+      ts = tx.processed_timestamp;
+    } else if (tx.timestamp && typeof tx.timestamp === "number") {
+      ts = tx.timestamp;
+    } else if (tx.created_at) {
+      ts = new Date(tx.created_at).getTime();
+    } else if (tx.createdAt) {
+      ts = new Date(tx.createdAt).getTime();
+    }
 
-  const wSummary = weekly.summary;
-  const wRooms = weekly.rooms || {};
-  const w10 = wRooms["10"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0, percentage: 0 };
-  const w20 = wRooms["20"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0, percentage: 0 };
-  const w50 = wRooms["50"] || { rounds: 0, profit: 0, turnover: 0, totalCards: 0, percentage: 0 };
-
-  let msg = `📊 *ዋሊያ ቢንጎ — የቀንና የሳምንት ትርፍ ሪፖርት (Profit Report)*\n`;
-  msg += `🕒 *ሰዓት:* \`${todayStr} | ${timeStr}\`\n\n`;
-
-  // 1. Daily Report
-  msg += `☀️ *የዛሬ የቀን ሪፖርት (Today's Daily)*\n`;
-  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-  msg += `💰 *የቀኑ ጠቅላላ ትርፍ (20% Net):* \`${Number(dSummary.totalProfit || 0).toLocaleString()} ETB\`\n`;
-  msg += `💵 *የቀኑ ሽያጭ (Turnover):* \`${Number(dSummary.totalTurnover || 0).toLocaleString()} ETB\`\n`;
-  msg += `🏆 *የተከፈለ አሸናፊ (Payouts):* \`${Number(dSummary.totalPayouts || 0).toLocaleString()} ETB\`\n`;
-  msg += `🎮 *የተደረጉ ዙሮች:* \`${Number(dSummary.totalRounds || 0).toLocaleString()} ዙር\`\n`;
-  msg += `🎟️ *የተሸጡ ካርቴላዎች:* \`${Number(dSummary.totalCards || 0).toLocaleString()} ካርቴላ\`\n\n`;
-
-  msg += `🏠 *የክፍሎች የቀን ትርፍ ዝርዝር:*\n`;
-  msg += `• *ባለ 10 ብር ክፍል:* \n  └ ዙሮች: \`${d10.rounds}\` | ትርፍ: \`${Number(d10.profit).toLocaleString()} ETB\` | ሽያጭ: \`${Number(d10.turnover).toLocaleString()} ETB\`\n`;
-  msg += `• *ባለ 20 ብር ክፍል:* \n  └ ዙሮች: \`${d20.rounds}\` | ትርፍ: \`${Number(d20.profit).toLocaleString()} ETB\` | ሽያጭ: \`${Number(d20.turnover).toLocaleString()} ETB\`\n`;
-  if (d50.rounds > 0 || d50.profit > 0) {
-    msg += `• *ባለ 50 ብር ክፍል:* \n  └ ዙሮች: \`${d50.rounds}\` | ትርፍ: \`${Number(d50.profit).toLocaleString()} ETB\` | ሽያጭ: \`${Number(d50.turnover).toLocaleString()} ETB\`\n`;
-  }
-  msg += `\n`;
-
-  // 2. Weekly Report (ዝቅ ብሎ ሳምንታዊው ሪፖርት)
-  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-  msg += `🗓️ *የሳምንቱ ጠቅላላ ሪፖርት (Weekly Report - Last 7 Days)*\n`;
-  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-  msg += `💰 *የሳምንቱ ጠቅላላ ትርፍ (Net Profit):* \`${Number(wSummary.totalProfit || 0).toLocaleString()} ETB\`\n`;
-  msg += `💵 *የሳምንቱ ሽያጭ (Turnover):* \`${Number(wSummary.totalTurnover || 0).toLocaleString()} ETB\`\n`;
-  msg += `🏆 *የተከፈለ አሸናፊ (Payouts):* \`${Number(wSummary.totalPayouts || 0).toLocaleString()} ETB\`\n`;
-  msg += `🎮 *የተደረጉ ዙሮች:* \`${Number(wSummary.totalRounds || 0).toLocaleString()} ዙር\`\n`;
-  msg += `🎟️ *የተሸጡ ካርቴላዎች:* \`${Number(wSummary.totalCards || 0).toLocaleString()} ካርቴላ\`\n\n`;
-
-  msg += `🏠 *የሳምንቱ ክፍሎች ትርፍ ዝርዝር:*\n`;
-  msg += `• *ባለ 10 ብር ክፍል:* \n  └ ዙሮች: \`${w10.rounds}\` (${w10.percentage}%) | ትርፍ: \`${Number(w10.profit).toLocaleString()} ETB\`\n`;
-  msg += `• *ባለ 20 ብር ክፍል:* \n  └ ዙሮች: \`${w20.rounds}\` (${w20.percentage}%) | ትርፍ: \`${Number(w20.profit).toLocaleString()} ETB\`\n`;
-  if (w50.rounds > 0 || w50.profit > 0) {
-    msg += `• *ባለ 50 ብር ክፍል:* \n  └ ዙሮች: \`${w50.rounds}\` (${w50.percentage}%) | ትርፍ: \`${Number(w50.profit).toLocaleString()} ETB\`\n`;
+    if (ts >= startOfEatToday && ts < endOfEatToday) {
+      const isApproved = tx.status === "approved" || tx.status === "completed";
+      if (isApproved) {
+        const amt = Number(tx.amount) || 0;
+        if (tx.type === "deposit") {
+          if (tx.method !== "Welcome Bonus" && !tx.is_bonus) {
+            approvedDepositsTotal += amt;
+            approvedDepositsCount++;
+          }
+        } else if (tx.type === "withdraw") {
+          approvedWithdrawalsTotal += amt;
+          approvedWithdrawalsCount++;
+        }
+      }
+    }
   }
 
-  msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
-  msg += `📈 *ሙሉ ሪፖርት በግራፍ ለማየት:* \n👉 ${WEB_APP_URL}admin.html`;
+  // 2. Real Players Wallet Balance (Total balance currently on players)
+  let totalPlayerBalance = 0;
+  for (const u of Object.values(gameState.users || {})) {
+    if (u && !u.is_bot && !String(u.id).startsWith("bot_")) {
+      const bal = Number(u.balance) || 0;
+      if (bal > 0) totalPlayerBalance += bal;
+    }
+  }
+
+  // 3. Real Player Cartelas & Games Today
+  let realCardsToday = 0;
+  let realStakeToday = 0;
+  let realPayoutToday = 0;
+  const history = Array.isArray(gameState.roundHistory) ? gameState.roundHistory : [];
+  for (const r of history) {
+    let ts = r.timestamp;
+    if (!ts && r.created_at) ts = new Date(r.created_at).getTime();
+    if (ts >= startOfEatToday && ts < endOfEatToday) {
+      realCardsToday += (Number(r.realCards) || 0);
+      realStakeToday += (Number(r.realStake) || 0);
+      realPayoutToday += (Number(r.realPayout) || 0);
+    }
+  }
+
+  // 4. Net Profit / Loss Calculation
+  const netCashProfit = approvedDepositsTotal - approvedWithdrawalsTotal;
+  let profitBadge = "";
+  if (netCashProfit > 0) {
+    profitBadge = `👉 \`+${netCashProfit.toLocaleString()} ETB\` (አዎንታዊ / Positive) 🟢`;
+  } else if (netCashProfit < 0) {
+    profitBadge = `👉 \`-${Math.abs(netCashProfit).toLocaleString()} ETB\` (አሉታዊ / Negative) 🔴`;
+  } else {
+    profitBadge = `👉 \`0 ETB\` (ገለልተኛ / Neutral) ⚪`;
+  }
+
+  let msg = `📊 *ዋሊያ ቢንጎ — የቀኑ የፋይናንስ ሪፖርት (Daily Profit Report)*\n`;
+  msg += `🕒 *ቀን:* \`${eatDateStr} | ${eatTimeStr} EAT\`\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `💰 *የቤቱ የተጣራ ትርፍ (Net Profit):*\n`;
+  msg += `${profitBadge}\n\n`;
+
+  msg += `📥 *የቀኑ ገቢ (Approved Deposits):* \`+${approvedDepositsTotal.toLocaleString()} ETB\` (${approvedDepositsCount} ተቀማጭ)\n`;
+  msg += `📤 *የቀኑ ወጪ (Approved Withdrawals):* \`-${approvedWithdrawalsTotal.toLocaleString()} ETB\` (${approvedWithdrawalsCount} ወጪ)\n\n`;
+
+  msg += `👥 *የተጫዋቾች ቀሪ ሂሳብ (Players Balance):* \`${totalPlayerBalance.toLocaleString()} ETB\`\n`;
+  msg += `_(በተጫዋቾች ዋሌት ውስጥ ያለ ጠቅላላ ገንዘብ)_\n\n`;
+
+  msg += `🎟️ *በተጫዋቾች የተገዙ ካርቴላዎች:* \`${realCardsToday.toLocaleString()} ካርቴላ\`\n`;
+  if (realStakeToday > 0 || realPayoutToday > 0) {
+    msg += `💵 *የተጫዋቾች ውርርድ:* \`${realStakeToday.toLocaleString()} ETB\`\n`;
+    msg += `🏆 *ለተጫዋቾች የተከፈለ:* \`${realPayoutToday.toLocaleString()} ETB\`\n`;
+  }
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `👉 ${WEB_APP_URL}admin.html`;
 
   return msg;
 }
@@ -2300,6 +2350,10 @@ const server = http.createServer(async (req, res) => {
       if (tx) {
         tx.status = action === "approve" ? "approved" : "rejected";
         tx.processedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        tx.processed_timestamp = Date.now();
+        if (action === "approve") {
+          tx.approved_at = Date.now();
+        }
 
         // Find target user with flexible matching
         const cleanTxPhone = cleanPhone(tx.phone);
@@ -2405,6 +2459,7 @@ const server = http.createServer(async (req, res) => {
               parse_mode: "Markdown",
             }).catch(() => {});
           }
+          sendAdminProfitReportThrottled();
         }
 
         // WITHDRAW APPROVAL: Ensure balance is deducted from user
@@ -2425,6 +2480,7 @@ const server = http.createServer(async (req, res) => {
               parse_mode: "Markdown",
             }).catch(() => {});
           }
+          sendAdminProfitReportThrottled();
         }
 
         // WITHDRAW REJECTION: Refund back to user if it was held/deducted
@@ -2674,7 +2730,7 @@ server.listen(PORT, "0.0.0.0", () => {
       // 20:59 UTC is 23:59 EAT (Addis Ababa)
       if (utcHours === 20 && utcMins === 59 && now.getUTCSeconds() < 30) {
         console.log("[SCHEDULED] Sending daily profit report to admins (23:59 EAT)...");
-        notifyTelegramAdmin(`📢 *የቀኑ ማጠቃለያ ሪፖርት (End of Day Daily & Weekly Report)*\n\n` + generateProfitReportMessage());
+        notifyTelegramAdmin(`📢 *የቀኑ ማጠቃለያ ሪፖርት (End of Day Daily Profit Report)*\n\n` + generateProfitReportMessage());
       }
     } catch (e) {
       console.warn("[SCHEDULED REPORT ERROR]", e.message);
