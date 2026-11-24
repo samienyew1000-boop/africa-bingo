@@ -788,6 +788,58 @@ class LiveBingoRoom {
     }
   }
 
+  getEthiopianScheduleTarget() {
+    let hour = 12;
+    try {
+      const eatHourStr = new Date().toLocaleTimeString("en-US", {
+        timeZone: "Africa/Addis_Ababa",
+        hour: "2-digit",
+        hour12: false,
+      });
+      hour = parseInt(eatHourStr, 10);
+      if (isNaN(hour)) {
+        hour = (new Date().getUTCHours() + 3) % 24;
+      }
+    } catch (e) {
+      hour = (new Date().getUTCHours() + 3) % 24;
+    }
+
+    let minDerash = 600;
+    let maxDerash = 800;
+    let slotName = "ጧት 12:00 - 4:00";
+
+    // Ethiopian Time Schedule:
+    // 1. ጧት 12:00 እስከ 4:00 (06:00 - 10:00 EAT): 600 - 800 derash
+    // 2. ከ 4:00 እስከ 8:00 (10:00 - 14:00 EAT): 1,500 - 1,700 derash
+    // 3. ከ 8:00 እስከ ለሊት 6:00 (14:00 - 00:00 EAT): 2,400 - 2,600 derash
+    // 4. ከለሊቱ 6:00 እስከ ጧት 12:00 (00:00 - 06:00 EAT): 300 - 400 derash
+    if (hour >= 6 && hour < 10) {
+      minDerash = 600;
+      maxDerash = 800;
+      slotName = "ጧት 12:00 - 4:00";
+    } else if (hour >= 10 && hour < 14) {
+      minDerash = 1500;
+      maxDerash = 1700;
+      slotName = "ከ 4:00 - 8:00";
+    } else if (hour >= 14 && hour < 24) {
+      minDerash = 2400;
+      maxDerash = 2600;
+      slotName = "ከ 8:00 - ለሊት 6:00";
+    } else {
+      minDerash = 300;
+      maxDerash = 400;
+      slotName = "ለሊት 6:00 - ጧት 12:00";
+    }
+
+    // Pick random target derash in the time slot range
+    const targetDerash = Math.floor(Math.random() * (maxDerash - minDerash + 1)) + minDerash;
+    const commPct = Number(gameState.settings?.commissionRate || 20);
+    const cardValue = Math.max(1, this.stake * (1 - (commPct / 100)));
+    const targetCards = Math.max(5, Math.round(targetDerash / cardValue));
+
+    return { minDerash, maxDerash, targetDerash, targetCards, slotName, hour };
+  }
+
   initBotRound() {
     if (this.botJoinTimer) {
       clearInterval(this.botJoinTimer);
@@ -796,9 +848,9 @@ class LiveBingoRoom {
     const isBotRoom = this.id === "20" || (gameState.settings?.systemBotsRooms && gameState.settings.systemBotsRooms.includes(this.id));
     if (!isBotRoom) return;
 
-    const minCards = Math.max(10, Number(gameState.settings?.systemBotsMinCards || 50));
-    const maxCards = Math.max(minCards, Number(gameState.settings?.systemBotsMaxCards || 150));
-    this.targetBotCards = Math.floor(Math.random() * (maxCards - minCards + 1)) + minCards;
+    const schedule = this.getEthiopianScheduleTarget();
+    this.targetBotCards = schedule.targetCards;
+    this.currentSlotName = schedule.slotName;
 
     this.availableBotNames = [...HABESHA_NAMES].sort(() => Math.random() - 0.5);
     this.botNameIndex = 0;
