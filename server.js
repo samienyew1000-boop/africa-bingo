@@ -1697,7 +1697,11 @@ function generateProfitReportMessage() {
   let totalPlayerBalance = 0;
   for (const u of Object.values(gameState.users || {})) {
     if (u && !u.is_bot && !String(u.id).startsWith("bot_")) {
-      if (u.role === "admin" || ADMIN_IDS.includes(String(u.id))) continue;
+      const uidStr = String(u.id);
+      const isUserAdmin = u.role === "admin" ||
+        (typeof ADMIN_IDS !== "undefined" && ADMIN_IDS.includes(uidStr)) ||
+        (Array.isArray(gameState.settings?.adminChatIds) && gameState.settings.adminChatIds.includes(uidStr));
+      if (isUserAdmin) continue;
       const bal = Number(u.balance) || 0;
       if (bal > 0) totalPlayerBalance += bal;
     }
