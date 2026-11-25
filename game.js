@@ -681,6 +681,14 @@ function handleServerRoomState(sState) {
                 ? `ተከፋፍለው አሸነፉ! +${fmt(myPrize)} ETB`
                 : `YOU WON! +${fmt(myPrize)} ETB`;
               toast(toastMsg, "win");
+              recordPlayerTransaction({
+                type: "win",
+                method: "Derash Prize Win",
+                amount: myPrize,
+                status: "completed",
+                details: `${winPattern} · Card #${Array.isArray(displayCardId) ? displayCardId.join(", #") : (displayCardId || "")}`,
+              });
+              syncProfileWithServer();
             } else {
               roundOutcome = "lose";
               roundWinnerName = res.winner_name || "Opponent";
@@ -4595,14 +4603,34 @@ function claimBingo() {
     balance += win;
     saveBalance();
     renderBalance();
+    recordPlayerTransaction({
+      type: "win",
+      method: "Derash Prize Win",
+      amount: win,
+      status: "completed",
+      details: `${kind} · Card #${winCard}`,
+    });
+  } else {
+    // In multiplayer online room, submit claim to server
+    if (activeRoomId && winCard && typeof LuckyBingoAPI !== "undefined") {
+      LuckyBingoAPI.claimBingo(activeRoomId, winCard).then((res) => {
+        if (res && res.error) {
+          console.warn("Claim not accepted by server:", res.error);
+        } else {
+          recordPlayerTransaction({
+            type: "win",
+            method: "Derash Prize Win",
+            amount: win,
+            status: "completed",
+            details: `${kind} · Card #${winCard}`,
+          });
+          syncProfileWithServer();
+        }
+      }).catch((err) => {
+        console.warn("Claim error:", err);
+      });
+    }
   }
-  recordPlayerTransaction({
-    type: "win",
-    method: "Derash Prize Win",
-    amount: win,
-    status: "completed",
-    details: `${kind} · Card #${winCard}`,
-  });
   rememberWinningCard(stake, winCard, PLAYER_NAME, win);
   roundOutcome = "win";
   roundWinnerName = PLAYER_NAME;
@@ -4613,12 +4641,6 @@ function claimBingo() {
     gameStatusEl.textContent = `${kind} on card #${winCard} · +${fmt(win)} ETB`;
   }
   renderMineCards();
-
-  if (activeRoomId && winCard && typeof LuckyBingoAPI !== "undefined") {
-    LuckyBingoAPI.claimBingo(activeRoomId, winCard).then((res) => {
-      syncProfileWithServer();
-    }).catch(() => {});
-  }
 
   // Delay winner overlay by 2.8s so the winning ball voice & animation finish first!
   if (winnerPendingTimeout) clearTimeout(winnerPendingTimeout);

@@ -1139,61 +1139,17 @@ class LiveBingoRoom {
       return;
     }
 
-    // In rooms with bots and real players, ensure system card wins
-    const hasRealPlayers = this.players.some(p => !p.is_bot);
-    const hasBots = this.players.some(p => p.is_bot);
-
-    if (hasRealPlayers && hasBots && this.deck.length > 1) {
-      const calledSet = new Set(this.calls);
-      const realCards = [];
-      const botCards = [];
-      for (const p of this.players) {
-        for (const cid of (p.card_ids || [])) {
-          const cNums = cardCatalog[String(cid)];
-          if (cNums) {
-            if (p.is_bot) botCards.push(cNums);
-            else realCards.push(cNums);
-          }
-        }
-      }
-
-      const testBall = this.deck[0];
-      const testSet = new Set(calledSet);
-      testSet.add(testBall);
-
-      const realWins = realCards.some(cNums => cardHasWinningLineWithBall(cNums, testSet, testBall));
-      const botWins = botCards.some(cNums => cardHasWinningLineWithBall(cNums, testSet, testBall));
-
-      if (realWins && !botWins) {
-        let swapIdx = -1;
-        for (let i = 1; i < this.deck.length; i++) {
-          const altBall = this.deck[i];
-          const altSet = new Set(calledSet);
-          altSet.add(altBall);
-          if (!realCards.some(cNums => cardHasWinningLineWithBall(cNums, altSet, altBall))) {
-            swapIdx = i;
-            break;
-          }
-        }
-        if (swapIdx !== -1) {
-          const tmp = this.deck[0];
-          this.deck[0] = this.deck[swapIdx];
-          this.deck[swapIdx] = tmp;
-        }
-      }
-    }
-
     const ball = this.deck.shift();
     this.calls.push(ball);
 
     const calledSet = new Set(this.calls);
     const winningEntries = [];
 
-    // Find ALL players and cards that completed Bingo on THIS winning ball!
+    // Find ALL players and cards that completed Bingo on THIS winning ball or earlier!
     for (const player of this.players) {
       for (const cardId of (player.card_ids || [])) {
         const cardNumbers = cardCatalog[String(cardId)];
-        if (cardNumbers && cardHasWinningLineWithBall(cardNumbers, calledSet, ball)) {
+        if (cardNumbers && (cardHasWinningLineWithBall(cardNumbers, calledSet, ball) || countCompletedLines(cardNumbers, calledSet) >= 1)) {
           winningEntries.push({
             userId: player.user_id,
             username: player.username,
@@ -1225,8 +1181,8 @@ class LiveBingoRoom {
     const calledSet = new Set(this.calls);
     const lastBall = this.calls.length ? this.calls[this.calls.length - 1] : null;
 
-    if (!cardNumbers || !cardHasWinningLineWithBall(cardNumbers, calledSet, lastBall)) {
-      return { error: "Bingo not complete yet on the latest called number" };
+    if (!cardNumbers || countCompletedLines(cardNumbers, calledSet) < 1) {
+      return { error: "Bingo not complete yet on called numbers" };
     }
 
     // Collect all players/cards that completed bingo on this call
@@ -1234,7 +1190,7 @@ class LiveBingoRoom {
     for (const p of this.players) {
       for (const cid of (p.card_ids || [])) {
         const cNums = cardCatalog[String(cid)];
-        if (cNums && cardHasWinningLineWithBall(cNums, calledSet, lastBall)) {
+        if (cNums && (cardHasWinningLineWithBall(cNums, calledSet, lastBall) || countCompletedLines(cNums, calledSet) >= 1)) {
           winningEntries.push({
             userId: p.user_id,
             username: p.username,
@@ -1301,18 +1257,47 @@ class LiveBingoRoom {
         let u = gameState.users[uid];
         if (!u) {
           for (const [k, v] of Object.entries(gameState.users || {})) {
-            if (v && (String(v.id) === uid || (v.phone && v.phone.endsWith(uid.slice(-9))))) {
+            if (v && (String(v.id) === String(uid) || (v.phone && String(v.phone).endsWith(String(uid).slice(-9))))) {
               u = v;
               break;
             }
           }
         }
         if (u) {
-          u.balance = (u.balance || 0) + playerPrize;
-          u.games = (u.games || 0) + 1;
+          u.balance = (Number(u.balance) || 0) + playerPrize;
+          u.games = (Number(u.games) || 0) + 1;
           saveGameState();
           updateSqliteUserBalance(u.id || uid, u.balance);
+        } else {
+          gameState.users[uid] = {
+            id: uid,
+            username: uObj.username || "",
+            first_name: uObj.firstName,
+            balance: playerPrize,
+            games: 1,
+            role: "player",
+            status: "active",
+            createdAt: new Date().toISOString(),
+          };
+          saveGameState();
+          updateSqliteUserBalance(uid, playerPrize);
         }
+
+        // Record winning transaction in gameState.transactions
+        gameState.transactions = gameState.transactions || [];
+        gameState.transactions.unshift({
+          id: `WIN-${Date.now()}-${Math.floor(Math.random() * 900) + 100}`,
+          user_id: uid,
+          playerId: uid,
+          player: uObj.firstName,
+          type: "win",
+          method: "Derash Prize Win",
+          amount: playerPrize,
+          status: "approved",
+          reference: `Round #${this.roundId} · Room ${this.id} · Card #${uObj.cardIds.join(", #")}`,
+          created_at: new Date().toISOString(),
+        });
+        saveGameState();
       }
       winnersDetail.push({
         user_id: uid,
