@@ -29,11 +29,9 @@ const PORT = parseInt(process.env.PORT || "3000", 10);
 const PUBLIC_DIR = __dirname;
 const STATE_FILE = path.join(__dirname, "game-state.json");
 const BACKUP_STATE_FILE = path.join(__dirname, "game-state.backup.json");
-const ROOT_BACKUP_FILE = fs.existsSync("/var/backups/mega-bingo-state.json")
-  ? "/var/backups/mega-bingo-state.json"
-  : (fs.existsSync("/var/backups/waliya-bingo-state.json") ? "/var/backups/waliya-bingo-state.json" : "/var/backups/mega-bingo-state.json");
+const ROOT_BACKUP_FILE = "/var/backups/mega-bingo-state.json";
 const BOT_TOKEN = process.env.BOT_TOKEN || "";
-const WEB_APP_URL = (process.env.WEB_APP_URL || "https://konjobetcom.et/waliya/").replace(/\/+$/, "") + "/";
+const WEB_APP_URL = (process.env.WEB_APP_URL || "https://konjobetcom.et/mega/").replace(/\/+$/, "") + "/";
 const rawAdminUsernames = process.env.ADMIN_USERNAMES || "Tedy12w,hailehk1,Hab45y,Promis1221,kal555e7i,admin";
 const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
 const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "6183528137,7112118108,946983694";
@@ -379,24 +377,6 @@ function loadGameState() {
       ...(fileData?.users || {}),
     };
 
-    // Always merge balances from Africa Bingo state to ensure no player deposits/balances are lost
-    const africaBackup = "/var/www/africa-bingo/game-state.json";
-    if (fs.existsSync(africaBackup)) {
-      try {
-        const afData = JSON.parse(fs.readFileSync(africaBackup, "utf-8"));
-        if (afData && afData.users) {
-          for (const [afUid, afUser] of Object.entries(afData.users)) {
-            const afBal = Number(afUser.balance) || 0;
-            if (!mergedUsers[afUid]) {
-              mergedUsers[afUid] = { ...afUser };
-            } else if (afBal > (Number(mergedUsers[afUid].balance) || 0)) {
-              mergedUsers[afUid].balance = afBal;
-            }
-          }
-        }
-      } catch (e) {}
-    }
-
     const mergedTxns = (fileData?.transactions && fileData.transactions.length > 0)
       ? fileData.transactions
       : (backupTxns.length > 0 ? backupTxns : []);
@@ -559,9 +539,6 @@ function syncFromSQLite(force = false) {
   const dbPaths = [
     path.join(__dirname, "data", "mega_bingo.db"),
     "/var/www/mega-bingo/data/mega_bingo.db",
-    "/var/www/waliya-bingo/data/mega_bingo.db",
-    path.join(__dirname, "data", "waliya_bingo.db"),
-    "/var/www/africa-bingo/data/waliya_bingo.db",
   ];
   const dbPath = dbPaths.find((p) => fs.existsSync(p));
 
@@ -1738,7 +1715,7 @@ function generateProfitReportMessage() {
     profitBadge = `👉 \`0 ETB\` (ገለልተኛ / Neutral) ⚪`;
   }
 
-  let msg = `📊 *ዋሊያ ቢንጎ — የቀኑ የፋይናንስ ሪፖርት (Daily Profit Report)*\n`;
+  let msg = `📊 *ሜጋ ቢንጎ — የቀኑ የፋይናንስ ሪፖርት (Daily Profit Report)*\n`;
   msg += `🕒 *ቀን:* \`${eatDateStr} | ${eatTimeStr} EAT\`\n`;
   msg += `━━━━━━━━━━━━━━━━━━━━\n`;
   msg += `💰 *የቤቱ የተጣራ ትርፍ (Net Profit):*\n`;
@@ -2401,9 +2378,7 @@ const server = http.createServer(async (req, res) => {
           try {
             const { execSync } = require("child_process");
             const pyExec = process.platform === "win32" ? "python" : "python3";
-            const helperPath = (fs.existsSync(path.join(__dirname, "data", "mega_bingo.db"))
-              ? path.join(__dirname, "data", "mega_bingo.db")
-              : path.join(__dirname, "data", "waliya_bingo.db")).replace(/\\/g, "/");
+            const helperPath = path.join(__dirname, "data", "mega_bingo.db").replace(/\\/g, "/");
             const safeId = (txUid || "").replace(/[^a-zA-Z0-9_\-+]/g, "");
             const safePhone = (cleanTxPhone || "").replace(/[^0-9]/g, "");
             const safeCheck = `${pyExec} -c "import sqlite3, json; conn = sqlite3.connect('${helperPath}'); conn.row_factory = sqlite3.Row; c = conn.cursor(); r = c.execute('SELECT * FROM users WHERE id = ? OR phone_number = ? OR phone_number LIKE ?', ('${safeId}', '${safePhone}', '%${safePhone.slice(-9)}')).fetchone(); print(json.dumps(dict(r) if r else None))"`;

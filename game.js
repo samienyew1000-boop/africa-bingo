@@ -2196,7 +2196,7 @@ const TRANSLATIONS = {
     landingKicker: "ፈጣን ምዝገባ:: የቀጣይ ዙር መደለል:: የቀጥታ ቢንጎ ኃይል::",
     landingStartCta: "🎁 በ 10 ብር ነፃ ቦነስ ጀምር (Start)",
     landingLobbyCta: "ወደ ጨዋታ ክፍሎች ግባ (Lobby)",
-    welcomeCardTitle: "👋 እንኳን ደህና መጡ ወደ ዋሊያ ቢንጎ!",
+    welcomeCardTitle: "👋 እንኳን ደህና መጡ ወደ ሜጋ ቢንጎ!",
     welcomeCardDesc: "የቀጥታ ቢንጎ ጨዋታ መድረክ",
     notifications: "Notifications",
     sounds: "ድምፆች",
