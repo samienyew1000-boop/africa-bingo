@@ -11,8 +11,8 @@ const ADMIN_AUTH_CONFIG = {
     "admin", "helen", "0941434534", "+251941434534", "941434534",
     "765609989", "8722398377", "5663531258", "samtesfa19", "megabingo1bot", "megabingo"
   ],
-  password: "Ber343477",
-  fallbackPassword: "ber343477",
+  password: "ASD12@12",
+  fallbackPassword: "ASD12@12",
 };
 
 function checkAdminAuth() {
@@ -1616,8 +1616,10 @@ function bindEvents() {
         return cleanUser === uClean || cleanUserNoPrefix === uCleanNoPrefix || cleanUser === uCleanNoPrefix;
       });
 
-      const passMatches = cleanPass.toLowerCase() === ADMIN_AUTH_CONFIG.password.toLowerCase() ||
-                          cleanPass === "Ber343477" || cleanPass === "ber343477" || cleanPass === "Ber23@ret" || cleanPass === "AF7694";
+      const passMatches = cleanPass === ADMIN_AUTH_CONFIG.password ||
+                          cleanPass.toLowerCase() === ADMIN_AUTH_CONFIG.password.toLowerCase() ||
+                          cleanPass === "ASD12@12" ||
+                          cleanPass.toLowerCase() === "asd12@12";
 
       if (userMatches && passMatches) {
         if (errorEl) errorEl.hidden = true;

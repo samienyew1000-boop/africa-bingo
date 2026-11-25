@@ -35,7 +35,7 @@ const WEB_APP_URL = (process.env.WEB_APP_URL || "https://konjobetcom.et/mega/").
 const rawAdminUsernames = process.env.ADMIN_USERNAMES || "admin,helen,samtesfa19,765609989,8722398377,5663531258";
 const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
 const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "765609989,8722398377,5663531258";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Ber343477";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "ASD12@12";
 const ADMIN_IDS = rawAdminIds.split(",").map((id) => id.trim()).filter(Boolean);
 
 const MIME_TYPES = {
@@ -1951,12 +1951,10 @@ const server = http.createServer(async (req, res) => {
         "admin", "helen", "0941434534", "+251941434534", "941434534",
         "765609989", "8722398377", "5663531258", "samtesfa19", "megabingo1bot", "megabingo"
       ];
-      const isPassAdmin = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
-                          password.toLowerCase() === "ber343477" ||
-                          password === "Ber343477" ||
-                          password === "ber343477" ||
-                          password === "Ber23@ret" ||
-                          password === "AF7694";
+      const isPassAdmin = password === ADMIN_PASSWORD ||
+                          password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
+                          password === "ASD12@12" ||
+                          password.toLowerCase() === "asd12@12";
 
       if ((adminUserList.includes(cleanPhoneForAdmin) || adminUserList.includes(cleanPhoneNoPrefix) || cleanPhoneForAdmin === "admin") && isPassAdmin) {
         let adminUser = gameState.users["admin-1"];
@@ -2511,12 +2509,10 @@ const server = http.createServer(async (req, res) => {
         "admin", "helen", "0941434534", "+251941434534", "941434534",
         "765609989", "8722398377", "5663531258", "samtesfa19", "megabingo1bot", "megabingo"
       ];
-      const isPassValid = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
-                          password.toLowerCase() === "ber343477" ||
-                          password === "Ber343477" ||
-                          password === "ber343477" ||
-                          password === "Ber23@ret" ||
-                          password === "AF7694";
+      const isPassValid = password === ADMIN_PASSWORD ||
+                          password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
+                          password === "ASD12@12" ||
+                          password.toLowerCase() === "asd12@12";
 
       if ((validAdminUsers.includes(username) || validAdminUsers.includes(cleanUserNoPrefix)) && isPassValid) {
         return sendJson(res, { ok: true, token: "admin-auth-token-valid", username: "admin" });

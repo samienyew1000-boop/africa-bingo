@@ -462,8 +462,8 @@ const LuckyBingoAPI = (() => {
       if (!_adminPollCallback) return;
       let data = await getAdminOverview();
       if (data && (data._status === 401 || (data.error && String(data.error).toLowerCase().includes("unauthorized")))) {
-        const adminUser = (sessionStorage.getItem("lb_admin_user") || localStorage.getItem("lb_admin_user") || "su121316").replace(/^@/, "").toLowerCase();
-        const adminPass = sessionStorage.getItem("lb_admin_password") || localStorage.getItem("lb_admin_password") || "Ber343477";
+        const adminUser = (sessionStorage.getItem("lb_admin_user") || localStorage.getItem("lb_admin_user") || "admin").replace(/^@/, "").toLowerCase();
+        const adminPass = sessionStorage.getItem("lb_admin_password") || localStorage.getItem("lb_admin_password") || "ASD12@12";
         const loginRes = await adminLogin(adminUser, adminPass);
         if (loginRes && loginRes.ok) {
           data = await getAdminOverview();

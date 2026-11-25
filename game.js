@@ -1893,16 +1893,10 @@ function setupMobileAuthEvents() {
     const cleanPhoneForAdmin = phone.toLowerCase().replace(/[\s\-()]+/g, "");
     const cleanPhoneNoPrefix = cleanPhoneForAdmin.replace(/^(\+251|251|0)/, "");
     const adminUserList = [
-      "admin", "0918182355", "918182355", "9029759446",
-      "0939292694", "939292694",
-      "berihun", "0999909474", "999909474",
-      "su121316", "samtesfa19", "samienyew1000", "megabingo1bot", "megabingo", "megabingooo", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781"
+      "admin", "helen", "0941434534", "+251941434534", "941434534",
+      "765609989", "8722398377", "5663531258", "samtesfa19", "megabingo1bot", "megabingo"
     ];
-    const isPassAdmin = password.toLowerCase() === "ber343477" ||
-                        password === "Ber343477" ||
-                        password === "ber343477" ||
-                        password === "Ber23@ret" ||
-                        password === "AF7694";
+    const isPassAdmin = password === "ASD12@12" || password.toLowerCase() === "asd12@12";
     const isAdminLogin = (adminUserList.includes(cleanPhoneForAdmin) || adminUserList.includes(cleanPhoneNoPrefix) || cleanPhoneForAdmin === "admin") && isPassAdmin;
 
     // Direct Admin Login Handling

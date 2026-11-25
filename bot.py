@@ -114,7 +114,7 @@ raw_phones = os.getenv("ADMIN_PHONES", "+251918182355,0918182355,0999909474,+251
 ADMIN_PHONES = [p.strip() for p in raw_phones.split(",") if p.strip()]
 raw_ids = os.getenv("ADMIN_TELEGRAM_IDS", "6220264098,5663531258")
 ADMIN_TELEGRAM_IDS = [int(i.strip()) for i in raw_ids.split(",") if i.strip().isdigit()]
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Ber343477")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "ASD12@12")
 
 DB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 DB_PATH = os.path.join(DB_DIR, "mega_bingo.db") if os.path.exists(os.path.join(DB_DIR, "mega_bingo.db")) else (os.path.join(DB_DIR, "waliya_bingo.db") if os.path.exists(os.path.join(DB_DIR, "waliya_bingo.db")) else os.path.join(DB_DIR, "africa_bingo.db"))
