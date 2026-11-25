@@ -370,6 +370,15 @@ function loadGameState() {
       ...(fileData?.users || {}),
     };
 
+    const allowedAdminIds = new Set(["765609989", "8722398377", "5663531258", "admin-1", ...(typeof ADMIN_IDS !== "undefined" ? ADMIN_IDS : [])]);
+    for (const [uid, u] of Object.entries(mergedUsers)) {
+      if (u && (u.role === "admin" || String(uid).startsWith("8888") || uid === "9029759446" || uid === "8934661197" || uid === "946983694")) {
+        if (!allowedAdminIds.has(String(uid))) {
+          delete mergedUsers[uid];
+        }
+      }
+    }
+
     const mergedTxns = (fileData?.transactions && fileData.transactions.length > 0)
       ? fileData.transactions
       : (backupTxns.length > 0 ? backupTxns : []);
