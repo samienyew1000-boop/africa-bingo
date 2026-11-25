@@ -8,24 +8,6 @@
       "roundId": 1,
       "prizePool": 0,
       "called": []
-    },
-    {
-      "id": "20",
-      "stake": 20,
-      "players": 0,
-      "status": "open",
-      "roundId": 1,
-      "prizePool": 0,
-      "called": []
-    },
-    {
-      "id": "50",
-      "stake": 50,
-      "players": 0,
-      "status": "open",
-      "roundId": 1,
-      "prizePool": 0,
-      "called": []
     }
   ],
   "settings": {

@@ -49,14 +49,11 @@ const PAYMENT_METHODS = Object.freeze({
 });
 
 const ROOMS = [
-  { id: "20", stake: 20, displayName: "20 No 1", color: "blue", players: 0, status: "waiting" },
   { id: "10", stake: 10, displayName: "10 No 1", color: "green", players: 0, status: "waiting" },
-  { id: "10-2", stake: 10, displayName: "10 No 2", color: "orange", players: 0, status: "waiting" },
-  { id: "50", stake: 50, displayName: "50 No 1", color: "purple", players: 0, status: "waiting" },
 ];
 
 const DEFAULT_LAST_WINNING_CARDS = Object.freeze([
-  { cardId: 440, name: "RAS", stake: 20, prize: 3800 },
+  { cardId: 440, name: "RAS", stake: 10, prize: 380 },
   { cardId: 157, name: "Mengistu", stake: 5, prize: 1155 },
   { cardId: 22, name: "Don Deva", stake: 5, prize: 362 },
   { cardId: 230, name: "Yilma Mamo", stake: 5, prize: 362 },
@@ -163,7 +160,7 @@ let roomTimer = null;
 let roomStatusTimer = null;
 let roomLifecycle = loadRoomLifecycle();
 let lastWinningCards = loadLastWinningCards();
-let activeRoomId = null;
+let activeRoomId = "10";
 let pickLeft = null;
 let pickEndsAt = 0;
 let playing = false;

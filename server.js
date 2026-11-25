@@ -62,9 +62,6 @@ const MIME_TYPES = {
 const DEFAULT_STATE = {
   rooms: [
     { id: "10", stake: 10, name: "10 No 1", players: 0, status: "waiting", roundId: "#MB-101", prizePool: 0, called: [] },
-    { id: "10-2", stake: 10, name: "10 No 2", players: 0, status: "waiting", roundId: "#MB-102", prizePool: 0, called: [] },
-    { id: "20", stake: 20, name: "20 No 1", players: 0, status: "waiting", roundId: "#MB-103", prizePool: 0, called: [] },
-    { id: "50", stake: 50, name: "50 No 1", players: 0, status: "waiting", roundId: "#MB-104", prizePool: 0, called: [] },
   ],
   settings: {
     countdown: 30,
@@ -258,66 +255,6 @@ function seedInitialRoundHistory() {
         roundId: roundSeq,
         totalCards: cards,
         playerCount: Math.min(cards, 3 + Math.floor(Math.random() * 4)),
-        turnover,
-        prize,
-        profit,
-        winnerId: `usr_${roundSeq}`,
-        winnerName: winner,
-        cardId: Math.floor(Math.random() * 50) + 1,
-        pattern: "1 መስመር",
-        created_at: new Date(rTime).toISOString(),
-        timestamp: rTime,
-      });
-    }
-
-    // 20 ETB room
-    const r20Count = 14 + Math.floor(Math.cos(d * 1.2) * 4 + Math.random() * 6);
-    for (let i = 0; i < r20Count; i++) {
-      roundSeq++;
-      const rTime = dayStartTime + Math.floor((i / r20Count) * 14 * 3600 * 1000) + Math.floor(Math.random() * 30000);
-      if (rTime > now) break;
-      const cards = 6 + Math.floor(Math.random() * 9);
-      const turnover = cards * 20;
-      const prize = cards <= 5 ? turnover : Math.round(turnover * 0.8);
-      const profit = turnover > prize ? (turnover - prize) : Math.round(turnover * 0.20);
-      const winner = namePool[Math.floor(Math.random() * namePool.length)];
-      seeded.push({
-        id: `RND_20_${roundSeq}`,
-        roomId: "20",
-        stake: 20,
-        roundId: roundSeq,
-        totalCards: cards,
-        playerCount: Math.min(cards, 3 + Math.floor(Math.random() * 3)),
-        turnover,
-        prize,
-        profit,
-        winnerId: `usr_${roundSeq}`,
-        winnerName: winner,
-        cardId: Math.floor(Math.random() * 50) + 1,
-        pattern: "1 መስመር",
-        created_at: new Date(rTime).toISOString(),
-        timestamp: rTime,
-      });
-    }
-
-    // 50 ETB room
-    const r50Count = 5 + Math.floor(Math.random() * 5);
-    for (let i = 0; i < r50Count; i++) {
-      roundSeq++;
-      const rTime = dayStartTime + Math.floor((i / r50Count) * 14 * 3600 * 1000) + Math.floor(Math.random() * 30000);
-      if (rTime > now) break;
-      const cards = 4 + Math.floor(Math.random() * 6);
-      const turnover = cards * 50;
-      const prize = cards <= 5 ? turnover : Math.round(turnover * 0.8);
-      const profit = turnover > prize ? (turnover - prize) : Math.round(turnover * 0.20);
-      const winner = namePool[Math.floor(Math.random() * namePool.length)];
-      seeded.push({
-        id: `RND_50_${roundSeq}`,
-        roomId: "50",
-        stake: 50,
-        roundId: roundSeq,
-        totalCards: cards,
-        playerCount: Math.min(cards, 2 + Math.floor(Math.random() * 3)),
         turnover,
         prize,
         profit,
@@ -766,7 +703,7 @@ class LiveBingoRoom {
     this.botNameIndex = 0;
     this.lastResult = null;
     this.enabled = true;
-    if (this.id === "20") {
+    if (this.id === "10") {
       this.initBotRound();
       this.startCountdown();
     }
@@ -829,7 +766,7 @@ class LiveBingoRoom {
       clearInterval(this.botJoinTimer);
       this.botJoinTimer = null;
     }
-    const isBotRoom = this.id === "20" || (gameState.settings?.systemBotsRooms && gameState.settings.systemBotsRooms.includes(this.id));
+    const isBotRoom = this.id === "10" || (gameState.settings?.systemBotsRooms && gameState.settings.systemBotsRooms.includes(this.id));
     if (!isBotRoom) return;
 
     const schedule = this.getEthiopianScheduleTarget();
@@ -891,7 +828,7 @@ class LiveBingoRoom {
 
   startGradualBotJoins() {
     if (this.botJoinTimer) clearInterval(this.botJoinTimer);
-    const isBotRoom = this.id === "20" || (gameState.settings?.systemBotsRooms && gameState.settings.systemBotsRooms.includes(this.id));
+    const isBotRoom = this.id === "10" || (gameState.settings?.systemBotsRooms && gameState.settings.systemBotsRooms.includes(this.id));
     if (!isBotRoom) return;
 
     this.botJoinTimer = setInterval(() => {
@@ -1431,7 +1368,7 @@ class LiveBingoRoom {
       clearInterval(this.botJoinTimer);
       this.botJoinTimer = null;
     }
-    if (this.id === "20") {
+    if (this.id === "10") {
       this.initBotRound();
       this.startCountdown();
     }
@@ -1439,12 +1376,9 @@ class LiveBingoRoom {
 }
 
 const activeRooms = {
-  "20": new LiveBingoRoom("20", 20),
   "10": new LiveBingoRoom("10", 10),
-  "10-2": new LiveBingoRoom("10-2", 10),
-  "50": new LiveBingoRoom("50", 50),
 };
-const ACTIVE_ROOM_ORDER = ["20", "10", "10-2", "50"];
+const ACTIVE_ROOM_ORDER = ["10"];
 
 function sendJson(res, data, status = 200) {
   res.writeHead(status, {
@@ -3208,7 +3142,7 @@ async function startTelegramBot() {
             } else if (text.includes("Instructions") || text.includes("ህግ") || text.includes("መመሪያ") || text === "/help") {
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `📖 *የጨዋታ ህጎች እና መመሪያዎች (Instructions)*\n\n1. 🎮 *Play Game* የሚለውን ተጭነው ወደ ጨዋታው ይግቡ።\n2. የሚፈልጉትን ክፍል (10, 20 ወይም 50 ETB) ይምረጡ።\n3. የካርቴላ ቁጥር ይምረጡ (እስከ 50 ካርቴላ መምረጥ ይችላሉ)።\n4. የ 30 ሰከንድ የምዝገባ ቆጣሪው ሲያልቅ ጨዋታው በራሱ ይጀምራል።\n5. ኳሶች በድምጽ እና በስክሪኑ ላይ አንድ በአንድ ይወጣሉ።\n6. ማንኛውም 1 መስመር (አግድም፣ ቁልቁል ወይም ዲያጎናል) የሞላ ተጫዋች አሸናፊ ይሆናል!\n\nመልካም እድል! 🍀`,
+                text: `📖 *የጨዋታ ህጎች እና መመሪያዎች (Instructions)*\n\n1. 🎮 *Play Game* የሚለውን ተጭነው ወደ ጨዋታው ይግቡ።\n2. የካርቴላ ቁጥር ይምረጡ (እስከ 50 ካርቴላ መምረጥ ይችላሉ)።\n3. የ 30 ሰከንድ የምዝገባ ቆጣሪው ሲያልቅ ጨዋታው በራሱ ይጀምራል።\n4. ኳሶች በድምጽ እና በስክሪኑ ላይ አንድ በአንድ ይወጣሉ።\n5. ማንኛውም 1 መስመር (አግድም፣ ቁልቁል ወይም ዲያጎናል) የሞላ ተጫዋች አሸናፊ ይሆናል!\n\nመልካም እድል! 🍀`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
