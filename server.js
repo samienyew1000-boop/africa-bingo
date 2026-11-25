@@ -2856,7 +2856,7 @@ async function startTelegramBot() {
     await telegramApi("setChatMenuButton", {
       menu_button: {
         type: "web_app",
-        text: "Play Bingo 🎰",
+        text: "Play Mega Bingo 🎰",
         web_app: { url: WEB_APP_URL },
       },
     });
@@ -3082,7 +3082,7 @@ async function startTelegramBot() {
                 chat_id: chatId,
                 menu_button: {
                   type: "web_app",
-                  text: "Play Bingo 🎰",
+                  text: "Play Mega Bingo 🎰",
                   web_app: { url: `${WEB_APP_URL}?u=${chatId}${userPhone ? `&phone=${encodeURIComponent(userPhone)}` : ""}` },
                 },
               }).catch(() => {});
