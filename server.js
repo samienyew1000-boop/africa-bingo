@@ -64,7 +64,7 @@ const DEFAULT_STATE = {
     { id: "10", stake: 10, name: "10 No 1", players: 0, status: "waiting", roundId: "#MB-101", prizePool: 0, called: [] },
   ],
   settings: {
-    countdown: 30,
+    countdown: 60,
     commissionRate: 20,
     minDeposit: 50,
     depositBonus: 20,
@@ -337,7 +337,7 @@ function loadGameState() {
       settings: {
         ...DEFAULT_STATE.settings,
         ...(fileData?.settings || {}),
-        countdown: 30,
+        countdown: 60,
         startingBonus: 0,
         startingBonusEnabled: false,
         depositTelebirrPhone: fileData?.settings?.depositTelebirrPhone || "0941434534",
@@ -711,54 +711,95 @@ class LiveBingoRoom {
 
   getEthiopianScheduleTarget() {
     let hour = 12;
+    let minute = 0;
     try {
-      const eatHourStr = new Date().toLocaleTimeString("en-US", {
-        timeZone: "Africa/Addis_Ababa",
-        hour: "2-digit",
-        hour12: false,
-      });
-      hour = parseInt(eatHourStr, 10);
-      if (isNaN(hour)) {
-        hour = (new Date().getUTCHours() + 3) % 24;
-      }
+      const now = new Date();
+      const eatDate = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60 * 1000);
+      hour = eatDate.getHours();
+      minute = eatDate.getMinutes();
     } catch (e) {
-      hour = (new Date().getUTCHours() + 3) % 24;
+      const now = new Date();
+      hour = (now.getUTCHours() + 3) % 24;
+      minute = now.getUTCMinutes();
     }
 
-    let minDerash = 600;
-    let maxDerash = 800;
-    let slotName = "ጧት 12:00 - 4:00";
+    const timeMinutes = hour * 60 + minute;
 
-    // Ethiopian Time Schedule:
-    // 1. ጧት 12:00 እስከ 4:00 (06:00 - 10:00 EAT): 600 - 800 derash
-    // 2. ከ 4:00 እስከ 8:00 (10:00 - 14:00 EAT): 1,500 - 1,700 derash
-    // 3. ከ 8:00 እስከ ለሊት 6:00 (14:00 - 00:00 EAT): 2,400 - 2,600 derash
-    // 4. ከለሊቱ 6:00 እስከ ጧት 12:00 (00:00 - 06:00 EAT): 300 - 400 derash
-    if (hour >= 6 && hour < 10) {
-      minDerash = 600;
-      maxDerash = 800;
-      slotName = "ጧት 12:00 - 4:00";
-    } else if (hour >= 10 && hour < 14) {
-      minDerash = 1500;
-      maxDerash = 1700;
-      slotName = "ከ 4:00 - 8:00";
-    } else if (hour >= 14 && hour < 24) {
-      minDerash = 2400;
-      maxDerash = 2600;
-      slotName = "ከ 8:00 - ለሊት 6:00";
+    let minDerash = 1600;
+    let maxDerash = 2500;
+    let slotName = "ማለዳ 11:00 - ጧት 2:00";
+
+    // Ethiopian Time Schedule (Habesha Clock):
+    // 1. ማለዳ 11:00 - ጧት 2:00 (05:00 - 08:00 EAT): 1,600 - 2,500 birr
+    // 2. ከ ጧት 2:00 - 5:00 (08:00 - 11:00 EAT): 800 - 1,400 birr
+    // 3. 5:00 - 9:00 (11:00 - 15:00 EAT): 2,500 - 4,000 birr
+    // 4. 9:00 - 11:00 (15:00 - 17:00 EAT): 3,500 - 5,500 birr
+    // 5. 11:00 - ምሽት 2:30 (17:00 - 20:30 EAT): 5,000 - 8,000 birr
+    // 6. ከ ምሽት 2:30 - 4:00 (20:30 - 22:00 EAT): 2,500 - 4,000 birr
+    // 7. ከ ሌሊት 4:00 - ማለዳ 11:00 (22:00 - 05:00 EAT): 800 - 1,200 birr
+    if (timeMinutes >= 300 && timeMinutes < 480) {
+      // 05:00 - 08:00
+      minDerash = 1600;
+      maxDerash = 2500;
+      slotName = "ማለዳ 11:00 - ጧት 2:00";
+    } else if (timeMinutes >= 480 && timeMinutes < 660) {
+      // 08:00 - 11:00
+      minDerash = 800;
+      maxDerash = 1400;
+      slotName = "ጧት 2:00 - 5:00";
+    } else if (timeMinutes >= 660 && timeMinutes < 900) {
+      // 11:00 - 15:00
+      minDerash = 2500;
+      maxDerash = 4000;
+      slotName = "ቀን 5:00 - 9:00";
+    } else if (timeMinutes >= 900 && timeMinutes < 1020) {
+      // 15:00 - 17:00
+      minDerash = 3500;
+      maxDerash = 5500;
+      slotName = "ከሰዓት 9:00 - 11:00";
+    } else if (timeMinutes >= 1020 && timeMinutes < 1230) {
+      // 17:00 - 20:30
+      minDerash = 5000;
+      maxDerash = 8000;
+      slotName = "አመሻሽ 11:00 - ምሽት 2:30";
+    } else if (timeMinutes >= 1230 && timeMinutes < 1320) {
+      // 20:30 - 22:00
+      minDerash = 2500;
+      maxDerash = 4000;
+      slotName = "ምሽት 2:30 - 4:00";
     } else {
-      minDerash = 300;
-      maxDerash = 400;
-      slotName = "ለሊት 6:00 - ጧት 12:00";
+      // 22:00 - 05:00
+      minDerash = 800;
+      maxDerash = 1200;
+      slotName = "ሌሊት 4:00 - ማለዳ 11:00";
     }
 
-    // Pick random target derash in the time slot range
-    const targetDerash = Math.floor(Math.random() * (maxDerash - minDerash + 1)) + minDerash;
+    // Smooth derash progression (prevent sudden huge leaps between rounds)
+    let targetDerash;
+    if (this.lastTargetDerash && this.lastTargetDerash >= minDerash && this.lastTargetDerash <= maxDerash) {
+      const maxDelta = Math.max(80, Math.round((maxDerash - minDerash) * 0.18));
+      const delta = Math.floor(Math.random() * (maxDelta * 2 + 1)) - maxDelta;
+      targetDerash = Math.max(minDerash, Math.min(maxDerash, this.lastTargetDerash + delta));
+    } else if (this.lastTargetDerash) {
+      const step = Math.max(150, Math.round((maxDerash - minDerash) * 0.22));
+      if (this.lastTargetDerash < minDerash) {
+        targetDerash = Math.min(maxDerash, this.lastTargetDerash + step);
+      } else {
+        targetDerash = Math.max(minDerash, this.lastTargetDerash - step);
+      }
+    } else {
+      const median = Math.round((minDerash + maxDerash) / 2);
+      const spread = Math.round((maxDerash - minDerash) * 0.2);
+      targetDerash = median + Math.floor(Math.random() * (spread * 2 + 1)) - spread;
+    }
+
+    this.lastTargetDerash = targetDerash;
+
     const commPct = Number(gameState.settings?.commissionRate || 20);
     const cardValue = Math.max(1, this.stake * (1 - (commPct / 100)));
     const targetCards = Math.max(5, Math.round(targetDerash / cardValue));
 
-    return { minDerash, maxDerash, targetDerash, targetCards, slotName, hour };
+    return { minDerash, maxDerash, targetDerash, targetCards, slotName, hour, minute };
   }
 
   initBotRound() {
@@ -844,7 +885,8 @@ class LiveBingoRoom {
 
       if (timeLeft <= 1 || remaining <= 0) {
         if (remaining > 0 && timeLeft <= 2) {
-          this.addBotPlayersWithCards(remaining);
+          const finalTake = Math.min(remaining, 5);
+          this.addBotPlayersWithCards(finalTake);
         }
         clearInterval(this.botJoinTimer);
         this.botJoinTimer = null;
@@ -852,7 +894,7 @@ class LiveBingoRoom {
       }
 
       const rate = remaining / Math.max(1, timeLeft - 1);
-      const jitter = (Math.random() * 1.6 - 0.8);
+      const jitter = (Math.random() * 1.2 - 0.6);
       const take = Math.max(1, Math.min(remaining, Math.round(rate + jitter)));
       this.addBotPlayersWithCards(take);
     }, 1200);
@@ -1007,7 +1049,7 @@ class LiveBingoRoom {
 
   startCountdown() {
     this.status = "countdown";
-    const durationSec = Math.max(10, Number(gameState.settings?.countdown || 30));
+    const durationSec = Math.max(10, Number(gameState.settings?.countdown || 60));
     this.countdownEndsAt = Date.now() + durationSec * 1000;
 
     this.startGradualBotJoins();
@@ -3142,7 +3184,7 @@ async function startTelegramBot() {
             } else if (text.includes("Instructions") || text.includes("ህግ") || text.includes("መመሪያ") || text === "/help") {
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `📖 *የጨዋታ ህጎች እና መመሪያዎች (Instructions)*\n\n1. 🎮 *Play Game* የሚለውን ተጭነው ወደ ጨዋታው ይግቡ።\n2. የካርቴላ ቁጥር ይምረጡ (እስከ 50 ካርቴላ መምረጥ ይችላሉ)።\n3. የ 30 ሰከንድ የምዝገባ ቆጣሪው ሲያልቅ ጨዋታው በራሱ ይጀምራል።\n4. ኳሶች በድምጽ እና በስክሪኑ ላይ አንድ በአንድ ይወጣሉ።\n5. ማንኛውም 1 መስመር (አግድም፣ ቁልቁል ወይም ዲያጎናል) የሞላ ተጫዋች አሸናፊ ይሆናል!\n\nመልካም እድል! 🍀`,
+                text: `📖 *የጨዋታ ህጎች እና መመሪያዎች (Instructions)*\n\n1. 🎮 *Play Game* የሚለውን ተጭነው ወደ ጨዋታው ይግቡ።\n2. የካርቴላ ቁጥር ይምረጡ (እስከ 50 ካርቴላ መምረጥ ይችላሉ)።\n3. የ 1 ደቂቃ (60 ሰከንድ) የምዝገባ ቆጣሪው ሲያልቅ ጨዋታው በራሱ ይጀምራል።\n4. ኳሶች በድምጽ እና በስክሪኑ ላይ አንድ በአንድ ይወጣሉ።\n5. ማንኛውም 1 መስመር (አግድም፣ ቁልቁል ወይም ዲያጎናል) የሞላ ተጫዋች አሸናፊ ይሆናል!\n\nመልካም እድል! 🍀`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });

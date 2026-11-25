@@ -11,7 +11,7 @@
     }
   ],
   "settings": {
-    "countdown": 30,
+    "countdown": 60,
     "commissionRate": 20,
     "minDeposit": 50,
     "depositBonus": 20,

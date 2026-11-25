@@ -3300,8 +3300,8 @@ function scheduleOpponentJoin() {
     paintPicks();
     updatePickInfo();
 
-    // Now opponents have joined: Start the 30-second countdown!
-    startPickCountdown(Date.now() + 30 * 1000);
+    // Now opponents have joined: Start the 60-second countdown!
+    startPickCountdown(Date.now() + 60 * 1000);
   }, 3500);
 }
 
@@ -3438,7 +3438,7 @@ function onCardSelectionChanged() {
             paintPicks();
             updatePickInfo();
           }
-          startPickCountdown(Date.now() + 30 * 1000);
+          startPickCountdown(Date.now() + 60 * 1000);
         }
       } else {
         if (!pickTimer && !opponentJoinTimeout) {

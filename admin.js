@@ -102,7 +102,7 @@ const DEFAULT_STATE = {
 const DEFAULT_SETTINGS = {
   commission: 20,
   threshold: 10,
-  countdown: 30,
+  countdown: 60,
   winningPattern: "1",
   startingBonus: 10,
   startingBonusEnabled: true,
@@ -632,7 +632,7 @@ function startNewRound(room = currentRoom()) {
   room.prizePool = (Number(room.players) || 0) * (Number(room.stake) || 0);
   addActivity(`Started ${room.roundId} in the ${room.stake} ETB room`, "game", "◉");
   if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminRoom) {
-    LuckyBingoAPI.updateAdminRoom(room.id, "force_countdown", { countdown_secs: 30 }).catch(() => {});
+    LuckyBingoAPI.updateAdminRoom(room.id, "force_countdown", { countdown_secs: 60 }).catch(() => {});
   }
   saveState();
   renderAll();
