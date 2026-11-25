@@ -4,7 +4,11 @@ import json
 import os
 
 DB_PATHS = [
+    os.path.join(os.path.dirname(__file__), "data", "mega_bingo.db"),
     os.path.join(os.path.dirname(__file__), "data", "waliya_bingo.db"),
+    "/var/www/mega-bingo/data/mega_bingo.db",
+    "/var/www/waliya-bingo/data/mega_bingo.db",
+    "/var/www/waliya-bingo/data/waliya_bingo.db",
     "/var/www/africa-bingo/data/waliya_bingo.db",
 ]
 

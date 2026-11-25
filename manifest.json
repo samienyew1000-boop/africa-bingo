@@ -1,6 +1,6 @@
 {
-  "name": "Waliya Bingo - ዋሊያ ቢንጎ",
-  "short_name": "WaliyaBingo",
+  "name": "Mega Bingo - ሜጋ ቢንጎ",
+  "short_name": "MegaBingo",
   "description": "የኢትዮጵያ ምርጡ የቢንጎ ጨዋታ በስልክዎ ይጫወቱ!",
   "start_url": "./?source=pwa",
   "scope": "./",

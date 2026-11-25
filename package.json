@@ -1,7 +1,7 @@
 {
-  "name": "waliya-bingo",
+  "name": "mega-bingo",
   "version": "1.0.0",
-  "description": "Waliya Bingo Web App",
+  "description": "Mega Bingo Web App",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

@@ -1,9 +1,9 @@
 "use strict";
 
-const ADMIN_STATE_KEY = "waliya-bingo-admin-state-v1";
-const ADMIN_SETTINGS_KEY = "waliya-bingo-admin-settings-v1";
-const ROOM_CATALOG_KEY = "waliya-bingo-room-catalog-v1";
-const ROOM_LIFECYCLE_KEY = "waliya-bingo-room-lifecycle-v1";
+const ADMIN_STATE_KEY = "mega-bingo-admin-state-v1";
+const ADMIN_SETTINGS_KEY = "mega-bingo-admin-settings-v1";
+const ROOM_CATALOG_KEY = "mega-bingo-room-catalog-v1";
+const ROOM_LIFECYCLE_KEY = "mega-bingo-room-lifecycle-v1";
 const WINNING_PATTERN_OPTIONS = Object.freeze(["1", "2", "3", "4", "full-house"]);
 
 const ADMIN_AUTH_CONFIG = {
@@ -11,7 +11,7 @@ const ADMIN_AUTH_CONFIG = {
     "admin", "0918182355", "+251918182355", "918182355", "9029759446",
     "0939292694", "+251939292694", "939292694",
     "berihun", "0999909474", "+251999909474", "999909474",
-    "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781", "6220264098"
+    "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "megabingo1bot", "megabingo", "megabingooo", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781", "6220264098"
   ],
   password: "Ber343477",
   fallbackPassword: "ber343477",
@@ -32,14 +32,14 @@ function updateAdminUIAuth(isAuthenticated, username = "") {
   if (isAuthenticated) {
     overlay.hidden = true;
     shell.style.display = "";
-    document.querySelectorAll(".admin-brand-mark").forEach(bm => bm.textContent = "WB");
-    document.querySelectorAll(".admin-brand strong, .admin-login-brand strong").forEach(bt => bt.textContent = "Waliya Bingo");
+    document.querySelectorAll(".admin-brand-mark").forEach(bm => bm.textContent = "MB");
+    document.querySelectorAll(".admin-brand strong, .admin-login-brand strong").forEach(bt => bt.textContent = "Mega Bingo");
     if (username) {
-      let cleanUser = username.replace(/Africabin/gi, "Waliyabin").replace(/Africa/gi, "Waliya");
+      let cleanUser = username.replace(/Africabin/gi, "Megabin").replace(/Africa/gi, "Mega").replace(/Waliyabin/gi, "Megabin").replace(/Waliya/gi, "Mega");
       const displayUser = cleanUser.startsWith("@") || /^\+?\d+$/.test(cleanUser) ? cleanUser : "@" + cleanUser;
       if ($("admin-user-name")) $("admin-user-name").textContent = displayUser;
       if ($("admin-user-role")) $("admin-user-role").textContent = `Super administrator (${displayUser})`;
-      if ($("admin-user-avatar")) $("admin-user-avatar").textContent = initials(displayUser) || "AW";
+      if ($("admin-user-avatar")) $("admin-user-avatar").textContent = initials(displayUser) || "AM";
     }
     syncAdminWithServer();
   } else {
@@ -142,7 +142,7 @@ const DEFAULT_SETTINGS = {
   depositCbeBirrPhone: "1000817750552",
   depositCbeBirrName: "ቃልኪዳን እንየው",
   depositMpesaPhone: "0700 000 000",
-  depositMpesaName: "Waliya Bingo M-Pesa",
+  depositMpesaName: "Mega Bingo M-Pesa",
 };
 
 let state = loadState();
@@ -215,11 +215,11 @@ function loadRoomCatalog(legacyRooms = null) {
   return defaults;
 }
 
-const PLAYER_BALANCES_KEY = "waliya-bingo-player-balances-v1";
+const PLAYER_BALANCES_KEY = "mega-bingo-player-balances-v1";
 
 function loadPlayerBalances() {
   try {
-    return JSON.parse(localStorage.getItem(PLAYER_BALANCES_KEY) || "{}");
+    return JSON.parse(localStorage.getItem(PLAYER_BALANCES_KEY) || localStorage.getItem("waliya-bingo-player-balances-v1") || "{}");
   } catch (e) {
     return {};
   }
@@ -339,7 +339,7 @@ function saveSettings() {
       accountNumber: settings.depositCbeBirrPhone || "1000817750552",
     },
     "M-Pesa": {
-      accountName: settings.depositMpesaName || "Waliya Bingo M-Pesa",
+      accountName: settings.depositMpesaName || "Mega Bingo M-Pesa",
       accountNumber: settings.depositMpesaPhone || "0700 000 000",
     },
   };
@@ -773,7 +773,7 @@ function updateTransaction(id, nextStatus) {
     (cleanTxPhone && curMobileUser.phone && curMobileUser.phone.replace(/[\s\-()]+/g, "").endsWith(cleanTxPhone))
   ));
 
-  const curLocalBal = Number(localStorage.getItem("waliya-bingo-balance") || localStorage.getItem("lucky-bingo-balance") || 0);
+  const curLocalBal = Number(localStorage.getItem("mega-bingo-balance") || localStorage.getItem("waliya-bingo-balance") || localStorage.getItem("lucky-bingo-balance") || 0);
 
   if (nextStatus === "approved") {
     state.metrics.processedToday = (Number(state.metrics.processedToday) || 0) + amount;
@@ -786,7 +786,7 @@ function updateTransaction(id, nextStatus) {
       }
       if (isCurrentActiveUser) {
         const nextBal = curLocalBal + totalCredit;
-        localStorage.setItem("waliya-bingo-balance", String(nextBal));
+        localStorage.setItem("mega-bingo-balance", String(nextBal));
       }
     } else if (transaction.type === "withdraw") {
       if (!transaction.heldFromBalance && !transaction.deducted) {
@@ -795,7 +795,7 @@ function updateTransaction(id, nextStatus) {
         }
         if (isCurrentActiveUser) {
           const nextBal = Math.max(0, curLocalBal - amount);
-          localStorage.setItem("waliya-bingo-balance", String(nextBal));
+          localStorage.setItem("mega-bingo-balance", String(nextBal));
         }
       }
     }
@@ -806,7 +806,7 @@ function updateTransaction(id, nextStatus) {
       }
       if (isCurrentActiveUser) {
         const nextBal = curLocalBal + amount;
-        localStorage.setItem("waliya-bingo-balance", String(nextBal));
+        localStorage.setItem("mega-bingo-balance", String(nextBal));
       }
     }
   }
@@ -841,7 +841,7 @@ function updateTransaction(id, nextStatus) {
           });
         }
         if (isCurrentActiveUser) {
-          localStorage.setItem("waliya-bingo-balance", String(res.user.balance));
+          localStorage.setItem("mega-bingo-balance", String(res.user.balance));
         }
         renderPlayers();
         renderDashboard();
@@ -977,13 +977,13 @@ function renderAdminProfile() {
   const avatarEl = $("admin-user-avatar");
 
   // Force brand marks and brand names
-  document.querySelectorAll(".admin-brand-mark").forEach(bm => bm.textContent = "WB");
-  document.querySelectorAll(".admin-brand strong, .admin-login-brand strong").forEach(bt => bt.textContent = "Waliya Bingo");
+  document.querySelectorAll(".admin-brand-mark").forEach(bm => bm.textContent = "MB");
+  document.querySelectorAll(".admin-brand strong, .admin-login-brand strong").forEach(bt => bt.textContent = "Mega Bingo");
 
-  let adminName = admin.name || "Admin Waliya";
-  adminName = adminName.replace(/Africa/gi, "Waliya");
-  let adminUname = admin.username || "@Waliyabingooo";
-  adminUname = adminUname.replace(/Africabin/gi, "Waliyabin");
+  let adminName = admin.name || "Admin Mega";
+  adminName = adminName.replace(/Africa/gi, "Mega").replace(/Waliya/gi, "Mega");
+  let adminUname = admin.username || "@megabingo1bot";
+  adminUname = adminUname.replace(/Africabin/gi, "Megabin").replace(/Waliyabin/gi, "Megabin");
 
   if (nameEl) nameEl.textContent = adminName;
   if (roleEl) {
@@ -1166,7 +1166,7 @@ function exportCurrentReport() {
   }
   const rangeName = currentReportRange === "today" ? "Daily (Today)" : (currentReportRange === "last7days" ? "Weekly (Last 7 days)" : "Monthly (Last 30 days)");
   const rows = [
-    ["Waliya Bingo - Financial & Room Performance Report"],
+    ["Mega Bingo - Financial & Room Performance Report"],
     ["Generated At", new Date().toLocaleString()],
     ["Timeframe", rangeName],
     [],
@@ -1204,7 +1204,7 @@ function exportCurrentReport() {
     });
   }
 
-  downloadCSV(`waliya-bingo-report-${currentReportRange}-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  downloadCSV(`mega-bingo-report-${currentReportRange}-${new Date().toISOString().slice(0, 10)}.csv`, rows);
   showToast("Report exported successfully!");
 }
 
@@ -1422,14 +1422,14 @@ function downloadCSV(filename, rows) {
 }
 
 function exportTransactions() {
-  downloadCSV("waliya-bingo-transactions.csv", [
+  downloadCSV("mega-bingo-transactions.csv", [
     ["Transaction ID", "Player ID", "Player", "Type", "Method", "Amount ETB", "Requested", "Status"],
     ...state.transactions.map((transaction) => [transaction.id, transaction.playerId, transaction.player, transaction.type, transaction.method, transaction.amount, transaction.requested, transaction.status]),
   ]);
 }
 
 function exportPlayers() {
-  downloadCSV("waliya-bingo-players.csv", [
+  downloadCSV("mega-bingo-players.csv", [
     ["Player ID", "Name", "Email", "Phone", "Balance ETB", "Games", "Last active", "Status"],
     ...state.players.map((player) => [player.id, player.name, player.email, player.phone, player.balance, player.games, player.lastActive, player.status]),
   ]);

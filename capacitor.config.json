@@ -1,6 +1,6 @@
 {
-  "appId": "com.waliyabingo.app",
-  "appName": "Waliya Bingo",
+  "appId": "com.megabingo.app",
+  "appName": "Mega Bingo",
   "webDir": ".",
   "bundledWebRuntime": false,
   "server": {

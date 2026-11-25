@@ -73,10 +73,10 @@ def load_dotenv(filepath=".env"):
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "9258237799:AAESEjWTqN137dJppOaQUQGTqc_F1DzBKGU")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "9049009298:AAH2bUBayd1wMt_XvXYAGL0KVb7fA2Gvuvg")
 raw_web_url = os.getenv("WEB_APP_URL", "https://konjobetcom.et/waliya/").strip()
 WEB_APP_URL = raw_web_url if raw_web_url.endswith("/") else f"{raw_web_url}/"
-GROUP_URL = os.getenv("GROUP_URL", "https://t.me/waliyabingo1_bot")
+GROUP_URL = os.getenv("GROUP_URL", "https://t.me/megabingo1bot")
 CONTACT_URL = os.getenv("CONTACT_URL", "https://t.me/su121316")
 
 def get_game_web_url(subpath: str = "", extra_query: str = "", is_admin_user: bool = False, user_id: int = 0) -> str:
@@ -108,7 +108,7 @@ def get_game_web_url(subpath: str = "", extra_query: str = "", is_admin_user: bo
     return base
 
 # Authorized Administrators (comma-separated in .env or set here)
-raw_usernames = os.getenv("ADMIN_USERNAMES", "admin,0918182355,9029759446,berihun,0999909474,su121316,samTesfa19,samienyew1000,Africabingooo,waliyabingooo,waliyabingo,waliyabingo1_bot,Biregugsa,ber63781,Ber63781")
+raw_usernames = os.getenv("ADMIN_USERNAMES", "admin,0918182355,9029759446,berihun,0999909474,su121316,samTesfa19,samienyew1000,megabingo1bot,megabingo,megabingooo,Africabingooo,waliyabingooo,waliyabingo,waliyabingo1_bot,Biregugsa,ber63781,Ber63781")
 ADMIN_USERNAMES = [u.strip().lstrip("@").lower() for u in raw_usernames.split(",") if u.strip()]
 raw_phones = os.getenv("ADMIN_PHONES", "+251918182355,0918182355,0999909474,+251999909474,+251939292694")
 ADMIN_PHONES = [p.strip() for p in raw_phones.split(",") if p.strip()]
@@ -117,7 +117,7 @@ ADMIN_TELEGRAM_IDS = [int(i.strip()) for i in raw_ids.split(",") if i.strip().is
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Ber343477")
 
 DB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-DB_PATH = os.path.join(DB_DIR, "waliya_bingo.db") if os.path.exists(os.path.join(DB_DIR, "waliya_bingo.db")) else os.path.join(DB_DIR, "africa_bingo.db")
+DB_PATH = os.path.join(DB_DIR, "mega_bingo.db") if os.path.exists(os.path.join(DB_DIR, "mega_bingo.db")) else (os.path.join(DB_DIR, "waliya_bingo.db") if os.path.exists(os.path.join(DB_DIR, "waliya_bingo.db")) else os.path.join(DB_DIR, "africa_bingo.db"))
 PLAYERS_DATA_JS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "players-data.js")
 PLAYERS_JSON = os.path.join(DB_DIR, "players.json")
 
@@ -1127,7 +1127,7 @@ PAYMENT_METHODS: Dict[str, Dict[str, Any]] = {
     },
     "M-Pesa": {
         "name": "M-Pesa",
-        "account_name": "Waliya Bingo M-Pesa",
+        "account_name": "Mega Bingo M-Pesa",
         "account_number": "0700 000 000",
         "min_amount": 50,
         "bonus": "ከ 100 ETB በላይ 20% ተጨማሪ ቦነስ",
@@ -1320,7 +1320,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     # If the user has not verified their phone number and is not admin, ask to share phone in Amharic
     if not profile.get("is_verified") and not is_admin:
         prompt_text = (
-            "👋 *እንኳን ወደ Waliya Bingo በደህና መጡ!*\n\n"
+            "👋 *እንኳን ወደ Mega Bingo በደህና መጡ!*\n\n"
             "ለመመዝገብ እና የ **10 ETB** ቦነስዎን ለማግኘት እባክዎ ከታች ያለውን **'📱 ስልክ ቁጥርዎን ያጋሩ'** የሚለውን ቁልፍ ይጫኑ:"
         )
         if update.effective_message:
@@ -1468,7 +1468,7 @@ async def menu_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             [InlineKeyboardButton(text="🎮 ቢንጎ አሁን ተጫወት (Play)", web_app=WebAppInfo(url=web_url))]
         ])
         await message.reply_text(
-            text="🎮 *Waliya Bingo ጨዋታ ለመጀመር ከታች ያለውን ቁልፍ ይጫኑ:*",
+            text="🎮 *Mega Bingo ጨዋታ ለመጀመር ከታች ያለውን ቁልፍ ይጫኑ:*",
             reply_markup=kb,
             parse_mode="Markdown"
         )
@@ -1486,9 +1486,9 @@ async def menu_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     elif "🔗" in text or "ጋብዝ & አግኝ" in text:
         try:
             bot_info = await context.bot.get_me()
-            bot_username = bot_info.username or "waliyabingo1_bot"
+            bot_username = bot_info.username or "megabingo1bot"
         except Exception:
-            bot_username = "waliyabingo1_bot"
+            bot_username = "megabingo1bot"
         ref_link = f"https://t.me/{bot_username}?start=ref_{user.id}"
         await message.reply_text(
             text=(
@@ -1537,7 +1537,7 @@ async def menu_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     elif "📢" in text or "አጀንት" in text or "ኤጀንት" in text:
         await message.reply_text(
             text=(
-                "📢 *የ Waliya Bingo አጀንት ፕሮሞተር ፕሮግራም*\n\n"
+                "📢 *የ Mega Bingo አጀንት ፕሮሞተር ፕሮግራም*\n\n"
                 "ተጫዋቾችን በመጋበዝ በሳምንት እስከ 10,000+ ETB ማግኘት ይችላሉ!\n"
                 f"ለበለጠ መረጃ ያነጋግሩን: {CONTACT_URL}"
             ),
@@ -1553,7 +1553,7 @@ async def menu_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         if context.user_data.get("waiting_promo"):
             context.user_data["waiting_promo"] = False
             clean_code = text.upper().strip()
-            if clean_code in ("WALIYA", "BINGO", "WALIYA10", "BONUS10", "AFRICA", "AFRICA10"):
+            if clean_code in ("MEGA", "BINGO", "MEGA10", "WALIYA", "WALIYA10", "BONUS10", "AFRICA", "AFRICA10"):
                 await message.reply_text(
                     text="🎁 *እንኳን ደስ አለዎት! የ 10 ETB ፕሮሞ ኮድ ቦነስ ተጨምሮልዎታል።*",
                     reply_markup=reply_kb,
@@ -1607,7 +1607,7 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         pending_tx = cursor.fetchone()["pending"]
 
     admin_text = (
-        f"🛡️ *Waliya Bingo — Admin Control Center*\n\n"
+        f"🛡️ *Mega Bingo — Admin Control Center*\n\n"
         f"👤 *Super Admin:* @{user.username if user.username else user.id}\n\n"
         f"📊 *የስርዓት ሁኔታ (System Statistics):*\n"
         f"• *ተጫዋቾች (Total Players):* `{total_players}`\n"
@@ -2346,7 +2346,7 @@ def start_background_web_server() -> None:
                     u = get_or_create_user(
                         user_id=uid,
                         username=username or f"player_{str(uid)[-4:]}",
-                        first_name="Waliya Player"
+                        first_name="Mega Player"
                     )
                 if not u.get('is_verified'):
                     with get_db_connection() as conn:
@@ -2737,7 +2737,7 @@ def main() -> None:
 
     app.add_error_handler(global_error_handler)
 
-    print("[INFO] Waliya Bingo Bot is starting... Polling for updates.")
+    print("[INFO] Mega Bingo Bot is starting... Polling for updates.")
     try:
         app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
     except Exception as e:

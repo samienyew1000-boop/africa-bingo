@@ -10,6 +10,9 @@ const LuckyBingoAPI = (() => {
   let _baseUrl = "";
 
   function getBaseUrl() {
+    if (window.location.pathname.startsWith("/mega")) {
+      return window.location.origin + "/mega";
+    }
     if (window.location.pathname.startsWith("/waliya")) {
       return window.location.origin + "/waliya";
     }
@@ -105,7 +108,7 @@ const LuckyBingoAPI = (() => {
       return {
         id: Number(deviceId),
         username: `Player_${deviceId.slice(-4)}`,
-        first_name: "Waliya Player",
+        first_name: "Mega Player",
         isGuest: true,
       };
     } catch (e) {

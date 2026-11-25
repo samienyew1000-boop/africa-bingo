@@ -1,4 +1,4 @@
-// Waliya Bingo API Configuration
+// Mega Bingo API Configuration
 // Authoritative backend URL for multi-device sync
 (function () {
   "use strict";
@@ -6,11 +6,14 @@
   const apiParam = params.get("api");
 
   // Dynamically resolve backend origin + path
+  const isMegaPath = window.location.pathname.startsWith("/mega");
   const isWaliyaPath = window.location.pathname.startsWith("/waliya");
   const isBingoPath = window.location.pathname.startsWith("/bingo");
-  const DEFAULT_BACKEND_URL = isWaliyaPath
-    ? (window.location.origin + "/waliya")
-    : (isBingoPath ? (window.location.origin + "/bingo") : (window.location.origin || ""));
+  const DEFAULT_BACKEND_URL = isMegaPath
+    ? (window.location.origin + "/mega")
+    : (isWaliyaPath
+      ? (window.location.origin + "/waliya")
+      : (isBingoPath ? (window.location.origin + "/bingo") : (window.location.origin || "")));
 
   if (apiParam) {
     try {

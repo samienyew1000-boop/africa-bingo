@@ -29,7 +29,9 @@ const PORT = parseInt(process.env.PORT || "3000", 10);
 const PUBLIC_DIR = __dirname;
 const STATE_FILE = path.join(__dirname, "game-state.json");
 const BACKUP_STATE_FILE = path.join(__dirname, "game-state.backup.json");
-const ROOT_BACKUP_FILE = "/var/backups/waliya-bingo-state.json";
+const ROOT_BACKUP_FILE = fs.existsSync("/var/backups/mega-bingo-state.json")
+  ? "/var/backups/mega-bingo-state.json"
+  : (fs.existsSync("/var/backups/waliya-bingo-state.json") ? "/var/backups/waliya-bingo-state.json" : "/var/backups/mega-bingo-state.json");
 const BOT_TOKEN = process.env.BOT_TOKEN || "";
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://konjobetcom.et/waliya/").replace(/\/+$/, "") + "/";
 const rawAdminUsernames = process.env.ADMIN_USERNAMES || "Tedy12w,hailehk1,Hab45y,Promis1221,kal555e7i,admin";
@@ -61,10 +63,10 @@ const MIME_TYPES = {
 // Initial state with 10 ETB default starting bonus
 const DEFAULT_STATE = {
   rooms: [
-    { id: "10", stake: 10, name: "10 No 1", players: 0, status: "waiting", roundId: "#WB-101", prizePool: 0, called: [] },
-    { id: "10-2", stake: 10, name: "10 No 2", players: 0, status: "waiting", roundId: "#WB-102", prizePool: 0, called: [] },
-    { id: "20", stake: 20, name: "20 No 1", players: 0, status: "waiting", roundId: "#WB-103", prizePool: 0, called: [] },
-    { id: "50", stake: 50, name: "50 No 1", players: 0, status: "waiting", roundId: "#WB-104", prizePool: 0, called: [] },
+    { id: "10", stake: 10, name: "10 No 1", players: 0, status: "waiting", roundId: "#MB-101", prizePool: 0, called: [] },
+    { id: "10-2", stake: 10, name: "10 No 2", players: 0, status: "waiting", roundId: "#MB-102", prizePool: 0, called: [] },
+    { id: "20", stake: 20, name: "20 No 1", players: 0, status: "waiting", roundId: "#MB-103", prizePool: 0, called: [] },
+    { id: "50", stake: 50, name: "50 No 1", players: 0, status: "waiting", roundId: "#MB-104", prizePool: 0, called: [] },
   ],
   settings: {
     countdown: 30,
@@ -79,7 +81,7 @@ const DEFAULT_STATE = {
     depositCbeBirrPhone: "1000817750552",
     depositCbeBirrName: "ቃልኪዳን እንየው",
     depositMpesaPhone: "0700 000 000",
-    depositMpesaName: "Waliya Bingo M-Pesa",
+    depositMpesaName: "Mega Bingo M-Pesa",
   },
   metrics: {
     totalPlayers: 0,
@@ -105,7 +107,7 @@ const BLACKLISTED_DEPOSIT_TOKENS = new Set([
   // CBE Google feedback form URL token (present on ALL CBE SMS!)
   "KGNGQPG3MQCCK3ID6",
   // Names
-  "KALKIDAN", "ENYEW", "AYALEW", "WALIYA", "BINGO", "TEDY12W",
+  "KALKIDAN", "ENYEW", "AYALEW", "MEGA", "WALIYA", "BINGO", "TEDY12W",
   // Common URLs, domains & protocols
   "HTTP", "HTTPS", "WWW", "COM", "ET", "MBRECIEPT", "ETHIOTELECOM",
   "TRANSACTIONINFO", "RECEIPT", "FORMS", "GLE", "FORMS.GLE",
@@ -553,8 +555,11 @@ function syncFromSQLite(force = false) {
     }
   }
 
-  // 2. Read lucky_bingo.db via python
+  // 2. Read mega_bingo.db via python
   const dbPaths = [
+    path.join(__dirname, "data", "mega_bingo.db"),
+    "/var/www/mega-bingo/data/mega_bingo.db",
+    "/var/www/waliya-bingo/data/mega_bingo.db",
     path.join(__dirname, "data", "waliya_bingo.db"),
     "/var/www/africa-bingo/data/waliya_bingo.db",
   ];
@@ -1519,7 +1524,7 @@ function getUserFromHeaders(req, body = null) {
     : ((initUid && String(rawUid).startsWith("9") && !gameState.users[rawUid]) ? initUid : (initUid || rawUid));
 
   const uname = (body && body.username) || urlUname || (initUser && initUser.username) || req.headers["x-telegram-user-name"] || req.headers["x-mobile-phone"] || "";
-  const name = (initUser && (initUser.first_name || initUser.name)) || (uname ? (uname.startsWith("09") || uname.startsWith("+") || uname.startsWith("07") ? uname : `@${uname}`) : (uid !== "LB-PLAYER" ? `Player ${String(uid).slice(-4)}` : "Waliya Player"));
+  const name = (initUser && (initUser.first_name || initUser.name)) || (uname ? (uname.startsWith("09") || uname.startsWith("+") || uname.startsWith("07") ? uname : `@${uname}`) : (uid !== "LB-PLAYER" ? `Player ${String(uid).slice(-4)}` : "Mega Player"));
   return { id: uid, username: uname, name };
 }
 
@@ -1789,6 +1794,10 @@ const server = http.createServer(async (req, res) => {
     pathname = pathname.slice(6);
   } else if (pathname === "/bingo") {
     pathname = "/";
+  } else if (pathname.startsWith("/mega/")) {
+    pathname = pathname.slice(5);
+  } else if (pathname === "/mega") {
+    pathname = "/";
   } else if (pathname.startsWith("/waliya/")) {
     pathname = pathname.slice(7);
   } else if (pathname === "/waliya") {
@@ -1963,7 +1972,7 @@ const server = http.createServer(async (req, res) => {
         "admin", "0918182355", "918182355", "9029759446",
         "0939292694", "939292694",
         "berihun", "0999909474", "999909474",
-        "su121316", "samtesfa19", "samienyew1000", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781"
+        "su121316", "samtesfa19", "samienyew1000", "megabingo1bot", "megabingo", "megabingooo", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781"
       ];
       const isPassAdmin = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
                           password.toLowerCase() === "ber343477" ||
@@ -2392,7 +2401,9 @@ const server = http.createServer(async (req, res) => {
           try {
             const { execSync } = require("child_process");
             const pyExec = process.platform === "win32" ? "python" : "python3";
-            const helperPath = path.join(__dirname, "data", "waliya_bingo.db").replace(/\\/g, "/");
+            const helperPath = (fs.existsSync(path.join(__dirname, "data", "mega_bingo.db"))
+              ? path.join(__dirname, "data", "mega_bingo.db")
+              : path.join(__dirname, "data", "waliya_bingo.db")).replace(/\\/g, "/");
             const safeId = (txUid || "").replace(/[^a-zA-Z0-9_\-+]/g, "");
             const safePhone = (cleanTxPhone || "").replace(/[^0-9]/g, "");
             const safeCheck = `${pyExec} -c "import sqlite3, json; conn = sqlite3.connect('${helperPath}'); conn.row_factory = sqlite3.Row; c = conn.cursor(); r = c.execute('SELECT * FROM users WHERE id = ? OR phone_number = ? OR phone_number LIKE ?', ('${safeId}', '${safePhone}', '%${safePhone.slice(-9)}')).fetchone(); print(json.dumps(dict(r) if r else None))"`;
@@ -2525,7 +2536,7 @@ const server = http.createServer(async (req, res) => {
         "admin", "0918182355", "+251918182355", "918182355", "9029759446",
         "0939292694", "+251939292694", "939292694",
         "berihun", "0999909474", "+251999909474", "999909474",
-        "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781"
+        "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "megabingo1bot", "megabingo", "megabingooo", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781"
       ];
       const isPassValid = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
                           password.toLowerCase() === "ber343477" ||
@@ -2723,7 +2734,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Waliya Bingo server running on port ${PORT}`);
+  console.log(`Mega Bingo server running on port ${PORT}`);
   startTelegramBot();
 
   // Scheduled Daily Profit Report at 23:59 EAT every night
@@ -2945,14 +2956,14 @@ async function startTelegramBot() {
               if (method === "Telebirr") {
                 await telegramApi("sendMessage", {
                   chat_id: cqChatId,
-                  text: `📱 *Tele-Birr*\n\n\`${telePhone}\`\n\n*የቴሌቢር መመሪያ:-*\n\n1. በላይ ላለው የ Tele-Birr አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ከ Tele-Birr ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Waliya bingo support (@Tedy12w)`,
+                  text: `📱 *Tele-Birr*\n\n\`${telePhone}\`\n\n*የቴሌቢር መመሪያ:-*\n\n1. በላይ ላለው የ Tele-Birr አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ከ Tele-Birr ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Mega bingo support (@Tedy12w)`,
                   parse_mode: "Markdown",
                   reply_markup: MAIN_REPLY_KEYBOARD,
                 });
               } else {
                 await telegramApi("sendMessage", {
                   chat_id: cqChatId,
-                  text: `🏦 *CBE Birr / ንግድ ባንክ*\n\n\`${cbePhone}\`\n\n*የንግድ ባንክ መመሪያ:-*\n\n1. በላይ ላለው የባንክ አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Waliya bingo support (@Tedy12w)`,
+                  text: `🏦 *CBE Birr / ንግድ ባንክ*\n\n\`${cbePhone}\`\n\n*የንግድ ባንክ መመሪያ:-*\n\n1. በላይ ላለው የባንክ አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Mega bingo support (@Tedy12w)`,
                   parse_mode: "Markdown",
                   reply_markup: MAIN_REPLY_KEYBOARD,
                 });
@@ -3156,7 +3167,7 @@ async function startTelegramBot() {
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `👋 ሰላም *${firstName}* (@${rawUname || uname || "Admin"})! ወደ *Waliya Bingo* እንኳን በደህና መጡ! 🎲\n\n🛡️ *የአስተዳዳሪ (Admin) መለያዎ ነቅቷል!*\n\n✅ *በተሳካ ሁኔታ ተመዝግበዋል*\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
+                  text: `👋 ሰላም *${firstName}* (@${rawUname || uname || "Admin"})! ወደ *Mega Bingo* እንኳን በደህና መጡ! 🎲\n\n🛡️ *የአስተዳዳሪ (Admin) መለያዎ ነቅቷል!*\n\n✅ *በተሳካ ሁኔታ ተመዝግበዋል*\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
                   parse_mode: "Markdown",
                   reply_markup: MAIN_REPLY_KEYBOARD,
                 });
@@ -3234,7 +3245,7 @@ async function startTelegramBot() {
             } else if (text.includes("Invite Friends") || text.includes("መጋበዝ") || text === "/invite") {
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `🎁 *ጓደኞችዎን ይጋብዙ (Invite Friends)*\n\nየእርስዎን መጋበዣ ሊንክ ለጓደኞችዎ ያጋሩ:\n👉 \`https://t.me/waliyabingo1_bot?start=ref_${chatId}\`\n\nጓደኛዎ በእርስዎ ሊንክ ተመዝግቦ አብሮዎት መጫወት ይችላል!`,
+                text: `🎁 *ጓደኞችዎን ይጋብዙ (Invite Friends)*\n\nየእርስዎን መጋበዣ ሊንክ ለጓደኞችዎ ያጋሩ:\n👉 \`https://t.me/megabingo1bot?start=ref_${chatId}\`\n\nጓደኛዎ በእርስዎ ሊንክ ተመዝግቦ አብሮዎት መጫወት ይችላል!`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
@@ -3259,7 +3270,7 @@ async function startTelegramBot() {
               if (isAdmin) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `🛡️ *Waliya Bingo — Admin Control Center*\n\n📊 ወቅታዊውን የቀንና የሳምንት ትርፍ ሪፖርት ለማየት: \`/report\` ይላኩ ወይም ከታች ያለውን ይጫኑ።\n👉 [Admin Console መክፈቻ](${WEB_APP_URL}admin.html?role=admin&u=${chatId})`,
+                  text: `🛡️ *Mega Bingo — Admin Control Center*\n\n📊 ወቅታዊውን የቀንና የሳምንት ትርፍ ሪፖርት ለማየት: \`/report\` ይላኩ ወይም ከታች ያለውን ይጫኑ።\n👉 [Admin Console መክፈቻ](${WEB_APP_URL}admin.html?role=admin&u=${chatId})`,
                   parse_mode: "Markdown",
                   reply_markup: {
                     inline_keyboard: [
@@ -3431,7 +3442,7 @@ async function startTelegramBot() {
 
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `*ተቀማጭ*\n*መጠን:* \`${amount.toFixed(2)} ብር\`\n*ዘዴ ይምረጡ:-*\n\n📞 ለ ድጋፍ ወይም ላጋጠመዎት ችግር\n1. Waliya bingo support (@Tedy12w)`,
+                  text: `*ተቀማጭ*\n*መጠን:* \`${amount.toFixed(2)} ብር\`\n*ዘዴ ይምረጡ:-*\n\n📞 ለ ድጋፍ ወይም ላጋጠመዎት ችግር\n1. Mega bingo support (@Tedy12w)`,
                   parse_mode: "Markdown",
                   reply_markup: {
                     inline_keyboard: [
