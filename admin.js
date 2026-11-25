@@ -8,10 +8,8 @@ const WINNING_PATTERN_OPTIONS = Object.freeze(["1", "2", "3", "4", "full-house"]
 
 const ADMIN_AUTH_CONFIG = {
   validUsers: [
-    "admin", "0918182355", "+251918182355", "918182355", "9029759446",
-    "0939292694", "+251939292694", "939292694",
-    "berihun", "0999909474", "+251999909474", "999909474",
-    "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "megabingo1bot", "megabingo", "megabingooo", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781", "6220264098"
+    "admin", "helen", "0941434534", "+251941434534", "941434534",
+    "765609989", "8722398377", "5663531258", "samtesfa19", "megabingo1bot", "megabingo"
   ],
   password: "Ber343477",
   fallbackPassword: "ber343477",
@@ -137,12 +135,12 @@ const DEFAULT_SETTINGS = {
   transactionAlerts: true,
   largeWithdrawal: true,
   timeout: "60",
-  depositTelebirrPhone: "0963344995",
-  depositTelebirrName: "ቃልኪዳን እንየው",
-  depositCbeBirrPhone: "1000817750552",
-  depositCbeBirrName: "ቃልኪዳን እንየው",
-  depositMpesaPhone: "0700 000 000",
-  depositMpesaName: "Mega Bingo M-Pesa",
+  depositTelebirrPhone: "0941434534",
+  depositTelebirrName: "helen",
+  depositCbeBirrPhone: "",
+  depositCbeBirrName: "",
+  depositMpesaPhone: "",
+  depositMpesaName: "",
 };
 
 let state = loadState();
@@ -331,16 +329,12 @@ function saveSettings() {
   localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(settings));
   window.LUCKY_BINGO_PAYMENT_METHODS = {
     Telebirr: {
-      accountName: settings.depositTelebirrName || "ቃልኪዳን እንየው",
-      accountNumber: settings.depositTelebirrPhone || "0963344995",
+      accountName: settings.depositTelebirrName || "helen",
+      accountNumber: settings.depositTelebirrPhone || "0941434534",
     },
     "CBE Birr": {
-      accountName: settings.depositCbeBirrName || "ቃልኪዳን እንየው",
-      accountNumber: settings.depositCbeBirrPhone || "1000817750552",
-    },
-    "M-Pesa": {
-      accountName: settings.depositMpesaName || "Mega Bingo M-Pesa",
-      accountNumber: settings.depositMpesaPhone || "0700 000 000",
+      accountName: settings.depositCbeBirrName || "",
+      accountNumber: settings.depositCbeBirrPhone || "",
     },
   };
 }

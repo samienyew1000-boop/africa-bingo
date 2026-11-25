@@ -45,9 +45,7 @@ const MIN_WALLET_AMOUNT = 50;
 const PLAYER_ID = "LB-PLAYER";
 const PLAYER_NAME = "Mega Bingo Player";
 const PAYMENT_METHODS = Object.freeze({
-  Telebirr: { accountName: "ቃልኪዳን እንየው", accountNumber: "0963344995" },
-  "CBE Birr": { accountName: "ቃልኪዳን እንየው", accountNumber: "1000817750552" },
-  "M-Pesa": { accountName: "Mega Bingo M-Pesa", accountNumber: "0700 000 000" },
+  Telebirr: { accountName: "helen", accountNumber: "0941434534" },
 });
 
 const ROOMS = [
@@ -4764,40 +4762,21 @@ function showWalletFeedback(action, message, isError = false) {
 function getDepositPaymentAccount(method) {
   try {
     const adminSettings = JSON.parse(localStorage.getItem(ADMIN_SETTINGS_KEY) || "{}");
-    if (adminSettings.depositTelebirrPhone === "0981247219" || adminSettings.depositTelebirrPhone === "0918182355" || adminSettings.depositTelebirrPhone === "0939030118" || adminSettings.depositTelebirrPhone === "0975094812") adminSettings.depositTelebirrPhone = "0963344995";
-    if (adminSettings.depositTelebirrName === "Africa Bingo" || adminSettings.depositTelebirrName === "Waliya Bingo" || adminSettings.depositTelebirrName === "Mega Bingo" || adminSettings.depositTelebirrName === "Berihun" || adminSettings.depositTelebirrName === "አደባባይ በእውቀት") adminSettings.depositTelebirrName = "ቃልኪዳን እንየው";
-    if (adminSettings.depositCbeBirrPhone === "0981247219" || adminSettings.depositCbeBirrPhone === "1000076108653" || adminSettings.depositCbeBirrPhone === "1000263032997") adminSettings.depositCbeBirrPhone = "1000817750552";
-    if (adminSettings.depositCbeBirrName === "Africa Bingo CBE Birr" || adminSettings.depositCbeBirrName === "Waliya Bingo CBE Birr" || adminSettings.depositCbeBirrName === "Mega Bingo CBE Birr" || adminSettings.depositCbeBirrName === "Berihun" || adminSettings.depositCbeBirrName === "አደባባይ በእውቀት") adminSettings.depositCbeBirrName = "ቃልኪዳን እንየው";
-
-    if (method === "Telebirr") {
-      return {
-        accountName: adminSettings.depositTelebirrName || "ቃልኪዳን እንየው",
-        accountNumber: adminSettings.depositTelebirrPhone || "0963344995",
-      };
-    }
-    if (method === "CBE Birr" || method === "CBE") {
-      return {
-        accountName: adminSettings.depositCbeBirrName || "ቃልኪዳን እንየው",
-        accountNumber: adminSettings.depositCbeBirrPhone || "1000817750552",
-      };
-    }
-    if (method === "M-Pesa" && adminSettings.depositMpesaPhone) {
-      return {
-        accountName: adminSettings.depositMpesaName || "Mega Bingo M-Pesa",
-        accountNumber: adminSettings.depositMpesaPhone || "0700 000 000",
-      };
-    }
+    return {
+      accountName: adminSettings.depositTelebirrName || "helen",
+      accountNumber: adminSettings.depositTelebirrPhone || "0941434534",
+    };
   } catch (e) {}
 
-  if (window.LUCKY_BINGO_PAYMENT_METHODS && window.LUCKY_BINGO_PAYMENT_METHODS[method]) {
-    const pm = window.LUCKY_BINGO_PAYMENT_METHODS[method];
+  if (window.LUCKY_BINGO_PAYMENT_METHODS && window.LUCKY_BINGO_PAYMENT_METHODS.Telebirr) {
+    const pm = window.LUCKY_BINGO_PAYMENT_METHODS.Telebirr;
     return {
-      accountName: pm.account_name || pm.accountName || "ቃልኪዳን እንየው",
-      accountNumber: pm.account_number || pm.accountNumber || (method === "Telebirr" ? "0963344995" : "1000817750552"),
+      accountName: pm.account_name || pm.accountName || "helen",
+      accountNumber: pm.account_number || pm.accountNumber || "0941434534",
     };
   }
 
-  return PAYMENT_METHODS[method] || PAYMENT_METHODS.Telebirr;
+  return PAYMENT_METHODS.Telebirr || { accountName: "helen", accountNumber: "0941434534" };
 }
 
 function updateDepositAccount() {

@@ -32,9 +32,9 @@ const BACKUP_STATE_FILE = path.join(__dirname, "game-state.backup.json");
 const ROOT_BACKUP_FILE = "/var/backups/mega-bingo-state.json";
 const BOT_TOKEN = process.env.BOT_TOKEN || "";
 const WEB_APP_URL = (process.env.WEB_APP_URL || "https://konjobetcom.et/mega/").replace(/\/+$/, "") + "/";
-const rawAdminUsernames = process.env.ADMIN_USERNAMES || "Tedy12w,hailehk1,Hab45y,Promis1221,kal555e7i,admin";
+const rawAdminUsernames = process.env.ADMIN_USERNAMES || "admin,helen,samtesfa19,765609989,8722398377,5663531258";
 const ADMIN_USERNAMES = rawAdminUsernames.split(",").map((u) => u.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
-const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "6183528137,7112118108,946983694";
+const rawAdminIds = process.env.ADMIN_TELEGRAM_IDS || "765609989,8722398377,5663531258";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Ber343477";
 const ADMIN_IDS = rawAdminIds.split(",").map((id) => id.trim()).filter(Boolean);
 
@@ -74,12 +74,12 @@ const DEFAULT_STATE = {
     bonusThreshold: 100,
     startingBonus: 0,
     startingBonusEnabled: false,
-    depositTelebirrPhone: "0963344995",
-    depositTelebirrName: "ቃልኪዳን እንየው",
-    depositCbeBirrPhone: "1000817750552",
-    depositCbeBirrName: "ቃልኪዳን እንየው",
-    depositMpesaPhone: "0700 000 000",
-    depositMpesaName: "Mega Bingo M-Pesa",
+    depositTelebirrPhone: "0941434534",
+    depositTelebirrName: "helen",
+    depositCbeBirrPhone: "",
+    depositCbeBirrName: "",
+    depositMpesaPhone: "",
+    depositMpesaName: "",
   },
   metrics: {
     totalPlayers: 0,
@@ -95,17 +95,10 @@ const DEFAULT_STATE = {
 let gameState = DEFAULT_STATE;
 
 const BLACKLISTED_DEPOSIT_TOKENS = new Set([
-  // Admin recipient bank account
-  "1000817750552", "100081775055", "1000817750", "100081775",
   // Admin recipient phones & variations
-  "0963344995", "251963344995", "963344995",
-  "0700000000", "251700000000", "700000000",
-  "0918151485", "251918151485", "918151485",
-  "0939030118", "251939030118", "939030118",
-  // CBE Google feedback form URL token (present on ALL CBE SMS!)
-  "KGNGQPG3MQCCK3ID6",
+  "0941434534", "251941434534", "941434534", "+251941434534",
   // Names
-  "KALKIDAN", "ENYEW", "AYALEW", "MEGA", "WALIYA", "BINGO", "TEDY12W",
+  "HELEN", "ሄለን", "MEGA", "BINGO",
   // Common URLs, domains & protocols
   "HTTP", "HTTPS", "WWW", "COM", "ET", "MBRECIEPT", "ETHIOTELECOM",
   "TRANSACTIONINFO", "RECEIPT", "FORMS", "GLE", "FORMS.GLE",
@@ -401,10 +394,10 @@ function loadGameState() {
         countdown: 30,
         startingBonus: 0,
         startingBonusEnabled: false,
-        depositTelebirrPhone: "0963344995",
-        depositTelebirrName: "ቃልኪዳን እንየው",
-        depositCbeBirrPhone: "1000817750552",
-        depositCbeBirrName: "ቃልኪዳን እንየው",
+        depositTelebirrPhone: fileData?.settings?.depositTelebirrPhone || "0941434534",
+        depositTelebirrName: fileData?.settings?.depositTelebirrName || "helen",
+        depositCbeBirrPhone: fileData?.settings?.depositCbeBirrPhone || "",
+        depositCbeBirrName: fileData?.settings?.depositCbeBirrName || "",
       },
       users: mergedUsers,
       transactions: mergedTxns,
@@ -1946,10 +1939,8 @@ const server = http.createServer(async (req, res) => {
       const cleanPhoneForAdmin = phone.toLowerCase();
       const cleanPhoneNoPrefix = cleanPhoneForAdmin.replace(/^(\+251|251|0)/, "");
       const adminUserList = [
-        "admin", "0918182355", "918182355", "9029759446",
-        "0939292694", "939292694",
-        "berihun", "0999909474", "999909474",
-        "su121316", "samtesfa19", "samienyew1000", "megabingo1bot", "megabingo", "megabingooo", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781"
+        "admin", "helen", "0941434534", "+251941434534", "941434534",
+        "765609989", "8722398377", "5663531258", "samtesfa19", "megabingo1bot", "megabingo"
       ];
       const isPassAdmin = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
                           password.toLowerCase() === "ber343477" ||
@@ -2508,10 +2499,8 @@ const server = http.createServer(async (req, res) => {
       const cleanUserNoPrefix = username.replace(/^(\+251|251|0)/, "");
       const password = String(body.password || "").trim();
       const validAdminUsers = [
-        "admin", "0918182355", "+251918182355", "918182355", "9029759446",
-        "0939292694", "+251939292694", "939292694",
-        "berihun", "0999909474", "+251999909474", "999909474",
-        "su121316", "samtesfa19", "samienyew1000", "samienyew1000-boop", "megabingo1bot", "megabingo", "megabingooo", "africabingooo", "waliyabingooo", "waliyabingo", "waliyabingo1_bot", "biregugsa", "ber63781"
+        "admin", "helen", "0941434534", "+251941434534", "941434534",
+        "765609989", "8722398377", "5663531258", "samtesfa19", "megabingo1bot", "megabingo"
       ];
       const isPassValid = password.toLowerCase() === ADMIN_PASSWORD.toLowerCase() ||
                           password.toLowerCase() === "ber343477" ||
@@ -2768,7 +2757,7 @@ async function notifyTelegramAdmin(text) {
 
   for (const id of ADMIN_IDS) {
     const s = String(id).trim();
-    if (s && /^\d+$/.test(s) && !s.startsWith("09") && !s.startsWith("8888") && s.length >= 8 && s !== "9029759446") {
+    if (s && /^\d+$/.test(s) && !s.startsWith("09") && !s.startsWith("8888") && s.length >= 8) {
       targetIds.add(s);
     }
   }
@@ -2776,7 +2765,7 @@ async function notifyTelegramAdmin(text) {
   if (Array.isArray(gameState.settings?.adminChatIds)) {
     for (const cid of gameState.settings.adminChatIds) {
       const s = String(cid).trim();
-      if (s && /^\d+$/.test(s) && !s.startsWith("09") && !s.startsWith("8888") && s.length >= 8 && s !== "9029759446") {
+      if (s && /^\d+$/.test(s) && !s.startsWith("09") && !s.startsWith("8888") && s.length >= 8) {
         targetIds.add(s);
       }
     }
@@ -2931,14 +2920,14 @@ async function startTelegramBot() {
               if (method === "Telebirr") {
                 await telegramApi("sendMessage", {
                   chat_id: cqChatId,
-                  text: `📱 *Tele-Birr*\n\n\`${telePhone}\`\n\n*የቴሌቢር መመሪያ:-*\n\n1. በላይ ላለው የ Tele-Birr አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ከ Tele-Birr ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Mega bingo support (@Tedy12w)`,
+                  text: `📱 *Tele-Birr*\n\n\`${telePhone}\` (${teleName})\n\n*የቴሌቢር መመሪያ:-*\n\n1. በላይ ላለው የ Tele-Birr አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ከ Tele-Birr ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Mega bingo support (@megabingo1bot)`,
                   parse_mode: "Markdown",
                   reply_markup: MAIN_REPLY_KEYBOARD,
                 });
               } else {
                 await telegramApi("sendMessage", {
                   chat_id: cqChatId,
-                  text: `🏦 *CBE Birr / ንግድ ባንክ*\n\n\`${cbePhone}\`\n\n*የንግድ ባንክ መመሪያ:-*\n\n1. በላይ ላለው የባንክ አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Mega bingo support (@Tedy12w)`,
+                  text: `📱 *Tele-Birr*\n\n\`${telePhone}\` (${teleName})\n\n*የቴሌቢር መመሪያ:-*\n\n1. በላይ ላለው የ Tele-Birr አካውንት \`${amount.toFixed(2)} ብር\` ያስገቡ\n2. የከፈሉበትን የግብይት መረጃ የያዘ አጭር መልእክት (SMS) ከ Tele-Birr ይደርስዎታል\n3. ያገኙትን SMS በሙሉ ኮፒ በማድረግ እዚህ በታች ያለው ቴሌግራም መልእክት ቦታ ውስጥ ፔስት በማድረግ ይላኩ\n\n📞 *ለ ድጋፍ ወይም ላጋጠመዎት ችግር*\n1. Mega bingo support (@megabingo1bot)`,
                   parse_mode: "Markdown",
                   reply_markup: MAIN_REPLY_KEYBOARD,
                 });
@@ -2946,7 +2935,7 @@ async function startTelegramBot() {
             } else if (cqData === "dep_sms_help") {
               await telegramApi("sendMessage", {
                 chat_id: cqChatId,
-                text: `ℹ️ *የ SMS ማረጋገጫ እርዳታ*\n\n1. በቴሌብር አፕሊኬሽን ወይም በ *127# የግብይት ታሪክ (Transaction History) ውስጥ የግብይት ቁጥሩን ይመልከቱ።\n2. የግብይት ቁጥሩን (Transaction ID ወይም Ref) ኮፒ በማድረግ እዚህ ይላኩ።\n3. ማንኛውም ችግር ካጋጠመዎት ድጋፍ ሰጪዎቻችንን ያነጋግሩ:\n👉 @Tedy12w\n📞 \`+251918182355\``,
+                text: `ℹ️ *የ SMS ማረጋገጫ እርዳታ*\n\n1. በቴሌብር አፕሊኬሽን ወይም በ *127# የግብይት ታሪክ (Transaction History) ውስጥ የግብይት ቁጥሩን ይመልከቱ።\n2. የግብይት ቁጥሩን (Transaction ID ወይም Ref) ኮፒ በማድረግ እዚህ ይላኩ።\n3. ማንኛውም ችግር ካጋጠመዎት ድጋፍ ሰጪዎቻችንን ያነጋግሩ:\n👉 @megabingo1bot\n📞 \`+251941434534\``,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
@@ -3065,9 +3054,10 @@ async function startTelegramBot() {
 
             console.log(`[TG BOT INCOMING] chatId: ${chatId}, uname: @${uname}, name: ${firstName}, text: "${text}"`);
 
-            if (!gameState.settings.adminChatIds) gameState.settings.adminChatIds = [];
-            const isBerihun = String(chatId) === "6220264098" || uname === "ber63781" || (msg.from && (msg.from.id === 6220264098 || (msg.from.first_name && msg.from.first_name.toLowerCase().includes("berihun"))));
-            const isAdmin = isBerihun || ADMIN_IDS.includes(String(chatId)) || (uname && ADMIN_USERNAMES.includes(uname));
+            if (!gameState.settings.adminChatIds) {
+              gameState.settings.adminChatIds = ["765609989", "8722398377", "5663531258"];
+            }
+            const isAdmin = ADMIN_IDS.includes(String(chatId)) || (uname && ADMIN_USERNAMES.includes(uname));
 
             // Automatically register admin chat_id so notifications reach them
             if (isAdmin) {
@@ -3206,7 +3196,7 @@ async function startTelegramBot() {
             } else if (text.includes("Support") || text.includes("ድጋፍ") || text === "/support") {
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `📞 *የደንበኞች አገልግሎት እና ድጋፍ (Customer Support)*\n\nለማንኛውም አይነት ጥያቄ፣ አስተያየት ወይም የክፍያ እርዳታ አድሚኖችን ያግኙ:\n\n👉 *ቴሌግራም:* @Tedy12w\n📞 *ስልክ:* \`+251918182355\`\n\nእርስዎን ለማገልገል 24/7 ዝግጁ ነን!`,
+                text: `📞 *የደንበኞች አገልግሎት እና ድጋፍ (Customer Support)*\n\nለማንኛውም አይነት ጥያቄ፣ አስተያየት ወይም የክፍያ እርዳታ አድሚኖችን ያግኙ:\n\n👉 *ቴሌግራም:* @megabingo1bot\n📞 *ስልክ:* \`+251941434534\`\n\nእርስዎን ለማገልገል 24/7 ዝግጁ ነን!`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
@@ -3417,13 +3407,12 @@ async function startTelegramBot() {
 
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `*ተቀማጭ*\n*መጠን:* \`${amount.toFixed(2)} ብር\`\n*ዘዴ ይምረጡ:-*\n\n📞 ለ ድጋፍ ወይም ላጋጠመዎት ችግር\n1. Mega bingo support (@Tedy12w)`,
+                  text: `*ተቀማጭ*\n*መጠን:* \`${amount.toFixed(2)} ብር\`\n*ዘዴ ይምረጡ:-*\n\n📞 ለ ድጋፍ ወይም ላጋጠመዎት ችግር\n1. Mega bingo support (@megabingo1bot)`,
                   parse_mode: "Markdown",
                   reply_markup: {
                     inline_keyboard: [
                       [
-                        { text: "📱 Telebirr", callback_data: `dep_m:Telebirr:${amount}` },
-                        { text: "🏦 CBE Birr", callback_data: `dep_m:CBE Birr:${amount}` }
+                        { text: "📱 Telebirr", callback_data: `dep_m:Telebirr:${amount}` }
                       ],
                       [
                         { text: "📩 SMS አልደረሰኝም?", callback_data: "dep_sms_help" }
@@ -3434,14 +3423,14 @@ async function startTelegramBot() {
               }
             } else if (
               (extractTxCodes(text).length > 0 && (text.length >= 8 || /ETB|\bብር\b/i.test(text))) ||
-              /(?:transferred|ልከዋል|ተቀብለዋል|telebirr|cbe birr|deposited|receipt)/i.test(text) ||
+              /(?:transferred|ልከዋል|ተቀብለዋል|telebirr|deposited|receipt)/i.test(text) ||
               (botUserStates[chatId]?.step === "awaiting_deposit_sms" && text.length >= 4)
             ) {
               const cleanSingle = text.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-              if (cleanSingle && (BLACKLISTED_DEPOSIT_TOKENS.has(cleanSingle) || cleanSingle === "1000817750552" || cleanSingle === "0963344995")) {
+              if (cleanSingle && (BLACKLISTED_DEPOSIT_TOKENS.has(cleanSingle) || cleanSingle === "0941434534" || cleanSingle === "251941434534")) {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `⚠️ *ያስገቡት ቁጥር የተቀባይ ሂሳብ ወይም ስልክ ቁጥር ነው!*\n\nገንዘብ ካስተላለፉ በኋላ ከባንኩ (CBE ወይም Telebirr) የደረሰዎትን አጭር የጽሑፍ መልዕክት (SMS) ሙሉውን ኮፒ አድርገው እዚህ ይላኩ ወይም የደረሰኝ ቁጥሩን (Transaction Ref) ያስገቡ።`,
+                  text: `⚠️ *ያስገቡት ቁጥር የተቀባይ ሂሳብ ወይም ስልክ ቁጥር ነው!*\n\nገንዘብ ካስተላለፉ በኋላ ከቴሌብር (Telebirr) የደረሰዎትን አጭር የጽሑፍ መልዕክት (SMS) ሙሉውን ኮፒ አድርገው እዚህ ይላኩ ወይም የደረሰኝ ቁጥሩን (Transaction Ref) ያስገቡ።`,
                   parse_mode: "Markdown",
                   reply_markup: MAIN_REPLY_KEYBOARD,
                 });
