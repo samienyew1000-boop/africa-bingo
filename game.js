@@ -2909,7 +2909,7 @@ function renderRooms() {
 
   const roomColors = ["green", "orange", "blue", "purple"];
 
-  const buttons = rooms.map((room, index) => {
+  rooms.forEach((room, index) => {
     const server = serverRoomStates[String(room.id)];
     const canPlay = canAfford(room.stake);
     const state = roomDisplayState(room);
@@ -2932,26 +2932,60 @@ function renderRooms() {
       bubbleText = "In Play";
     }
 
-    const btn = document.createElement("button");
-    btn.type = "button";
+    let liveDerash = 0;
+    if (server && Number(server.derash) > 0) {
+      liveDerash = Math.round(Number(server.derash));
+    } else {
+      const cards = server && Number(server.total_cards) > 0 ? Number(server.total_cards) : Math.max(1, Number(room.players) || 1);
+      liveDerash = calculateDerash(cards, room.stake);
+    }
+    const derashStr = `ደራሽ: ${liveDerash.toLocaleString()} ETB`;
+
+    let btn = wrap.querySelector(`[data-room-id="${room.id}"]`);
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.roomId = String(room.id);
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        enterRoom(room.id);
+      };
+      wrap.appendChild(btn);
+    }
+
     btn.className = `wb-room-capsule wb-room-${color}` + (canPlay ? "" : " is-locked") + (roomClosed ? " is-closed" : "");
     btn.disabled = roomClosed;
-    btn.dataset.roomId = String(room.id);
     btn.setAttribute("aria-disabled", String(roomClosed));
-    btn.setAttribute("aria-label", `Play ${displayName}, stake ${room.stake} ETB`);
-    btn.innerHTML = `
-      <span class="wb-room-bubble">${bubbleText}</span>
-      <span class="wb-room-name">${displayName}</span>
-    `;
-    btn.onclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      enterRoom(room.id);
-    };
-    return btn;
+    btn.setAttribute("aria-label", `Play ${displayName}, stake ${room.stake} ETB, derash ${liveDerash} ETB`);
+
+    const bubbleEl = btn.querySelector(".wb-room-bubble");
+    const derashValEl = btn.querySelector(".wb-derash-val");
+    const nameEl = btn.querySelector(".wb-room-name");
+
+    if (bubbleEl && derashValEl && nameEl) {
+      if (bubbleEl.textContent !== bubbleText) bubbleEl.textContent = bubbleText;
+      if (derashValEl.textContent !== derashStr) derashValEl.textContent = derashStr;
+      if (nameEl.textContent !== displayName) nameEl.textContent = displayName;
+    } else {
+      btn.innerHTML = `
+        <div class="wb-room-left-group">
+          <span class="wb-room-bubble">${bubbleText}</span>
+          <span class="wb-room-derash-badge" aria-label="Current derash ${derashStr}">
+            <span class="wb-derash-dot"></span>
+            <span class="wb-derash-val">${derashStr}</span>
+          </span>
+        </div>
+        <span class="wb-room-name">${displayName}</span>
+      `;
+    }
   });
 
-  wrap.replaceChildren(...buttons);
+  Array.from(wrap.children).forEach((child) => {
+    if (child.dataset?.roomId && !rooms.some((r) => String(r.id) === child.dataset.roomId)) {
+      child.remove();
+    }
+  });
 }
 function enterRoom(roomId) {
   const room = getLobbyRoom(roomId);
