@@ -61,10 +61,7 @@ const MIME_TYPES = {
 // Initial state with 10 ETB default starting bonus
 const DEFAULT_STATE = {
   rooms: [
-    { id: "10", stake: 10, name: "10 No 1", players: 0, status: "waiting", roundId: "#WB-101", prizePool: 0, called: [] },
-    { id: "10-2", stake: 10, name: "10 No 2", players: 0, status: "waiting", roundId: "#WB-102", prizePool: 0, called: [] },
     { id: "20", stake: 20, name: "20 No 1", players: 0, status: "waiting", roundId: "#WB-103", prizePool: 0, called: [] },
-    { id: "50", stake: 50, name: "50 No 1", players: 0, status: "waiting", roundId: "#WB-104", prizePool: 0, called: [] },
   ],
   settings: {
     countdown: 30,
@@ -413,6 +410,7 @@ function loadGameState() {
     gameState = {
       ...DEFAULT_STATE,
       ...(fileData || {}),
+      rooms: DEFAULT_STATE.rooms,
       settings: {
         ...DEFAULT_STATE.settings,
         ...(fileData?.settings || {}),
@@ -1456,11 +1454,8 @@ class LiveBingoRoom {
 
 const activeRooms = {
   "20": new LiveBingoRoom("20", 20),
-  "10": new LiveBingoRoom("10", 10),
-  "10-2": new LiveBingoRoom("10-2", 10),
-  "50": new LiveBingoRoom("50", 50),
 };
-const ACTIVE_ROOM_ORDER = ["20", "10", "10-2", "50"];
+const ACTIVE_ROOM_ORDER = ["20"];
 
 function sendJson(res, data, status = 200) {
   res.writeHead(status, {
@@ -2543,7 +2538,7 @@ const server = http.createServer(async (req, res) => {
     // 7. Authoritative Multiplayer Room State
     if (pathname === "/api/room-state" || pathname === "/api/room/state") {
       const urlObj = new URL(rawUrl, "http://localhost");
-      const roomId = urlObj.searchParams.get("room_id") || "10";
+      const roomId = urlObj.searchParams.get("room_id") || "20";
       const room = activeRooms[String(roomId)];
       if (!room) return sendJson(res, { error: "Room not found" }, 404);
       return sendJson(res, room.getState());
@@ -2553,7 +2548,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/join-room" || pathname === "/api/room/join") {
       const body = await parseJsonBody(req);
       const activeUser = body.user_id ? getUserFromHeaders(req, body) : user;
-      const roomId = String(body.room_id || "10");
+      const roomId = String(body.room_id || "20");
       const room = activeRooms[roomId];
       if (!room) return sendJson(res, { error: "Room not found" }, 404);
       const result = room.join(activeUser, body.card_ids || []);
@@ -2564,7 +2559,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/leave-room" || pathname === "/api/room/leave") {
       const body = await parseJsonBody(req);
       const activeUser = body.user_id ? getUserFromHeaders(req, body) : user;
-      const roomId = String(body.room_id || "10");
+      const roomId = String(body.room_id || "20");
       const room = activeRooms[roomId];
       const result = room ? room.leave(activeUser.id) : { ok: true };
       return sendJson(res, result);
@@ -2574,7 +2569,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/claim-bingo" || pathname === "/api/room/claim") {
       const body = await parseJsonBody(req);
       const activeUser = body.user_id ? getUserFromHeaders(req, body) : user;
-      const roomId = String(body.room_id || "10");
+      const roomId = String(body.room_id || "20");
       const room = activeRooms[roomId];
       if (!room) return sendJson(res, { error: "Room not found" }, 404);
       const result = room.claimBingo(activeUser.id, body.card_id);
@@ -2654,7 +2649,7 @@ const server = http.createServer(async (req, res) => {
 
     // 13. Test / Demo Game Starter (Allows running live round for testing)
     if (pathname === "/api/admin/start-demo-game" || pathname === "/api/start-demo-game") {
-      const rId = new URL(req.url, "http://localhost").searchParams.get("room_id") || "10";
+      const rId = new URL(req.url, "http://localhost").searchParams.get("room_id") || "20";
       const room = activeRooms[rId];
       if (room) {
         room.status = "open";

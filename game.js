@@ -52,9 +52,6 @@ const PAYMENT_METHODS = Object.freeze({
 
 const ROOMS = [
   { id: "20", stake: 20, displayName: "20 No 1", color: "blue", players: 0, status: "waiting" },
-  { id: "10", stake: 10, displayName: "10 No 1", color: "green", players: 0, status: "waiting" },
-  { id: "10-2", stake: 10, displayName: "10 No 2", color: "orange", players: 0, status: "waiting" },
-  { id: "50", stake: 50, displayName: "50 No 1", color: "purple", players: 0, status: "waiting" },
 ];
 
 const DEFAULT_LAST_WINNING_CARDS = Object.freeze([
@@ -85,7 +82,7 @@ const views = {
 
 let startingBonusAwarded = 0;
 let balance = loadInitialBalance();
-let stake = 10;
+let stake = 20;
 let selected = new Set();
 let selectedPreviewId = null;
 let takenByOthers = new Set();
@@ -5297,7 +5294,7 @@ if (window.location.hash === "#game" || window.location.search.includes("view=ga
   syncProfileWithServer();
 } else if (window.location.hash === "#pick" || window.location.search.includes("view=pick")) {
   showView("pick");
-  stake = 10;
+  stake = 20;
   if ($("pick-stake")) $("pick-stake").textContent = String(stake);
   $("pick-cost").textContent = String(stake);
   selected.clear();
