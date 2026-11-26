@@ -31,7 +31,7 @@ const LAST_WINNING_CARDS_KEY = "mega-bingo-last-winning-cards-v1";
 const CARD_DATA_URL = "card%20number.json";
 const START_BALANCE = 0;
 const DEFAULT_STARTING_BONUS = 0;
-const CARD_COUNT = 1000;
+const CARD_COUNT = 5000;
 const MAX_PICK = 50;
 const CALL_MS = 3200;
 const DEFAULT_PICK_SECS = 30;
@@ -2538,7 +2538,7 @@ function applyCardCatalog(source) {
   const hasEveryCard = expectedIds.every((id) => Object.prototype.hasOwnProperty.call(source, id));
   const hasOnlyExpectedCards = ids.length === CARD_COUNT && ids.every((id) => expectedIds.includes(id));
   if (!hasEveryCard || !hasOnlyExpectedCards || expectedIds.some((id) => !isValidCardValues(source[id]))) {
-    throw new Error("Card data must contain 1,000 valid 5x5 cartelas");
+    throw new Error("Card data must contain 5,000 valid 5x5 cartelas");
   }
 
   cardNumbers = expectedIds.map(Number);
@@ -3126,7 +3126,8 @@ function updatePickInfo() {
 
 function buildCardGrid() {
   const grid = $("card-grid");
-  grid.replaceChildren();
+  if (!grid) return;
+  const fragment = document.createDocumentFragment();
   cardNumbers.forEach((id) => {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -3136,8 +3137,9 @@ function buildCardGrid() {
     btn.addEventListener("click", () => toggleCard(id));
     btn.addEventListener("mouseenter", () => previewCard(id));
     btn.addEventListener("focus", () => previewCard(id));
-    grid.appendChild(btn);
+    fragment.appendChild(btn);
   });
+  grid.replaceChildren(fragment);
   paintPicks();
 }
 
@@ -4669,7 +4671,7 @@ function botWins() {
     "Selam W.", "Tigist G.", "Bereket F.", "Kidus N.", "Bethlehem D."
   ];
   const winnerName = BOT_WINNER_NAMES[Math.floor(Math.random() * BOT_WINNER_NAMES.length)] || "Dawit K.";
-  const botCardId = [...takenByOthers][0] || Math.floor(Math.random() * 900) + 1;
+  const botCardId = [...takenByOthers][0] || Math.floor(Math.random() * CARD_COUNT) + 1;
   const server = activeRoomId ? serverRoomStates[String(activeRoomId)] : null;
   const serverCards = server ? Number(server.total_cards || 0) : 0;
   const totalCards = Math.max(serverCards, selected.size + takenByOthers.size);

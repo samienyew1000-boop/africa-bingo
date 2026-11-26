@@ -596,7 +596,7 @@ function syncFromSQLite(force = false) {
 loadGameState();
 syncFromSQLite(true);
 
-// Load 1000 bingo cards from card number.json
+// Load 5000 bingo cards from card number.json
 const CARDS_FILE = path.join(__dirname, "card number.json");
 let cardCatalog = {};
 try {
@@ -832,7 +832,7 @@ class LiveBingoRoom {
     }
 
     const catalogKeys = Object.keys(cardCatalog);
-    const maxCatalogId = catalogKeys.length > 0 ? catalogKeys.length : 1000;
+    const maxCatalogId = catalogKeys.length > 0 ? catalogKeys.length : 5000;
     const available = [];
     for (let i = 1; i <= maxCatalogId; i++) {
       if (!existingCards.has(i)) available.push(i);
@@ -949,7 +949,8 @@ class LiveBingoRoom {
     if (this.status === "live" || this.status === "ended") {
       return { error: "Game in progress, please wait" };
     }
-    const cleanCardIds = Array.from(new Set(cardIds.map(Number))).filter(id => id >= 1 && id <= 1000);
+    const maxAllowedCardId = Object.keys(cardCatalog).length || 5000;
+    const cleanCardIds = Array.from(new Set(cardIds.map(Number))).filter(id => id >= 1 && id <= maxAllowedCardId);
     if (!cleanCardIds.length || cleanCardIds.length > 50) {
       return { error: "Choose up to 50 valid cartelas" };
     }
