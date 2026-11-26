@@ -103,7 +103,7 @@ const DEFAULT_SETTINGS = {
   commission: 20,
   threshold: 10,
   countdown: 60,
-  winningPattern: "1",
+  winningPattern: "2",
   startingBonus: 10,
   startingBonusEnabled: true,
   autoCall: true,

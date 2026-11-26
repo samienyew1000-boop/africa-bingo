@@ -8279,6 +8279,25 @@ body.is-dark-theme .lb-dev-promo-phone {
   border-color: rgba(239, 68, 68, 0.5) !important;
 }
 
+.lb-lobby-rule-notice {
+  margin-top: 7px !important;
+  padding-top: 6px !important;
+  border-top: 1.5px dashed rgba(239, 68, 68, 0.4) !important;
+  color: #991b1b !important;
+  font-size: 13.5px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.2px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+}
+
+body.is-dark-theme .lb-lobby-rule-notice {
+  color: #fca5a5 !important;
+  border-top-color: rgba(239, 68, 68, 0.5) !important;
+}
+
 
 /* =============================================================================
    MEGA BINGO - HOMEPAGE REDESIGN (Exact Match to Afro Bingo Reference)

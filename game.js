@@ -35,8 +35,8 @@ const CARD_COUNT = 1000;
 const MAX_PICK = 50;
 const CALL_MS = 3200;
 const DEFAULT_PICK_SECS = 30;
-const DEFAULT_WINNING_PATTERN = "1";
-const WINNING_PATTERNS = Object.freeze(["1"]);
+const DEFAULT_WINNING_PATTERN = "2";
+const WINNING_PATTERNS = Object.freeze(["2"]);
 const ROOM_GAME_MS = CALL_MS * 75;
 const ROOM_UPDATE_MS = 2400;
 const ROOM_STATUS_UPDATE_MS = 1000;
@@ -336,8 +336,8 @@ function updatePickLiveTracker(sState) {
   if (tracker) tracker.style.setProperty("display", "none", "important");
   return;
 
-  const currentPattern = sState?.pattern || { id: "1_line", name: "1 መስመር", label: "1 መስመር ዝግ", targetLines: 1 };
-  const nextPattern = sState?.next_pattern || { id: "1_line", name: "1 መስመር", label: "1 መስመር ዝግ", targetLines: 1 };
+  const currentPattern = sState?.pattern || { id: "2_lines", name: "2 መስመር", label: "2 መስመር ዝግ", targetLines: 2 };
+  const nextPattern = sState?.next_pattern || { id: "2_lines", name: "2 መስመር", label: "2 መስመር ዝግ", targetLines: 2 };
   const isLive = sState?.status === "live";
   const isCd = sState?.status === "countdown";
   const calls = Array.isArray(sState?.calls) ? sState.calls : [];
@@ -363,11 +363,11 @@ function updatePickLiveTracker(sState) {
 
   if (patternEl) {
     if (isLive) {
-      patternEl.textContent = `${currentPattern.name || "3 መስመር"} (የቀጥታ ጨዋታ)`;
+      patternEl.textContent = `${currentPattern.name || "2 መስመር"} (የቀጥታ ጨዋታ)`;
     } else if (isCd) {
-      patternEl.textContent = `${currentPattern.name || "3 መስመር"} (ሊጀመር ነው)`;
+      patternEl.textContent = `${currentPattern.name || "2 መስመር"} (ሊጀመር ነው)`;
     } else {
-      const pastName = sState?.last_result?.pattern || currentPattern.name || "3 መስመር";
+      const pastName = sState?.last_result?.pattern || currentPattern.name || "2 መስመር";
       patternEl.textContent = `${pastName} (ያለፈ ጨዋታ)`;
     }
   }
@@ -382,7 +382,7 @@ function updatePickLiveTracker(sState) {
     } else if (calls.length) {
       footerEl.textContent = `ያለፈውን ጨዋታ የቀሩ ${remBalls} ኳሶች`;
     } else {
-      footerEl.textContent = `ይህ ዙር በ ${currentPattern.label || "3 መስመር ዝግ"} ይጫወታል`;
+      footerEl.textContent = `ይህ ዙር በ ${currentPattern.label || "2 መስመር ዝግ"} ይጫወታል`;
     }
   }
 
@@ -403,19 +403,19 @@ function updatePickLiveTracker(sState) {
 
   if (lineCurrent) {
     if (isLive) {
-      lineCurrent.textContent = `የአሁኑ ጨዋታ · ${currentPattern.label || "3 መስመር ዝግ"}`;
+      lineCurrent.textContent = `የአሁኑ ጨዋታ · ${currentPattern.label || "2 መስመር ዝግ"}`;
     } else {
-      const pastPatternName = sState?.last_result?.pattern || currentPattern.label || "3 መስመር ዝግ";
+      const pastPatternName = sState?.last_result?.pattern || currentPattern.label || "2 መስመር ዝግ";
       lineCurrent.textContent = `ያለፊት ጨዋታ · ${pastPatternName}`;
     }
   }
 
   if (lineNext) {
-    lineNext.textContent = `ቀጣይ ዝግጁ · ${currentPattern.label || "3 መስመር ዝግ"} · አሁን ለቀጣይ ጨዋታ መመዝገብ ይቻላል`;
+    lineNext.textContent = `ቀጣይ ዝግጁ · ${currentPattern.label || "2 መስመር ዝግ"} · አሁን ለቀጣይ ጨዋታ መመዝገብ ይቻላል`;
   }
 
   if (infoText) {
-    infoText.textContent = `ይህ ዙር የሚጫወተው በ ${currentPattern.label || "3 መስመር ዝግ"} ነው። የሚቀጥለው ዙር ደግሞ ${nextPattern.label || "4 መስመር ዝግ"} ይሆናል!`;
+    infoText.textContent = `ይህ ዙር የሚጫወተው በ ${currentPattern.label || "2 መስመር ዝግ"} ነው። የሚቀጥለው ዙር ደግሞ ${nextPattern.label || "2 መስመር ዝግ"} ይሆናል!`;
   }
 }
 
@@ -667,7 +667,7 @@ function handleServerRoomState(sState) {
               myPrize = Math.floor(res.prize / winnerIdList.length);
             }
 
-            const winPattern = res.pattern || (res.card_id ? (ensureCard(Array.isArray(res.card_id) ? res.card_id[0] : res.card_id) ? bestWinKind(ensureCard(Array.isArray(res.card_id) ? res.card_id[0] : res.card_id), new Set(called)) : "1 LINE") : "1 LINE");
+            const winPattern = res.pattern || (res.card_id ? (ensureCard(Array.isArray(res.card_id) ? res.card_id[0] : res.card_id) ? bestWinKind(ensureCard(Array.isArray(res.card_id) ? res.card_id[0] : res.card_id), new Set(called)) : "2 መስመር") : "2 መስመር");
             const displayCardId = res.card_id || (isMe ? selected.values().next().value : null);
 
             if (isMe) {
@@ -726,11 +726,11 @@ function getPickCountdownSeconds() {
 }
 
 function normalizeWinningPattern(value) {
-  return "1";
+  return "2";
 }
 
 function getWinningPattern() {
-  return "1";
+  return "2";
 }
 
 function formatCountdown(seconds) {
@@ -3810,7 +3810,7 @@ function renderWinnerConfetti() {
   container.appendChild(fragment);
 }
 
-function renderSingleWinnerCard(cardId, hits, kind = "LINE", winningCall = null) {
+function renderSingleWinnerCard(cardId, hits, kind = "2 መስመር", winningCall = null) {
   const rawCard = ensureCard(cardId);
   const cardObj = rawCard ? { id: rawCard.id, cells: [...rawCard.cells] } : {
     id: cardId,
@@ -3905,7 +3905,7 @@ function renderSingleWinnerCard(cardId, hits, kind = "LINE", winningCall = null)
   return cardBox;
 }
 
-function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kind = "LINE", winningCall = null) {
+function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kind = "2 መስመር", winningCall = null) {
   if (winnerPendingTimeout) {
     clearTimeout(winnerPendingTimeout);
     winnerPendingTimeout = null;
@@ -3989,7 +3989,7 @@ function showWinnerOverlay(outcome, winnerName, prize = null, cardId = null, kin
 }
 
 
-function showRoundResult(outcome, winnerName, kind = "LINE", cardId = null) {
+function showRoundResult(outcome, winnerName, kind = "2 መስመር", cardId = null) {
   const result = $("round-result");
   if (!result) return;
   roundOutcome = outcome;
@@ -4031,7 +4031,7 @@ function winningCellIndexes(card, hit, kind) {
     const corners = completed.find((l) => l.length === 4);
     if (corners) return [...corners];
   }
-  const target = Math.max(1, Number.parseInt(String(kind), 10) || 1);
+  const target = Math.max(2, Number.parseInt(String(kind), 10) || 2);
   const indexes = new Set();
   completed
     .slice(0, target)
@@ -4543,11 +4543,10 @@ function cellHit(card, index, hit) {
 function bestWinKind(card, hit) {
   if (!card) return null;
 
-  // Always 1 line bingo rule as required (including 4 corners)
+  // 2 lines closed bingo rule
   const completed = completedBingoLines(card, hit);
-  if (!completed.length) return null;
-  const is4Corners = completed.length === 1 && completed[0].length === 4;
-  return is4Corners ? "4 Corner" : "1 LINE";
+  if (completed.length < 2) return null;
+  return "2 መስመር";
 }
 
 function playerHasBingo(useCalled = true) {
@@ -4694,9 +4693,9 @@ function botWins() {
   winnerPendingTimeout = setTimeout(() => {
     winnerPendingTimeout = null;
     if (!winnerTimer) {
-      showRoundResult("lose", winnerName, "LINE", botCardId);
+      showRoundResult("lose", winnerName, "2 መስመር", botCardId);
       toast(`${winnerName} CLAIMED BINGO!`, "lose");
-      showWinnerOverlay("lose", winnerName, botPrize, botCardId, "LINE", (Array.isArray(called) && called.length) ? called[called.length - 1] : null);
+      showWinnerOverlay("lose", winnerName, botPrize, botCardId, "2 መስመር", (Array.isArray(called) && called.length) ? called[called.length - 1] : null);
     }
   }, 2800);
 }

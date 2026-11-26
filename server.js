@@ -261,7 +261,7 @@ function seedInitialRoundHistory() {
         winnerId: `usr_${roundSeq}`,
         winnerName: winner,
         cardId: Math.floor(Math.random() * 50) + 1,
-        pattern: "1 መስመር",
+        pattern: "2 መስመር",
         created_at: new Date(rTime).toISOString(),
         timestamp: rTime,
       });
@@ -625,7 +625,7 @@ const WINNING_LINES = [
 ];
 
 const BINGO_PATTERNS = [
-  { id: "1_line", name: "1 መስመር", targetLines: 1, label: "1 መስመር ዝግ", description: "1 መስመር ሲዘጋ" }
+  { id: "2_lines", name: "2 መስመር", targetLines: 2, label: "2 መስመር ዝግ", description: "2 መስመር ሲዘጋ" }
 ];
 
 const HABESHA_NAMES = [
@@ -660,18 +660,17 @@ function countCompletedLines(cardNumbers, calledSet) {
 
 function getCardWinningKind(cardNumbers, calledSet) {
   const completed = getCardCompletedLines(cardNumbers, calledSet);
-  if (!completed.length) return null;
-  const onlyCorners = completed.length === 1 && completed[0].length === 4;
-  return onlyCorners ? "4 Corner" : "1 መስመር";
+  if (completed.length < 2) return null;
+  return "2 መስመር";
 }
 
 function cardHasWinningLineWithBall(cardNumbers, calledSet, lastBall) {
   if (!Array.isArray(cardNumbers) || cardNumbers.length !== 25) return false;
   const lines = getCardCompletedLines(cardNumbers, calledSet);
-  if (!lines.length) return false;
-  if (lastBall == null) return lines.length >= 1;
+  if (lines.length < 2) return false;
+  if (lastBall == null) return true;
   const targetNum = Number(lastBall);
-  // Ensure the completed winning line specifically contains the last called ball
+  // Ensure at least one of the completed winning lines contains the last called ball
   return lines.some((line) => line.some((idx) => idx !== 12 && Number(cardNumbers[idx]) === targetNum));
 }
 
@@ -680,7 +679,7 @@ function checkCardBingo(cardNumbers, calledSet, pattern, lastBall = null) {
   if (lastBall != null) {
     return cardHasWinningLineWithBall(cardNumbers, calledSet, lastBall);
   }
-  return countCompletedLines(cardNumbers, calledSet) >= 1;
+  return countCompletedLines(cardNumbers, calledSet) >= 2;
 }
 
 class LiveBingoRoom {
@@ -1164,7 +1163,7 @@ class LiveBingoRoom {
             username: player.username,
             firstName: player.first_name || player.username || `Player ${String(player.user_id).slice(-4)}`,
             cardId: cardId,
-            winKind: getCardWinningKind(cardNumbers, calledSet) || "1 መስመር",
+            winKind: getCardWinningKind(cardNumbers, calledSet) || "2 መስመር",
             isBot: Boolean(player.is_bot),
           });
         }
@@ -1205,7 +1204,7 @@ class LiveBingoRoom {
             username: p.username,
             firstName: p.first_name || p.username || `Player ${String(p.user_id).slice(-4)}`,
             cardId: cid,
-            winKind: getCardWinningKind(cNums, calledSet) || "1 መስመር",
+            winKind: getCardWinningKind(cNums, calledSet) || "2 መስመር",
             isBot: Boolean(p.is_bot),
           });
         }
@@ -1294,7 +1293,7 @@ class LiveBingoRoom {
     const allWinKinds = Array.from(new Set(winningEntries.map(e => e.winKind))).join(", ");
     const displayWinnerName = winnerNames.join(" & ");
 
-    const patternLabel = allWinKinds || (this.currentPattern ? (this.currentPattern.label || this.currentPattern.name) : "1 መስመር");
+    const patternLabel = allWinKinds || (this.currentPattern ? (this.currentPattern.label || this.currentPattern.name) : "2 መስመር");
     const resultId = `RES_${this.id}_R${this.roundId}_${Math.floor(Date.now() / 1000)}`;
 
     this.lastResult = {
@@ -1393,7 +1392,7 @@ class LiveBingoRoom {
       username: winnerName,
       firstName: winnerName,
       cardId: cardId,
-      winKind: winKind || "1 መስመር",
+      winKind: winKind || "2 መስመር",
     }], this.calls.length ? this.calls[this.calls.length - 1] : null);
   }
 
@@ -3184,7 +3183,7 @@ async function startTelegramBot() {
             } else if (text.includes("Instructions") || text.includes("ህግ") || text.includes("መመሪያ") || text === "/help") {
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `📖 *የጨዋታ ህጎች እና መመሪያዎች (Instructions)*\n\n1. 🎮 *Play Game* የሚለውን ተጭነው ወደ ጨዋታው ይግቡ።\n2. የካርቴላ ቁጥር ይምረጡ (እስከ 50 ካርቴላ መምረጥ ይችላሉ)።\n3. የ 1 ደቂቃ (60 ሰከንድ) የምዝገባ ቆጣሪው ሲያልቅ ጨዋታው በራሱ ይጀምራል።\n4. ኳሶች በድምጽ እና በስክሪኑ ላይ አንድ በአንድ ይወጣሉ።\n5. ማንኛውም 1 መስመር (አግድም፣ ቁልቁል ወይም ዲያጎናል) የሞላ ተጫዋች አሸናፊ ይሆናል!\n\nመልካም እድል! 🍀`,
+                text: `📖 *የጨዋታ ህጎች እና መመሪያዎች (Instructions)*\n\n1. 🎮 *Play Game* የሚለውን ተጭነው ወደ ጨዋታው ይግቡ።\n2. የካርቴላ ቁጥር ይምረጡ (እስከ 50 ካርቴላ መምረጥ ይችላሉ)።\n3. የ 1 ደቂቃ (60 ሰከንድ) የምዝገባ ቆጣሪው ሲያልቅ ጨዋታው በራሱ ይጀምራል።\n4. ኳሶች በድምጽ እና በስክሪኑ ላይ አንድ በአንድ ይወጣሉ።\n5. ማንኛውም 2 መስመር (አግድም፣ ቁልቁል ወይም ዲያጎናል) የሞላ ተጫዋች አሸናፊ ይሆናል!\n\nመልካም እድል! 🍀`,
                 parse_mode: "Markdown",
                 reply_markup: MAIN_REPLY_KEYBOARD,
               });
