@@ -238,9 +238,9 @@ function loadState() {
     } catch (e) {}
   }
   const initialPlayers = rawInitial.length > 0
-    ? window.LUCKY_BINGO_PLAYERS.map((p) => {
+    ? rawInitial.map((p) => {
         const uid = String(p.userId || p.id).replace(/^TG-/, "");
-        const rawP = p.phone && p.phone !== "N/A" ? p.phone : "";
+        const rawP = p.phone && p.phone !== "N/A" && p.phone !== "—" ? p.phone : "";
         return {
           id: uid,
           userId: uid,
@@ -249,18 +249,18 @@ function loadState() {
           phone: rawP || "—",
           rawPhone: rawP,
           username: p.username ? String(p.username).replace(/^@/, "") : "",
-          password: "",
-          role: "player",
+          password: p.password || "",
+          role: p.role || "player",
           balance: Number(p.balance) || 0,
-          bonusBalance: 0,
+          bonusBalance: Number(p.bonusBalance || p.bonus_balance) || 0,
           games: Number(p.games) || 0,
-          lastActive: "Recently",
+          lastActive: p.lastActive || "Recently",
           status: p.status || "active",
-          avatar: "blue",
-          verified: true,
-          joined: "Recent",
-          activeRoom: "Lobby",
-          source: "telegram",
+          avatar: p.avatar || "blue",
+          verified: Boolean(p.verified ?? true),
+          joined: p.joined || "Recent",
+          activeRoom: p.activeRoom || "Lobby",
+          source: p.source || "telegram",
         };
       })
     : [];
@@ -904,6 +904,15 @@ function playerRow(player) {
       ? ` <span style="font-size:10px; color:#16a34a; background:#dcfce7; padding:1px 5px; border-radius:4px; font-weight:700;">📱 App</span>`
       : "");
 
+  const hasPhone = player.phone && player.phone !== "—";
+  const phoneDisplay = hasPhone
+    ? `<strong style="color:#0f172a; font-size:13.5px; font-family:monospace; font-weight:800; letter-spacing:0.3px;">📱 ${escapeHTML(player.phone)}</strong>`
+    : `<span style="color:#94a3b8; font-size:12px; font-style:italic;">⚠️ ስልክ የለም</span>`;
+
+  const phoneBtn = hasPhone
+    ? `<button type="button" class="admin-chip-btn" style="padding:1px 5px; font-size:10px; margin-top:3px; align-self:flex-start;" data-player-action="phone" data-id="${escapeHTML(player.id)}" title="Edit Phone Number">✏️ ቀይር</button>`
+    : `<button type="button" class="admin-chip-btn" style="padding:1px 6px; font-size:10.5px; margin-top:3px; background:#eff6ff; color:#2563eb; border-color:#bfdbfe; font-weight:800; align-self:flex-start;" data-player-action="phone" data-id="${escapeHTML(player.id)}">📱 + ስልክ ቁጥር</button>`;
+
   return `<tr>
     <td>
       <div class="admin-player-cell">
@@ -915,25 +924,30 @@ function playerRow(player) {
       </div>
     </td>
     <td>
-      <div class="admin-contact-cell">
-        <strong style="color:#0f172a; font-size:13px; font-family:monospace; font-weight:800;">${escapeHTML(player.phone || "—")}</strong>
-        <small>${escapeHTML(player.username ? `@${player.username}` : (player.email || "—"))}</small>
+      <div class="admin-contact-cell" style="display:flex; flex-direction:column; gap:2px;">
+        ${phoneDisplay}
+        <small style="color:#64748b;">${escapeHTML(player.username ? `@${player.username}` : (player.email || "—"))}</small>
+        ${phoneBtn}
       </div>
     </td>
-    <td><strong class="admin-table-amount">${money(player.balance)}</strong></td>
+    <td><strong class="admin-table-amount" style="font-size:14.5px; color:#0f172a;">${money(player.balance)}</strong></td>
     <td>${fmt(player.games || 0)}</td>
     <td>${escapeHTML(player.lastActive || "Recently")}</td>
     <td><span class="admin-status-pill is-${escapeHTML(player.status || "active")}">${escapeHTML(statusLabel)}</span></td>
     <td>
-      <div class="admin-action-menu">
-        <button type="button" class="admin-action-menu-button" data-player-menu="${escapeHTML(player.id)}" aria-label="Actions for ${escapeHTML(player.name)}">•••</button>
-        <div class="admin-action-menu-list">
-          <button type="button" data-player-action="balance" data-id="${escapeHTML(player.id)}">💰 Deposit / Withdraw</button>
-          <button type="button" data-player-action="password" data-id="${escapeHTML(player.id)}">🔑 Change Password</button>
-          <button type="button" data-player-action="edit" data-id="${escapeHTML(player.id)}">✏️ Edit Player</button>
-          <button type="button" class="${isBlocked ? "" : "is-danger"}" data-player-action="${isBlocked ? "unblock" : "block"}" data-id="${escapeHTML(player.id)}">
-            ${isBlocked ? "✅ Unblock Account" : "🚫 Block Account"}
-          </button>
+      <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end;">
+        <button type="button" class="admin-button" style="background:#16a34a; color:#fff; border:none; padding:5px 9px; font-size:12px; font-weight:800; border-radius:6px; cursor:pointer; white-space:nowrap; box-shadow:0 1px 2px rgba(0,0,0,0.06);" data-player-action="balance" data-id="${escapeHTML(player.id)}" title="Deposit / Withdraw for ${escapeHTML(player.name)}">💰 +/-</button>
+        <div class="admin-action-menu">
+          <button type="button" class="admin-action-menu-button" data-player-menu="${escapeHTML(player.id)}" aria-label="Actions for ${escapeHTML(player.name)}">•••</button>
+          <div class="admin-action-menu-list">
+            <button type="button" data-player-action="balance" data-id="${escapeHTML(player.id)}">💰 Deposit / Withdraw</button>
+            <button type="button" data-player-action="phone" data-id="${escapeHTML(player.id)}">📱 Set / Edit Phone</button>
+            <button type="button" data-player-action="password" data-id="${escapeHTML(player.id)}">🔑 Change Password</button>
+            <button type="button" data-player-action="edit" data-id="${escapeHTML(player.id)}">✏️ Edit Player</button>
+            <button type="button" class="${isBlocked ? "" : "is-danger"}" data-player-action="${isBlocked ? "unblock" : "block"}" data-id="${escapeHTML(player.id)}">
+              ${isBlocked ? "✅ Unblock Account" : "🚫 Block Account"}
+            </button>
+          </div>
         </div>
       </div>
     </td>
@@ -1277,47 +1291,222 @@ function makePlayerId() {
   return `LB-${String(Math.max(10000, ...ids, 0) + 1).padStart(5, "0")}`;
 }
 
-async function adjustPlayerBalance(player) {
-  const currentBal = Number(player.balance || 0);
-  const input = prompt(
-    `💰 Adjust balance for ${player.name} (${player.phone || player.id})\n` +
-    `Current Balance: ${currentBal.toFixed(2)} ETB\n\n` +
-    `Enter deposit amount (e.g. +50 or 50), withdrawal amount (e.g. -20), or new total balance:`,
-    currentBal
-  );
-  if (input === null || input.trim() === "") return;
-  const val = input.trim();
-  let nextBal = currentBal;
-  if (val.startsWith("+")) {
-    const addAmt = parseFloat(val.slice(1));
-    if (isNaN(addAmt) || addAmt < 0) { alert("Invalid amount entered"); return; }
-    nextBal = currentBal + addAmt;
-  } else if (val.startsWith("-")) {
-    const subAmt = parseFloat(val.slice(1));
-    if (isNaN(subAmt) || subAmt < 0) { alert("Invalid amount entered"); return; }
-    nextBal = Math.max(0, currentBal - subAmt);
+let currentBalanceMode = "deposit";
+
+function updateBalanceModalPreview() {
+  const idInput = $("balance-form-player-id");
+  if (!idInput) return;
+  const playerId = idInput.value;
+  const player = state.players.find((p) => p.id === playerId);
+  const curBal = player ? Number(player.balance || 0) : 0;
+  const inputAmt = parseFloat($("balance-form-amount")?.value) || 0;
+
+  if ($("balance-modal-current-bal")) {
+    $("balance-modal-current-bal").textContent = `${curBal.toFixed(2)} ETB`;
+  }
+  let newBal = curBal;
+  if (currentBalanceMode === "deposit") {
+    newBal = curBal + inputAmt;
   } else {
-    const setAmt = parseFloat(val);
-    if (isNaN(setAmt) || setAmt < 0) { alert("Invalid amount entered"); return; }
-    nextBal = setAmt;
+    newBal = Math.max(0, curBal - inputAmt);
+  }
+  const newBalEl = $("balance-modal-new-bal");
+  if (newBalEl) {
+    newBalEl.textContent = `${newBal.toFixed(2)} ETB`;
+    if (currentBalanceMode === "withdraw" && inputAmt > curBal) {
+      newBalEl.style.color = "#dc2626";
+    } else {
+      newBalEl.style.color = currentBalanceMode === "deposit" ? "#15803d" : "#ea580c";
+    }
+  }
+}
+
+function setBalanceMode(mode) {
+  currentBalanceMode = mode;
+  const btnDep = $("btn-type-deposit");
+  const btnWth = $("btn-type-withdraw");
+  const labelEl = $("balance-amount-label");
+  const submitBtn = $("balance-form-submit-btn");
+
+  if (mode === "deposit") {
+    if (btnDep) {
+      btnDep.style.background = "#16a34a";
+      btnDep.style.color = "#fff";
+      btnDep.style.borderColor = "#16a34a";
+    }
+    if (btnWth) {
+      btnWth.style.background = "#f1f5f9";
+      btnWth.style.color = "#475569";
+      btnWth.style.borderColor = "#cbd5e1";
+    }
+    if (labelEl) labelEl.textContent = "Deposit Amount (የሚጨመረው መጠን - ETB)";
+    if (submitBtn) {
+      submitBtn.textContent = "✅ Confirm Deposit (ገንዘብ አስገባ)";
+      submitBtn.style.background = "#16a34a";
+      submitBtn.style.borderColor = "#16a34a";
+    }
+  } else {
+    if (btnDep) {
+      btnDep.style.background = "#f1f5f9";
+      btnDep.style.color = "#475569";
+      btnDep.style.borderColor = "#cbd5e1";
+    }
+    if (btnWth) {
+      btnWth.style.background = "#ea580c";
+      btnWth.style.color = "#fff";
+      btnWth.style.borderColor = "#ea580c";
+    }
+    if (labelEl) labelEl.textContent = "Withdraw Amount (የሚቀነሰው መጠን - ETB)";
+    if (submitBtn) {
+      submitBtn.textContent = "📤 Confirm Withdraw (ገንዘብ ቀንስ)";
+      submitBtn.style.background = "#ea580c";
+      submitBtn.style.borderColor = "#ea580c";
+    }
+  }
+  updateBalanceModalPreview();
+}
+
+function openBalanceModal(player = null) {
+  const selectorWrap = $("balance-modal-player-selector");
+  const selectPlayerEl = $("balance-modal-select-player");
+  const idInput = $("balance-form-player-id");
+  const nameEl = $("balance-modal-player-name");
+  const phoneEl = $("balance-modal-player-phone");
+  const amtInput = $("balance-form-amount");
+
+  if (amtInput) amtInput.value = "";
+
+  if (player) {
+    if (selectorWrap) selectorWrap.style.display = "none";
+    if (idInput) idInput.value = player.id;
+    if (nameEl) nameEl.textContent = player.name;
+    if (phoneEl) {
+      phoneEl.textContent = player.phone && player.phone !== "—" ? player.phone : (player.username ? "@" + player.username : "ID: " + player.id);
+    }
+  } else {
+    if (selectorWrap) selectorWrap.style.display = "block";
+    if (selectPlayerEl) {
+      selectPlayerEl.innerHTML = '<option value="">-- Choose player by Phone or Name --</option>' +
+        state.players.map(p => {
+          const ph = p.phone && p.phone !== "—" ? p.phone : (p.username ? `@${p.username}` : `ID:${p.id}`);
+          return `<option value="${p.id}">${escapeHTML(p.name)} (${ph}) - Bal: ${Number(p.balance||0).toFixed(2)} ETB</option>`;
+        }).join("");
+
+      if (state.players.length > 0) {
+        selectPlayerEl.value = state.players[0].id;
+        const firstP = state.players[0];
+        if (idInput) idInput.value = firstP.id;
+        if (nameEl) nameEl.textContent = firstP.name;
+        if (phoneEl) phoneEl.textContent = firstP.phone && firstP.phone !== "—" ? firstP.phone : (firstP.username ? "@" + firstP.username : "ID: " + firstP.id);
+      }
+    }
   }
 
-  const diff = nextBal - currentBal;
-  player.balance = nextBal;
-  const act = diff >= 0 ? `Deposited +${diff.toFixed(2)} ETB to` : `Withdrew -${Math.abs(diff).toFixed(2)} ETB from`;
-  addActivity(`${act} ${player.name} (New Balance: ${nextBal.toFixed(2)} ETB)`, "finance", "💰");
+  setBalanceMode("deposit");
+  openModal("balance-modal");
+  if (amtInput) amtInput.focus();
+}
+
+function adjustPlayerBalance(player) {
+  openBalanceModal(player);
+}
+
+async function saveBalanceTransaction(event) {
+  event.preventDefault();
+  const id = $("balance-form-player-id")?.value;
+  const amount = parseFloat($("balance-form-amount")?.value);
+  const player = state.players.find((p) => p.id === id);
+
+  if (!player) {
+    alert("Please select a player");
+    return;
+  }
+  if (isNaN(amount) || amount <= 0) {
+    alert("Please enter a valid amount greater than 0");
+    return;
+  }
+
+  const curBal = Number(player.balance || 0);
+  if (currentBalanceMode === "withdraw" && amount > curBal) {
+    if (!confirm(`Warning: Withdrawal amount (${amount} ETB) exceeds player balance (${curBal} ETB). Current balance will become 0. Proceed?`)) {
+      return;
+    }
+  }
+
+  const prevBal = curBal;
+  const newBal = currentBalanceMode === "deposit" ? prevBal + amount : Math.max(0, prevBal - amount);
+  player.balance = Math.round(newBal * 100) / 100;
+
+  addActivity(
+    `${currentBalanceMode === "deposit" ? "Deposited +" : "Withdrew -"}${amount.toFixed(2)} ETB for ${player.name} (${player.phone || player.id})`,
+    "finance",
+    "💰"
+  );
 
   const targetUid = String(player.userId || player.id);
   if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
     try {
-      await LuckyBingoAPI.updateAdminUser(targetUid, { balance: nextBal });
+      const res = await LuckyBingoAPI.updateAdminUser(targetUid, {
+        action: currentBalanceMode,
+        amount: amount,
+        balance: player.balance,
+      });
+      if (res && res.error) {
+        showToast("Error updating on server: " + res.error);
+      }
     } catch (err) {
-      console.error("Failed to update user balance:", err);
+      console.error("Failed to update user balance on server:", err);
     }
   }
 
+  saveState();
+  closeModal("balance-modal");
   renderAll();
-  showToast(`Updated balance: ${nextBal.toFixed(2)} ETB for ${player.name}`);
+  showToast(`✅ Successfully ${currentBalanceMode === "deposit" ? "deposited" : "withdrew"} ${amount.toFixed(2)} ETB for ${player.name}!`);
+}
+
+function openPhoneModal(player) {
+  const idInput = $("phone-form-player-id");
+  const nameEl = $("phone-modal-player-name");
+  const phoneInput = $("phone-form-value");
+
+  if (idInput) idInput.value = player.id;
+  if (nameEl) nameEl.textContent = player.name;
+  if (phoneInput) {
+    phoneInput.value = (player.rawPhone || (player.phone !== "—" ? player.phone : "")).replace(/^\+251/, "0");
+  }
+  openModal("phone-modal");
+  if (phoneInput) phoneInput.focus();
+}
+
+async function savePhoneFromForm(event) {
+  event.preventDefault();
+  const id = $("phone-form-player-id")?.value;
+  const newPhone = $("phone-form-value")?.value.trim();
+  const player = state.players.find((p) => p.id === id);
+  if (!player || !newPhone) return;
+
+  player.phone = newPhone;
+  player.rawPhone = newPhone;
+  addActivity(`Updated phone number for ${player.name} to ${newPhone}`, "support", "📱");
+
+  const targetUid = String(player.userId || player.id);
+  if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
+    try {
+      const res = await LuckyBingoAPI.updateAdminUser(targetUid, { phone: newPhone });
+      if (res && res.error) {
+        showToast("Error updating phone: " + res.error);
+        return;
+      }
+    } catch (e) {
+      console.error("Error updating phone on server:", e);
+    }
+  }
+
+  saveState();
+  closeModal("phone-modal");
+  renderPlayers();
+  showToast(`✅ Phone number updated to ${newPhone} for ${player.name}`);
 }
 
 async function togglePlayerStatus(id) {
@@ -1546,7 +1735,8 @@ function bindEvents() {
     if (playerAction) {
       const player = state.players.find((item) => item.id === playerAction.dataset.id);
       if (playerAction.dataset.playerAction === "add") openPlayerForm();
-      else if (playerAction.dataset.playerAction === "balance" && player) adjustPlayerBalance(player);
+      else if (playerAction.dataset.playerAction === "balance" && player) openBalanceModal(player);
+      else if (playerAction.dataset.playerAction === "phone" && player) openPhoneModal(player);
       else if (playerAction.dataset.playerAction === "edit" && player) openPlayerForm(player);
       else if (playerAction.dataset.playerAction === "password" && player) openPasswordForm(player);
       else if ((playerAction.dataset.playerAction === "block" || playerAction.dataset.playerAction === "unblock") && player) togglePlayerStatus(player.id);
@@ -1726,6 +1916,56 @@ function bindEvents() {
   $("player-filter-button").addEventListener("click", () => showToast("Use the status menu or search field to narrow players."));
   $("player-form").addEventListener("submit", savePlayerFromForm);
   $("password-form").addEventListener("submit", savePassword);
+
+  // Balance Modal & Phone Modal Listeners
+  const quickBalBtn = $("btn-quick-balance");
+  if (quickBalBtn) {
+    quickBalBtn.addEventListener("click", () => openBalanceModal(null));
+  }
+  const balForm = $("balance-form");
+  if (balForm) {
+    balForm.addEventListener("submit", saveBalanceTransaction);
+  }
+  const phoneForm = $("phone-form");
+  if (phoneForm) {
+    phoneForm.addEventListener("submit", savePhoneFromForm);
+  }
+  const btnDep = $("btn-type-deposit");
+  if (btnDep) {
+    btnDep.addEventListener("click", () => setBalanceMode("deposit"));
+  }
+  const btnWth = $("btn-type-withdraw");
+  if (btnWth) {
+    btnWth.addEventListener("click", () => setBalanceMode("withdraw"));
+  }
+  const balAmtInput = $("balance-form-amount");
+  if (balAmtInput) {
+    balAmtInput.addEventListener("input", updateBalanceModalPreview);
+  }
+  const playerSelectEl = $("balance-modal-select-player");
+  if (playerSelectEl) {
+    playerSelectEl.addEventListener("change", (e) => {
+      const selId = e.target.value;
+      const p = state.players.find((x) => x.id === selId);
+      if (p) {
+        $("balance-form-player-id").value = p.id;
+        $("balance-modal-player-name").textContent = p.name;
+        $("balance-modal-player-phone").textContent = p.phone && p.phone !== "—" ? p.phone : (p.username ? "@" + p.username : "ID: " + p.id);
+        updateBalanceModalPreview();
+      }
+    });
+  }
+  document.querySelectorAll("#balance-modal .admin-chip-btn").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const addAmt = parseFloat(chip.dataset.amt) || 0;
+      const curVal = parseFloat($("balance-form-amount")?.value) || 0;
+      const inputEl = $("balance-form-amount");
+      if (inputEl) {
+        inputEl.value = curVal + addAmt;
+        updateBalanceModalPreview();
+      }
+    });
+  });
   $("transaction-search").addEventListener("input", (event) => {
     transactionQuery = event.target.value.trim().toLowerCase();
     renderTransactions();
@@ -1847,15 +2087,35 @@ function _startAdminDataPoll() {
 
     if (playerList.length > 0) {
       state.players = playerList.map((u) => {
-        const rawPhone = String(u.phone || u.phone_number || "").trim();
-        const dispPhone = rawPhone || (u.username && /^\d+$/.test(u.username) ? u.username : "—");
+        let rawPhone = String(u.phone || u.phone_number || "").trim();
+        // If rawPhone equals Telegram chat ID and is not an Ethiopian mobile phone, clear it
+        if (rawPhone && rawPhone === String(u.id)) {
+          const cleanP = rawPhone.replace(/[\s\-()]+/g, "");
+          if (!/^(\+251|251|0)?[79]\d{8}$/.test(cleanP)) {
+            rawPhone = "";
+          }
+        }
+        let dispPhone = "—";
+        if (rawPhone) {
+          let pClean = rawPhone.replace(/[\s\-()]+/g, "");
+          if (pClean.startsWith("+251")) pClean = "0" + pClean.slice(4);
+          else if (pClean.startsWith("251")) pClean = "0" + pClean.slice(3);
+          else if ((pClean.startsWith("9") || pClean.startsWith("7")) && pClean.length === 9) pClean = "0" + pClean;
+          dispPhone = pClean;
+        } else if (u.username && /^0?[79]\d{8}$/.test(u.username)) {
+          let pClean = u.username;
+          if (pClean.length === 9 && (pClean.startsWith("9") || pClean.startsWith("7"))) pClean = "0" + pClean;
+          dispPhone = pClean;
+          rawPhone = pClean;
+        }
+
         const dispName = [u.first_name, u.last_name].filter(Boolean).join(" ") ||
           (u.first_name ? u.first_name : (u.username ? (u.username.startsWith("@") ? u.username : `@${u.username}`) : `Player ${String(u.id).slice(-4)}`));
         return {
           id: String(u.id),
           userId: String(u.id),
           name: dispName,
-          email: u.email || (u.username ? `@${u.username}` : `${dispPhone || u.id}@t.me`),
+          email: u.email || (u.username ? `@${u.username}` : `${dispPhone !== "—" ? dispPhone : u.id}@t.me`),
           phone: dispPhone,
           rawPhone: rawPhone,
           username: u.username || "",

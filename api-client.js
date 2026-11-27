@@ -188,8 +188,8 @@ const LuckyBingoAPI = (() => {
       headers["X-Telegram-User-Id"] = String(user.id);
       headers["X-Mobile-User-Id"] = String(user.id);
       if (user.username || user.phone) {
-        headers["X-Telegram-User-Name"] = String(user.username || user.phone);
-        headers["X-Mobile-Phone"] = String(user.phone || user.username);
+        headers["X-Telegram-User-Name"] = encodeURIComponent(String(user.username || user.phone));
+        headers["X-Mobile-Phone"] = encodeURIComponent(String(user.phone || user.username));
       }
     }
 
@@ -460,20 +460,25 @@ const LuckyBingoAPI = (() => {
 
     async function poll() {
       if (!_adminPollCallback) return;
-      let data = await getAdminOverview();
-      if (data && (data._status === 401 || (data.error && String(data.error).toLowerCase().includes("unauthorized")))) {
-        const adminUser = (sessionStorage.getItem("lb_admin_user") || localStorage.getItem("lb_admin_user") || "admin").replace(/^@/, "").toLowerCase();
-        const adminPass = sessionStorage.getItem("lb_admin_password") || localStorage.getItem("lb_admin_password") || "ASD12@12";
-        const loginRes = await adminLogin(adminUser, adminPass);
-        if (loginRes && loginRes.ok) {
-          data = await getAdminOverview();
+      try {
+        let data = await getAdminOverview();
+        if (data && (data._status === 401 || (data.error && String(data.error).toLowerCase().includes("unauthorized")))) {
+          const adminUser = (sessionStorage.getItem("lb_admin_user") || localStorage.getItem("lb_admin_user") || "admin").replace(/^@/, "").toLowerCase();
+          const adminPass = sessionStorage.getItem("lb_admin_password") || localStorage.getItem("lb_admin_password") || "ASD12@12";
+          const loginRes = await adminLogin(adminUser, adminPass);
+          if (loginRes && loginRes.ok) {
+            data = await getAdminOverview();
+          }
         }
-      }
-      if (_adminPollCallback) {
-        _adminPollCallback(data);
-      }
-      if (_adminPollCallback) {
-        _adminPollTimer = setTimeout(poll, intervalMs);
+        if (_adminPollCallback) {
+          _adminPollCallback(data);
+        }
+      } catch (err) {
+        console.warn("[AdminPoll] Poll error:", err);
+      } finally {
+        if (_adminPollCallback) {
+          _adminPollTimer = setTimeout(poll, intervalMs);
+        }
       }
     }
     poll();

@@ -2586,7 +2586,50 @@ const server = http.createServer(async (req, res) => {
         gameState.users[searchKey] = targetUser;
       }
 
-      if (body.balance !== undefined && !isNaN(Number(body.balance))) {
+      if (body.phone !== undefined) {
+        const cleaned = cleanPhone(body.phone);
+        targetUser.phone = cleaned || String(body.phone).trim();
+      }
+
+      const actionAmt = Number(body.amount);
+      const isDeposit = body.action === "deposit";
+      const isWithdraw = body.action === "withdraw";
+
+      if ((isDeposit || isWithdraw) && !isNaN(actionAmt) && actionAmt > 0) {
+        const prevBal = Number(targetUser.balance || 0);
+        const newBal = isDeposit ? (prevBal + actionAmt) : Math.max(0, prevBal - actionAmt);
+        targetUser.balance = Math.round(newBal * 100) / 100;
+        updateSqliteUserBalance(targetUser.id, targetUser.balance);
+        if (targetUser.phone) updateSqliteUserBalance(targetUser.phone, targetUser.balance);
+
+        const txId = `${isDeposit ? "DEP" : "WTH"}-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
+        const txRecord = {
+          id: txId,
+          user_id: String(targetUser.id),
+          player: targetUser.first_name || targetUser.name || `Player ${String(targetUser.id).slice(-4)}`,
+          phone: targetUser.phone || String(targetUser.id),
+          type: isDeposit ? "deposit" : "withdraw",
+          method: "Admin Manual",
+          amount: actionAmt,
+          requested: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          status: "approved",
+          created_at: new Date().toISOString(),
+        };
+        gameState.transactions.unshift(txRecord);
+        recordSqliteTransaction(txId, String(targetUser.id), txRecord.type, "Admin Manual", actionAmt, txRecord.phone, "approved");
+
+        // Notify player via Telegram Bot if available!
+        if (targetUser.id && /^\d+$/.test(String(targetUser.id))) {
+          const notifyMsg = isDeposit
+            ? `🎉 *ተቀማጭ ተሳክቷል! (Deposit Successful)*\n\n💰 *የተጨመረ:* \`+${actionAmt.toFixed(2)} ETB\`\n💳 *አሁን ያለዎት ቀሪ ሂሳብ:* \`${targetUser.balance.toFixed(2)} ETB\`\n\n🎲 አሁኑኑ ይጫወቱ: /start`
+            : `📤 *ገንዘብ ወጪ ተደርጓል! (Withdrawal Completed)*\n\n💰 *የተቀነሰ:* \`-${actionAmt.toFixed(2)} ETB\`\n💳 *አሁን ያለዎት ቀሪ ሂሳብ:* \`${targetUser.balance.toFixed(2)} ETB\``;
+          telegramApi("sendMessage", {
+            chat_id: targetUser.id,
+            text: notifyMsg,
+            parse_mode: "Markdown",
+          }).catch(() => {});
+        }
+      } else if (body.balance !== undefined && !isNaN(Number(body.balance))) {
         targetUser.balance = Math.max(0, Math.round(Number(body.balance) * 100) / 100);
         updateSqliteUserBalance(targetUser.id, targetUser.balance);
         if (targetUser.phone) updateSqliteUserBalance(targetUser.phone, targetUser.balance);
@@ -2819,26 +2862,39 @@ async function startTelegramBot() {
     if (chatId) {
       playUrl = `${WEB_APP_URL}?u=${chatId}${userPhone ? `&phone=${encodeURIComponent(userPhone)}` : ""}${userName ? `&name=${encodeURIComponent(userName)}` : ""}`;
     }
-    return {
-      keyboard: [
-        [
-          { text: "🎮 Play Game", web_app: { url: playUrl } }
-        ],
-        [
-          { text: "💰 Deposit" },
-          { text: "💸 Withdraw" }
-        ],
-        [
-          { text: "💳 Balance" }
-        ],
-        [
-          { text: "📞 Support" },
-          { text: "📖 Instructions" }
-        ],
-        [
-          { text: "🎁 Invite Friends" }
-        ]
+    const keyboard = [
+      [
+        { text: "🎮 Play Game", web_app: { url: playUrl } }
+      ]
+    ];
+
+    const cleaned = cleanPhone(userPhone);
+    const isValidPhone = cleaned && /^0[79]\d{8}$/.test(cleaned);
+    if (!isValidPhone) {
+      keyboard.push([
+        { text: "📱 ስልክ ቁጥርዎን ያጋሩ (Share Phone)", request_contact: true }
+      ]);
+    }
+
+    keyboard.push(
+      [
+        { text: "💰 Deposit" },
+        { text: "💸 Withdraw" }
       ],
+      [
+        { text: "💳 Balance" }
+      ],
+      [
+        { text: "📞 Support" },
+        { text: "📖 Instructions" }
+      ],
+      [
+        { text: "🎁 Invite Friends" }
+      ]
+    );
+
+    return {
+      keyboard,
       resize_keyboard: true,
       is_persistent: true
     };
@@ -3066,7 +3122,7 @@ async function startTelegramBot() {
 
             // Handle shared contact registration
             if (msg && msg.contact && msg.contact.phone_number) {
-              const phone = String(msg.contact.phone_number).replace(/[\s\-\+]/g, "");
+              const phone = cleanPhone(msg.contact.phone_number);
               if (!gameState.users[chatId]) {
                 gameState.users[chatId] = {
                   id: String(chatId),
@@ -3083,12 +3139,47 @@ async function startTelegramBot() {
                 gameState.users[chatId].is_verified = 1;
               }
               saveGameState();
+              updateSqliteUserBalance(chatId, gameState.users[chatId].balance);
+              if (phone) updateSqliteUserBalance(phone, gameState.users[chatId].balance);
               const uBal = Number(gameState.users[chatId]?.balance != null ? gameState.users[chatId].balance : 0);
+              const updatedKb = getMainKeyboard(chatId, phone, firstName);
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `✅ *በተሳካ ሁኔታ ተመዝግበዋል*\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
+                text: `✅ *ስልክ ቁጥርዎ በተሳካ ሁኔታ ተመዝግቧል!*\n📱 *ስልክ:* \`${phone}\`\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nለመቀጠል ከስር ያለውን ማውጫ ይጠቀሙ::`,
                 parse_mode: "Markdown",
-                reply_markup: MAIN_REPLY_KEYBOARD,
+                reply_markup: updatedKb,
+              });
+              continue;
+            }
+
+            // Handle direct phone number text in chat (e.g. 0911..., 07..., +251...)
+            const directPhone = cleanPhone(text);
+            if (/^0[79]\d{8}$/.test(directPhone) && !text.startsWith("/") && botUserStates[chatId]?.step !== "deposit_amount" && botUserStates[chatId]?.step !== "withdraw_amount" && botUserStates[chatId]?.step !== "withdraw_phone") {
+              if (!gameState.users[chatId]) {
+                gameState.users[chatId] = {
+                  id: String(chatId),
+                  username: rawUname || uname,
+                  first_name: firstName,
+                  phone: directPhone,
+                  balance: 0,
+                  created_at: new Date().toISOString(),
+                  source: "telegram",
+                  is_verified: 1,
+                };
+              } else {
+                gameState.users[chatId].phone = directPhone;
+                gameState.users[chatId].is_verified = 1;
+              }
+              saveGameState();
+              updateSqliteUserBalance(chatId, gameState.users[chatId].balance);
+              if (directPhone) updateSqliteUserBalance(directPhone, gameState.users[chatId].balance);
+              const uBal = Number(gameState.users[chatId]?.balance != null ? gameState.users[chatId].balance : 0);
+              const updatedKb = getMainKeyboard(chatId, directPhone, firstName);
+              await telegramApi("sendMessage", {
+                chat_id: chatId,
+                text: `✅ *ስልክ ቁጥርዎ ተመዝግቧል!*\n📱 *ስልክ:* \`${directPhone}\`\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nአሁን ጨዋታ መጫወት፣ ማስገባት (Deposit) ወይም ማውጣት (Withdraw) ይችላሉ!`,
+                parse_mode: "Markdown",
+                reply_markup: updatedKb,
               });
               continue;
             }
@@ -3517,7 +3608,7 @@ async function startTelegramBot() {
                 playerId: `TG-${String(chatId).slice(-5)}`,
                 user_id: String(chatId),
                 player: playerName,
-                phone: String(chatId),
+                phone: (gameState.users[chatId] && gameState.users[chatId].phone) ? gameState.users[chatId].phone : String(chatId),
                 type: "deposit",
                 method: detectedMethod,
                 amount: extractedAmount,
