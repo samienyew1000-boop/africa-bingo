@@ -2635,6 +2635,7 @@ const server = http.createServer(async (req, res) => {
       const actionAmt = Number(body.amount);
       const isDeposit = body.action === "deposit";
       const isWithdraw = body.action === "withdraw";
+      let txRecord = null;
 
       if ((isDeposit || isWithdraw) && !isNaN(actionAmt) && actionAmt > 0) {
         const prevBal = Number(targetUser.balance || 0);
@@ -2643,10 +2644,12 @@ const server = http.createServer(async (req, res) => {
         updateSqliteUserBalance(targetUser.id, targetUser.balance);
         if (targetUser.phone) updateSqliteUserBalance(targetUser.phone, targetUser.balance);
 
-        const txId = `${isDeposit ? "DEP" : "WTH"}-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
-        const txRecord = {
+        const nowTs = Date.now();
+        const txId = `${isDeposit ? "DEP" : "WTH"}-${nowTs.toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
+        txRecord = {
           id: txId,
           user_id: String(targetUser.id),
+          playerId: String(targetUser.id),
           player: targetUser.first_name || targetUser.name || `Player ${String(targetUser.id).slice(-4)}`,
           phone: targetUser.phone || String(targetUser.id),
           type: isDeposit ? "deposit" : "withdraw",
@@ -2655,9 +2658,20 @@ const server = http.createServer(async (req, res) => {
           requested: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           status: "approved",
           created_at: new Date().toISOString(),
+          approved_at: nowTs,
+          processed_timestamp: nowTs,
+          timestamp: nowTs,
         };
+        if (!Array.isArray(gameState.transactions)) gameState.transactions = [];
         gameState.transactions.unshift(txRecord);
         recordSqliteTransaction(txId, String(targetUser.id), txRecord.type, "Admin Manual", actionAmt, txRecord.phone, "approved");
+
+        // Notify Admins on Telegram with deposit / withdraw report alert!
+        const adminAlertMsg = isDeposit
+          ? `💰 *የተቀማጭ ሪፖርት (Deposit Added)*\n\n👤 *ተጫዋች:* ${txRecord.player} (\`${targetUser.id}\`)\n📱 *ስልክ:* \`${targetUser.phone || "—"}\`\n💵 *የተጨመረ:* \`+${actionAmt.toFixed(2)} ETB\`\n💳 *አዲስ ቀሪ ሂሳብ:* \`${targetUser.balance.toFixed(2)} ETB\`\n🏦 *መንገድ:* Admin Manual\n👮 *የፈጸመው:* Admin Control`
+          : `📤 *የወጪ ሪፖርት (Withdrawal Deducted)*\n\n👤 *ተጫዋች:* ${txRecord.player} (\`${targetUser.id}\`)\n📱 *ስልክ:* \`${targetUser.phone || "—"}\`\n💵 *የተቀነሰ:* \`-${actionAmt.toFixed(2)} ETB\`\n💳 *አዲስ ቀሪ ሂሳብ:* \`${targetUser.balance.toFixed(2)} ETB\`\n🏦 *መንገድ:* Admin Manual\n👮 *የፈጸመው:* Admin Control`;
+        notifyTelegramAdmin(adminAlertMsg);
+        sendAdminProfitReportThrottled();
 
         // Notify player via Telegram Bot if available!
         if (targetUser.id && /^\d+$/.test(String(targetUser.id))) {
@@ -2689,7 +2703,7 @@ const server = http.createServer(async (req, res) => {
       }
       targetUser.updated_at = new Date().toISOString();
       saveGameState();
-      return sendJson(res, { ok: true, user: targetUser });
+      return sendJson(res, { ok: true, user: targetUser, transaction: txRecord });
     }
 
     // 13. Test / Demo Game Starter (Allows running live round for testing)

@@ -1298,7 +1298,7 @@ function updateBalanceModalPreview() {
   const idInput = $("balance-form-player-id");
   if (!idInput) return;
   const playerId = idInput.value;
-  const player = state.players.find((p) => p.id === playerId);
+  const player = state.players.find((p) => String(p.id) === String(playerId));
   const curBal = player ? Number(player.balance || 0) : 0;
   const inputAmt = parseFloat($("balance-form-amount")?.value) || 0;
 
@@ -1447,11 +1447,11 @@ function populateBalanceModalPlayers() {
     return;
   }
 
-  const currentSelected = selectPlayerEl.value;
+  const currentSelected = String(selectPlayerEl.value || $("balance-form-player-id")?.value || "");
   selectPlayerEl.innerHTML = `<option value="">-- ወይም ከተጫዋቾች ዝርዝር ይምረጡ (${playerPool.length} ተጫዋቾች) --</option>` +
     playerPool.map(p => {
       const ph = p.phone && p.phone !== "—" ? p.phone : (p.username ? `@${p.username}` : `ID: ${p.id}`);
-      const isSel = p.id === currentSelected ? " selected" : "";
+      const isSel = String(p.id) === currentSelected ? " selected" : "";
       return `<option value="${p.id}"${isSel}>${escapeHTML(p.name)} (${ph}) - Bal: ${Number(p.balance||0).toFixed(2)} ETB</option>`;
     }).join("");
 }
@@ -1465,20 +1465,28 @@ function selectBalancePlayer(player) {
   const resultsDiv = $("balance-modal-search-results");
   const selectPlayerEl = $("balance-modal-select-player");
 
-  // Ensure this player exists in state.players so saving balance finds it
-  if (!state.players.find(p => String(p.id) === String(player.id))) {
+  // Ensure this player exists and is updated in state.players
+  let existing = state.players.find(p => String(p.id) === String(player.id));
+  if (!existing) {
     state.players.unshift(player);
     populateBalanceModalPlayers();
     renderPlayers();
+  } else {
+    if (player.balance !== undefined) existing.balance = Number(player.balance);
+    if (player.name) existing.name = player.name;
+    if (player.phone) existing.phone = player.phone;
   }
 
   if (idInput) idInput.value = player.id;
-  if (nameEl) nameEl.textContent = player.name;
+  if (nameEl) nameEl.textContent = player.name || `Player ${String(player.id).slice(-4)}`;
   if (phoneEl) {
     phoneEl.textContent = player.phone && player.phone !== "—" ? player.phone : (player.username ? "@" + player.username : "ID: " + player.id);
   }
-  if (searchInput) searchInput.value = `${player.name} (${player.phone && player.phone !== "—" ? player.phone : player.id})`;
-  if (selectPlayerEl) selectPlayerEl.value = player.id;
+  if (searchInput) {
+    const ph = player.phone && player.phone !== "—" ? player.phone : player.id;
+    searchInput.value = `${player.name || "Player"} (${ph})`;
+  }
+  if (selectPlayerEl) selectPlayerEl.value = String(player.id);
   if (resultsDiv) resultsDiv.style.display = "none";
   updateBalanceModalPreview();
 }
@@ -1607,7 +1615,7 @@ function setupBalanceModalSearch() {
               return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
             } catch (_) { return []; }
           })();
-      const found = playerPool.find((p) => p.id === pid);
+      const found = playerPool.find((p) => String(p.id) === String(pid));
       if (found) {
         selectBalancePlayer(found);
       }
@@ -1641,6 +1649,13 @@ function openBalanceModal(player = null) {
           renderPlayers();
           if (searchInput && searchInput.value.trim()) {
             searchInput.dispatchEvent(new Event("input"));
+          }
+          const activeId = $("balance-form-player-id")?.value;
+          if (activeId) {
+            const freshP = state.players.find((p) => String(p.id) === String(activeId));
+            if (freshP) {
+              selectBalancePlayer(freshP);
+            }
           }
         }
       }).catch(() => {});
@@ -1717,6 +1732,29 @@ async function saveBalanceTransaction(event) {
     "💰"
   );
 
+  // Record transaction locally in state.transactions
+  const nowTs = Date.now();
+  const txId = `${currentBalanceMode === "deposit" ? "DEP" : "WTH"}-${nowTs.toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`;
+  const newTx = {
+    id: txId,
+    playerId: player.id,
+    userId: player.id,
+    user_id: player.id,
+    player: player.name || `Player ${String(player.id).slice(-4)}`,
+    phone: player.phone && player.phone !== "—" ? player.phone : (player.rawPhone || "—"),
+    type: currentBalanceMode,
+    method: "Admin Manual",
+    amount: amount,
+    requested: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    date: new Date().toISOString(),
+    status: "approved",
+    approved_at: nowTs,
+    processed_timestamp: nowTs,
+    timestamp: nowTs,
+  };
+  if (!Array.isArray(state.transactions)) state.transactions = [];
+  state.transactions.unshift(newTx);
+
   const targetUid = String(player.userId || player.id);
   if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.updateAdminUser) {
     try {
@@ -1730,6 +1768,9 @@ async function saveBalanceTransaction(event) {
         showToast("Error updating on server: " + res.error);
       } else if (res && res.user) {
         player.balance = Number(res.user.balance) || player.balance;
+        if (res.transaction && res.transaction.id) {
+          newTx.id = res.transaction.id;
+        }
       }
     } catch (err) {
       console.error("Failed to update user balance on server:", err);
@@ -1739,8 +1780,12 @@ async function saveBalanceTransaction(event) {
   saveState();
   closeModal("balance-modal");
   renderAll();
+  renderTransactions();
+  renderFinanceSummary();
+  renderReports();
+  renderDashboard();
   populateBalanceModalPlayers();
-  showToast(`✅ Successfully ${currentBalanceMode === "deposit" ? "deposited" : "withdrew"} ${amount.toFixed(2)} ETB for ${player.name}!`);
+  showToast(`✅ ${currentBalanceMode === "deposit" ? "ተቀማጭ" : "ወጪ"} ${amount.toFixed(2)} ETB በተሳካ ሁኔታ ተከናውኗል! (${player.name})`);
 }
 
 function openPhoneModal(player) {
@@ -2226,12 +2271,13 @@ function bindEvents() {
   if (playerSelectEl) {
     playerSelectEl.addEventListener("change", (e) => {
       const selId = e.target.value;
+      if (!selId) return;
       const playerPool = state.players.length > 0 ? state.players : (() => {
         try {
           return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
         } catch (_) { return []; }
       })();
-      const p = playerPool.find((x) => x.id === selId);
+      const p = playerPool.find((x) => String(x.id) === String(selId));
       if (p) {
         selectBalancePlayer(p);
       }
