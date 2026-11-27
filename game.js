@@ -2988,9 +2988,6 @@ function renderRooms() {
   });
 }
 function enterRoom(roomId) {
-  if (!checkUserPhoneGate(() => enterRoom(roomId))) {
-    return;
-  }
   const room = getLobbyRoom(roomId);
   if (!room) {
     toast("ROOM UNAVAILABLE", "lose");
@@ -3006,6 +3003,7 @@ function enterRoom(roomId) {
   }
 
   // If entering a room where game is already live: enter directly in spectator mode!
+  // (Spectating never requires phone verification)
   if (state.type === "live") {
     activeRoomId = String(room.id);
     stake = room.stake;
@@ -3022,6 +3020,10 @@ function enterRoom(roomId) {
     }
 
     beginLiveGame(true); // spectator mode!
+    return;
+  }
+
+  if (!checkUserPhoneGate(() => enterRoom(roomId))) {
     return;
   }
 
@@ -5324,12 +5326,26 @@ if (window.location.hash === "#game" || window.location.search.includes("view=ga
 }
 
 function checkUserPhoneGate(onSuccess = null) {
-  const user = typeof LuckyBingoAPI !== "undefined" ? LuckyBingoAPI.getActiveUser() : null;
+  let user = null;
+  try {
+    if (typeof LuckyBingoAPI !== "undefined" && typeof LuckyBingoAPI.getActiveUser === "function") {
+      user = LuckyBingoAPI.getActiveUser();
+    }
+    if (!user && typeof LuckyBingoAPI !== "undefined") {
+      user = (LuckyBingoAPI.getMobileUser && LuckyBingoAPI.getMobileUser()) || (LuckyBingoAPI.getTelegramUser && LuckyBingoAPI.getTelegramUser()) || null;
+    }
+  } catch (_) {}
+
   const rawP = user ? (user.phone || "") : "";
   const cleanP = String(rawP).trim().replace(/[\s\-()]+/g, "");
   const isValid = /^(\+251|251|0)?[79]\d{8}$/.test(cleanP);
 
-  if (isValid || isAdmin) {
+  const isUserAdmin = Boolean(
+    sessionStorage.getItem("lb_is_admin") === "1" ||
+    (user && (user.role === "admin" || user.isAdmin === true))
+  );
+
+  if (isValid || isUserAdmin) {
     return true;
   }
 
@@ -5338,6 +5354,7 @@ function checkUserPhoneGate(onSuccess = null) {
 
   modal.style.display = "flex";
   modal.hidden = false;
+  initPhoneGate();
 
   const tgBtn = $("btn-tg-share-contact");
   const divider = $("phone-gate-divider");
@@ -5379,6 +5396,18 @@ function checkUserPhoneGate(onSuccess = null) {
 }
 
 function initPhoneGate() {
+  const closeBtn = $("btn-phone-gate-close");
+  if (closeBtn && !closeBtn._bound) {
+    closeBtn._bound = true;
+    closeBtn.addEventListener("click", () => {
+      const modal = $("phone-gate-modal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.hidden = true;
+      }
+    });
+  }
+
   const tgBtn = $("btn-tg-share-contact");
   if (tgBtn && !tgBtn._bound) {
     tgBtn._bound = true;

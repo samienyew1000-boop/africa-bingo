@@ -433,6 +433,18 @@ const LuckyBingoAPI = (() => {
     });
   }
 
+  function getActiveUser() {
+    const mobileUser = getMobileUser();
+    if (mobileUser && (mobileUser.id || mobileUser.phone)) return mobileUser;
+    const tgUser = getTelegramUser();
+    if (tgUser && (tgUser.id || tgUser.phone)) return tgUser;
+    try {
+      const u = JSON.parse(localStorage.getItem("lb_active_user") || "null");
+      if (u) return u;
+    } catch (_) {}
+    return null;
+  }
+
   async function updateAdminUser(userId, updates = {}) {
     return apiRequest("/api/admin/user/update", {
       method: "POST",
@@ -542,6 +554,7 @@ const LuckyBingoAPI = (() => {
     stopLobbyPoll,
     setBaseUrl,
     getBaseUrl,
+    getActiveUser,
     getTelegramUser,
     getInitData,
     adminLogin,
