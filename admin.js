@@ -1367,19 +1367,92 @@ function setBalanceMode(mode) {
   updateBalanceModalPreview();
 }
 
+function syncPlayersFromOverview(data) {
+  if (!data) return state.players;
+  const playerList = Array.isArray(data.players) && data.players.length > 0
+    ? data.players
+    : (Array.isArray(data.users) && data.users.length > 0 ? data.users : []);
+
+  if (playerList.length > 0) {
+    state.players = playerList.map((u) => {
+      let rawPhone = String(u.phone || u.phone_number || "").trim();
+      // If rawPhone equals Telegram chat ID and is not an Ethiopian mobile phone, clear it
+      if (rawPhone && rawPhone === String(u.id)) {
+        const cleanP = rawPhone.replace(/[\s\-()]+/g, "");
+        if (!/^(\+251|251|0)?[79]\d{8}$/.test(cleanP)) {
+          rawPhone = "";
+        }
+      }
+      let dispPhone = "—";
+      if (rawPhone) {
+        let pClean = rawPhone.replace(/[\s\-()]+/g, "");
+        if (pClean.startsWith("+251")) pClean = "0" + pClean.slice(4);
+        else if (pClean.startsWith("251")) pClean = "0" + pClean.slice(3);
+        else if ((pClean.startsWith("9") || pClean.startsWith("7")) && pClean.length === 9) pClean = "0" + pClean;
+        dispPhone = pClean;
+      } else if (u.username && /^0?[79]\d{8}$/.test(u.username)) {
+        let pClean = u.username;
+        if (pClean.length === 9 && (pClean.startsWith("9") || pClean.startsWith("7"))) pClean = "0" + pClean;
+        dispPhone = pClean;
+        rawPhone = pClean;
+      }
+
+      const dispName = [u.first_name, u.last_name].filter(Boolean).join(" ") ||
+        (u.first_name ? u.first_name : (u.username ? (u.username.startsWith("@") ? u.username : `@${u.username}`) : `Player ${String(u.id).slice(-4)}`));
+      return {
+        id: String(u.id),
+        userId: String(u.id),
+        name: dispName,
+        email: u.email || (u.username ? `@${u.username}` : `${dispPhone !== "—" ? dispPhone : u.id}@t.me`),
+        phone: dispPhone,
+        rawPhone: rawPhone,
+        username: u.username || "",
+        password: u.password || "",
+        role: u.role || "player",
+        balance: Number(u.balance) || 0,
+        bonusBalance: Number(u.bonus_balance) || 0,
+        games: Number(u.games) || 0,
+        lastActive: u.updated_at
+          ? new Date(u.updated_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+          : (u.created_at ? new Date(u.created_at).toLocaleDateString([], { month: "short", day: "numeric" }) : "Recently"),
+        status: u.status || "active",
+        avatar: u.source === "telegram" ? "purple" : "blue",
+        source: u.source || (u.phone ? "mobile" : "guest"),
+        verified: Boolean(u.is_verified ?? true),
+        joined: u.created_at || u.createdAt || "Recent",
+        activeRoom: u.active_room || "Lobby",
+        note: u.note || (u.source === "telegram" ? `Telegram Player (ID: ${u.id})` : `Registered Player (ID: ${u.id})`),
+      };
+    });
+    try {
+      localStorage.setItem("lb_admin_cached_players", JSON.stringify(state.players));
+    } catch (e) {}
+  }
+  return state.players;
+}
+
 function populateBalanceModalPlayers() {
   const selectPlayerEl = $("balance-modal-select-player");
   if (!selectPlayerEl) return;
-  const playerPool = state.players.length > 0 ? state.players : (() => {
-    try {
-      return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
-    } catch (_) { return []; }
-  })();
+  const playerPool = (state.players && state.players.length > 0)
+    ? state.players
+    : (() => {
+        try {
+          return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
+        } catch (_) { return []; }
+      })();
 
-  selectPlayerEl.innerHTML = '<option value="">-- ወይም ከተጫዋቾች ዝርዝር ይምረጡ (Choose from list) --</option>' +
+  if (playerPool.length === 0) {
+    selectPlayerEl.innerHTML = '<option value="">-- ተጫዋቾች እየተጫኑ ነው (Loading players...) --</option>';
+    return;
+  }
+
+  const currentSelected = selectPlayerEl.value;
+  selectPlayerEl.innerHTML = `<option value="">-- ወይም ከተጫዋቾች ዝርዝር ይምረጡ (${playerPool.length} ተጫዋቾች) --</option>` +
     playerPool.map(p => {
       const ph = p.phone && p.phone !== "—" ? p.phone : (p.username ? `@${p.username}` : `ID: ${p.id}`);
-      return `<option value="${p.id}">${escapeHTML(p.name)} (${ph}) - Bal: ${Number(p.balance||0).toFixed(2)} ETB</option>`;
+      const isSel = p.id === currentSelected ? " selected" : "";
+      return `<option value="${p.id}"${isSel}>${escapeHTML(p.name)} (${ph}) - Bal: ${Number(p.balance||0).toFixed(2)} ETB</option>`;
     }).join("");
 }
 
@@ -1391,6 +1464,13 @@ function selectBalancePlayer(player) {
   const searchInput = $("balance-modal-player-search");
   const resultsDiv = $("balance-modal-search-results");
   const selectPlayerEl = $("balance-modal-select-player");
+
+  // Ensure this player exists in state.players so saving balance finds it
+  if (!state.players.find(p => String(p.id) === String(player.id))) {
+    state.players.unshift(player);
+    populateBalanceModalPlayers();
+    renderPlayers();
+  }
 
   if (idInput) idInput.value = player.id;
   if (nameEl) nameEl.textContent = player.name;
@@ -1408,24 +1488,34 @@ function setupBalanceModalSearch() {
   const resultsDiv = $("balance-modal-search-results");
   if (!searchInput || !resultsDiv) return;
 
-  searchInput.addEventListener("input", () => {
-    const q = searchInput.value.trim().toLowerCase();
+  const normalizePhone = (str) =>
+    String(str || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s\-()]+/g, "")
+      .replace(/^(\+251|251)/, "0");
+
+  function runSearch() {
+    const rawVal = searchInput.value.trim();
+    const q = rawVal.toLowerCase();
     if (!q) {
       resultsDiv.style.display = "none";
       return;
     }
 
-    const qNorm = q.replace(/[\s\-()]+/g, "").replace(/^(\+251|251)/, "0");
+    const qNorm = normalizePhone(q);
     const qClean = qNorm.replace(/^0/, "");
 
-    const playerPool = state.players.length > 0 ? state.players : (() => {
-      try {
-        return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
-      } catch (_) { return []; }
-    })();
+    const playerPool = (state.players && state.players.length > 0)
+      ? state.players
+      : (() => {
+          try {
+            return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
+          } catch (_) { return []; }
+        })();
 
     const matches = playerPool.filter((p) => {
-      const pPhone = String(p.phone || "").replace(/[\s\-()]+/g, "").replace(/^(\+251|251)/, "0");
+      const pPhone = normalizePhone(p.phone || p.rawPhone || "");
       const pClean = pPhone.replace(/^0/, "");
       const pName = String(p.name || "").toLowerCase();
       const pId = String(p.id || "");
@@ -1433,42 +1523,90 @@ function setupBalanceModalSearch() {
       return (
         (qNorm && pPhone.includes(qNorm)) ||
         (qClean && pClean.includes(qClean)) ||
-        pName.includes(q) ||
-        pId.includes(q) ||
-        pUname.includes(q)
+        (q && pName.includes(q)) ||
+        (q && pId.includes(q)) ||
+        (q && pUname.includes(q))
       );
     });
 
-    if (matches.length === 0) {
-      resultsDiv.innerHTML = `<div style="padding:12px; color:#94a3b8; font-size:13px; text-align:center;">ተጫዋች አልተገኘም (No player found)</div>`;
-      resultsDiv.style.display = "block";
-      return;
-    }
+    let html = "";
 
-    resultsDiv.innerHTML = matches.slice(0, 15).map((p) => {
-      const ph = p.phone && p.phone !== "—" ? p.phone : (p.username ? `@${p.username}` : `ID: ${p.id}`);
-      return `
-        <div class="balance-search-result-row" data-search-id="${escapeHTML(p.id)}" style="padding:10px 12px; border-bottom:1px solid #f1f5f9; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <strong style="color:#0f172a; font-size:14px;">${escapeHTML(p.name)}</strong>
-            <span style="font-family:monospace; font-weight:800; color:#2563eb; margin-left:8px; font-size:13px; background:#eff6ff; padding:2px 6px; border-radius:4px;">📱 ${escapeHTML(ph)}</span>
+    // Candidate phone creation check
+    const looksLikePhone = (/^0[79]\d{2,8}$/.test(qNorm) || /^[79]\d{2,8}$/.test(qClean)) && qNorm.length >= 4;
+    const hasExactPhoneMatch = matches.some(p => normalizePhone(p.phone || p.rawPhone) === qNorm);
+
+    if (looksLikePhone && !hasExactPhoneMatch) {
+      const candidatePhone = qNorm.startsWith("0") ? qNorm : "0" + qClean;
+      html += `
+        <div class="balance-search-result-row create-new-player-btn" data-create-phone="${escapeHTML(candidatePhone)}" style="padding:12px; background:#eff6ff; border-bottom:1.5px dashed #3b82f6; cursor:pointer; display:flex; align-items:center; gap:10px;">
+          <span style="font-size:20px; line-height:1;">➕</span>
+          <div style="flex:1;">
+            <strong style="color:#1d4ed8; font-size:13.5px; display:block;">ለ ${escapeHTML(candidatePhone)} አዲስ አካውንት ክፈትና ብር አስገባ</strong>
+            <span style="font-size:11.5px; color:#64748b; display:block; margin-top:2px;">ይህ ስልክ በሲስተሙ የለም፤ ጠቅ አድርገው ወዲያውኑ ብር ማስገባት ይችላሉ</span>
           </div>
-          <span style="color:#16a34a; font-weight:800; font-size:13px; font-family:monospace;">${Number(p.balance || 0).toFixed(2)} ETB</span>
+          <span style="background:#2563eb; color:#fff; font-size:11px; font-weight:800; padding:4px 8px; border-radius:6px;">ይምረጡ</span>
         </div>
       `;
-    }).join("");
+    }
+
+    if (matches.length > 0) {
+      html += matches.slice(0, 15).map((p) => {
+        const ph = p.phone && p.phone !== "—" ? p.phone : (p.username ? `@${p.username}` : `ID: ${p.id}`);
+        return `
+          <div class="balance-search-result-row" data-search-id="${escapeHTML(p.id)}" style="padding:10px 12px; border-bottom:1px solid #f1f5f9; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong style="color:#0f172a; font-size:14px;">${escapeHTML(p.name)}</strong>
+              <span style="font-family:monospace; font-weight:800; color:#2563eb; margin-left:8px; font-size:13px; background:#eff6ff; padding:2px 6px; border-radius:4px;">📱 ${escapeHTML(ph)}</span>
+            </div>
+            <span style="color:#16a34a; font-weight:800; font-size:13px; font-family:monospace;">${Number(p.balance || 0).toFixed(2)} ETB</span>
+          </div>
+        `;
+      }).join("");
+    } else if (!looksLikePhone) {
+      html += `<div style="padding:12px; color:#94a3b8; font-size:13px; text-align:center;">ተጫዋች አልተገኘም (No player found)</div>`;
+    }
+
+    resultsDiv.innerHTML = html;
     resultsDiv.style.display = "block";
+  }
+
+  searchInput.addEventListener("input", runSearch);
+  searchInput.addEventListener("focus", () => {
+    if (searchInput.value.trim()) runSearch();
   });
 
   resultsDiv.addEventListener("click", (e) => {
+    const createBtn = e.target.closest("[data-create-phone]");
+    if (createBtn) {
+      const ph = createBtn.dataset.createPhone;
+      const newPlayer = {
+        id: ph,
+        userId: ph,
+        name: `Player ${ph.slice(-4)}`,
+        phone: ph,
+        rawPhone: ph,
+        username: ph,
+        balance: 0,
+        status: "active",
+        verified: true,
+        role: "player",
+        source: "mobile",
+        games: 0,
+      };
+      selectBalancePlayer(newPlayer);
+      return;
+    }
+
     const row = e.target.closest("[data-search-id]");
     if (row) {
       const pid = row.dataset.searchId;
-      const playerPool = state.players.length > 0 ? state.players : (() => {
-        try {
-          return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
-        } catch (_) { return []; }
-      })();
+      const playerPool = (state.players && state.players.length > 0)
+        ? state.players
+        : (() => {
+            try {
+              return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
+            } catch (_) { return []; }
+          })();
       const found = playerPool.find((p) => p.id === pid);
       if (found) {
         selectBalancePlayer(found);
@@ -1494,11 +1632,16 @@ function openBalanceModal(player = null) {
     if (searchInput) searchInput.value = "";
     populateBalanceModalPlayers();
 
-    // If state.players is empty, trigger overview fetch immediately!
-    if (state.players.length === 0 && typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getAdminOverview) {
+    // Fetch fresh players from server to ensure modal is 100% up-to-date
+    if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getAdminOverview) {
       LuckyBingoAPI.getAdminOverview().then((data) => {
         if (data && (data.players || data.users)) {
+          syncPlayersFromOverview(data);
           populateBalanceModalPlayers();
+          renderPlayers();
+          if (searchInput && searchInput.value.trim()) {
+            searchInput.dispatchEvent(new Event("input"));
+          }
         }
       }).catch(() => {});
     }
@@ -1525,7 +1668,28 @@ async function saveBalanceTransaction(event) {
   event.preventDefault();
   const id = $("balance-form-player-id")?.value;
   const amount = parseFloat($("balance-form-amount")?.value);
-  const player = state.players.find((p) => p.id === id);
+  let player = state.players.find((p) => String(p.id) === String(id));
+
+  if (!id) {
+    alert("Please select a player or enter a phone number");
+    return;
+  }
+  if (!player) {
+    // If not in state.players yet, create temporary entry
+    player = {
+      id: id,
+      userId: id,
+      name: `Player ${id.slice(-4)}`,
+      phone: id,
+      rawPhone: id,
+      username: id,
+      balance: 0,
+      status: "active",
+      verified: true,
+      role: "player",
+    };
+    state.players.unshift(player);
+  }
 
   if (!player) {
     alert("Please select a player");
@@ -1560,9 +1724,12 @@ async function saveBalanceTransaction(event) {
         action: currentBalanceMode,
         amount: amount,
         balance: player.balance,
+        phone: player.phone || player.rawPhone || targetUid,
       });
       if (res && res.error) {
         showToast("Error updating on server: " + res.error);
+      } else if (res && res.user) {
+        player.balance = Number(res.user.balance) || player.balance;
       }
     } catch (err) {
       console.error("Failed to update user balance on server:", err);
@@ -1572,6 +1739,7 @@ async function saveBalanceTransaction(event) {
   saveState();
   closeModal("balance-modal");
   renderAll();
+  populateBalanceModalPlayers();
   showToast(`✅ Successfully ${currentBalanceMode === "deposit" ? "deposited" : "withdrew"} ${amount.toFixed(2)} ETB for ${player.name}!`);
 }
 
@@ -2195,67 +2363,9 @@ function _startAdminDataPoll() {
     }
 
     // 3. Sync registered users / players from authoritative backend
-    const playerList = Array.isArray(data.players) && data.players.length > 0
-      ? data.players
-      : (Array.isArray(data.users) && data.users.length > 0 ? data.users : []);
-
-    if (playerList.length > 0) {
-      state.players = playerList.map((u) => {
-        let rawPhone = String(u.phone || u.phone_number || "").trim();
-        // If rawPhone equals Telegram chat ID and is not an Ethiopian mobile phone, clear it
-        if (rawPhone && rawPhone === String(u.id)) {
-          const cleanP = rawPhone.replace(/[\s\-()]+/g, "");
-          if (!/^(\+251|251|0)?[79]\d{8}$/.test(cleanP)) {
-            rawPhone = "";
-          }
-        }
-        let dispPhone = "—";
-        if (rawPhone) {
-          let pClean = rawPhone.replace(/[\s\-()]+/g, "");
-          if (pClean.startsWith("+251")) pClean = "0" + pClean.slice(4);
-          else if (pClean.startsWith("251")) pClean = "0" + pClean.slice(3);
-          else if ((pClean.startsWith("9") || pClean.startsWith("7")) && pClean.length === 9) pClean = "0" + pClean;
-          dispPhone = pClean;
-        } else if (u.username && /^0?[79]\d{8}$/.test(u.username)) {
-          let pClean = u.username;
-          if (pClean.length === 9 && (pClean.startsWith("9") || pClean.startsWith("7"))) pClean = "0" + pClean;
-          dispPhone = pClean;
-          rawPhone = pClean;
-        }
-
-        const dispName = [u.first_name, u.last_name].filter(Boolean).join(" ") ||
-          (u.first_name ? u.first_name : (u.username ? (u.username.startsWith("@") ? u.username : `@${u.username}`) : `Player ${String(u.id).slice(-4)}`));
-        return {
-          id: String(u.id),
-          userId: String(u.id),
-          name: dispName,
-          email: u.email || (u.username ? `@${u.username}` : `${dispPhone !== "—" ? dispPhone : u.id}@t.me`),
-          phone: dispPhone,
-          rawPhone: rawPhone,
-          username: u.username || "",
-          password: u.password || "",
-          role: u.role || "player",
-          balance: Number(u.balance) || 0,
-          bonusBalance: Number(u.bonus_balance) || 0,
-          games: Number(u.games) || 0,
-          lastActive: u.updated_at
-            ? new Date(u.updated_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
-            : (u.created_at ? new Date(u.created_at).toLocaleDateString([], { month: "short", day: "numeric" }) : "Recently"),
-          status: u.status || "active",
-          avatar: u.source === "telegram" ? "purple" : "blue",
-          source: u.source || (u.phone ? "mobile" : "guest"),
-          verified: Boolean(u.is_verified ?? true),
-          joined: u.created_at || u.createdAt || "Recent",
-          activeRoom: u.active_room || "Lobby",
-          note: u.note || (u.source === "telegram" ? `Telegram Player (ID: ${u.id})` : `Registered Player (ID: ${u.id})`),
-        };
-      });
-      try {
-        localStorage.setItem("lb_admin_cached_players", JSON.stringify(state.players));
-      } catch (e) {}
-      renderPlayers();
-      populateBalanceModalPlayers();
-    }
+    syncPlayersFromOverview(data);
+    renderPlayers();
+    populateBalanceModalPlayers();
 
     // 4. Sync metrics
     if (data.metrics) {
