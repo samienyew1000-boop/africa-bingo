@@ -2988,6 +2988,9 @@ function renderRooms() {
   });
 }
 function enterRoom(roomId) {
+  if (!checkUserPhoneGate(() => enterRoom(roomId))) {
+    return;
+  }
   const room = getLobbyRoom(roomId);
   if (!room) {
     toast("ROOM UNAVAILABLE", "lose");
@@ -5319,12 +5322,167 @@ if (window.location.hash === "#game" || window.location.search.includes("view=ga
   showView("lobby");
 }
 
+function checkUserPhoneGate(onSuccess = null) {
+  const user = typeof LuckyBingoAPI !== "undefined" ? LuckyBingoAPI.getActiveUser() : null;
+  const rawP = user ? (user.phone || "") : "";
+  const cleanP = String(rawP).trim().replace(/[\s\-()]+/g, "");
+  const isValid = /^(\+251|251|0)?[79]\d{8}$/.test(cleanP);
+
+  if (isValid || isAdmin) {
+    return true;
+  }
+
+  const modal = $("phone-gate-modal");
+  if (!modal) return true;
+
+  modal.style.display = "flex";
+  modal.hidden = false;
+
+  const tgBtn = $("btn-tg-share-contact");
+  const divider = $("phone-gate-divider");
+  const isTg = Boolean(window.Telegram?.WebApp);
+
+  if (isTg && typeof window.Telegram.WebApp.requestContact === "function") {
+    if (tgBtn) tgBtn.style.display = "block";
+    if (divider) divider.style.display = "flex";
+
+    // Auto-prompt Telegram contact share right when game opens
+    try {
+      window.Telegram.WebApp.requestContact(function(shared) {
+        if (shared) {
+          setTimeout(() => {
+            if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMe) {
+              LuckyBingoAPI.getMe().then((res) => {
+                if (res && res.user && res.user.phone) {
+                  modal.style.display = "none";
+                  modal.hidden = true;
+                  if (onSuccess) onSuccess();
+                }
+              }).catch(() => {});
+            }
+          }, 1200);
+        }
+      });
+    } catch (_) {}
+  } else {
+    if (tgBtn) tgBtn.style.display = "none";
+    if (divider) divider.style.display = "none";
+  }
+
+  window._pendingPhoneGateSuccess = onSuccess;
+  const input = $("phone-gate-input");
+  if (input) {
+    setTimeout(() => input.focus(), 250);
+  }
+  return false;
+}
+
+function initPhoneGate() {
+  const tgBtn = $("btn-tg-share-contact");
+  if (tgBtn && !tgBtn._bound) {
+    tgBtn._bound = true;
+    tgBtn.addEventListener("click", () => {
+      if (window.Telegram?.WebApp?.requestContact) {
+        window.Telegram.WebApp.requestContact(function(shared) {
+          if (shared) {
+            setTimeout(() => {
+              if (typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getMe) {
+                LuckyBingoAPI.getMe().then((res) => {
+                  if (res && res.user && res.user.phone) {
+                    const modal = $("phone-gate-modal");
+                    if (modal) {
+                      modal.style.display = "none";
+                      modal.hidden = true;
+                    }
+                    toast("ስልክ ቁጥርዎ ተረጋግጧል!", "win");
+                    if (window._pendingPhoneGateSuccess) {
+                      const cb = window._pendingPhoneGateSuccess;
+                      window._pendingPhoneGateSuccess = null;
+                      cb();
+                    }
+                  }
+                }).catch(() => {});
+              }
+            }, 1000);
+          }
+        });
+      }
+    });
+  }
+
+  const form = $("phone-gate-form");
+  if (form && !form._bound) {
+    form._bound = true;
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = $("phone-gate-input");
+      const errEl = $("phone-gate-error");
+      const submitBtn = $("phone-gate-submit-btn");
+      const val = (input?.value || "").trim();
+
+      let cleaned = val.replace(/[\s\-()]+/g, "");
+      if (cleaned.startsWith("+251")) cleaned = "0" + cleaned.slice(4);
+      else if (cleaned.startsWith("251")) cleaned = "0" + cleaned.slice(3);
+      else if ((cleaned.startsWith("9") || cleaned.startsWith("7")) && cleaned.length === 9) cleaned = "0" + cleaned;
+
+      if (!/^0[79]\d{8}$/.test(cleaned)) {
+        if (errEl) {
+          errEl.textContent = "እባክዎ ትክክለኛ ስልክ ቁጥር ያስገቡ (ለምሳሌ 0911223344 ወይም 0712345678)";
+          errEl.style.display = "block";
+        }
+        return;
+      }
+      if (errEl) errEl.style.display = "none";
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "በማረጋገጥ ላይ...";
+      }
+
+      try {
+        const res = await LuckyBingoAPI.updateUserPhone(cleaned);
+        if (res && res.ok) {
+          const modal = $("phone-gate-modal");
+          if (modal) {
+            modal.style.display = "none";
+            modal.hidden = true;
+          }
+          toast("ስልክ ቁጥርዎ ተረጋግጧል!", "win");
+          if (typeof renderProfileView === "function") renderProfileView();
+          if (window._pendingPhoneGateSuccess) {
+            const cb = window._pendingPhoneGateSuccess;
+            window._pendingPhoneGateSuccess = null;
+            cb();
+          }
+        } else {
+          if (errEl) {
+            errEl.textContent = (res && res.error) ? res.error : "ስልክ ቁጥሩን መመዝገብ አልተቻለም።";
+            errEl.style.display = "block";
+          }
+        }
+      } catch (err) {
+        if (errEl) {
+          errEl.textContent = "የኔትወርክ ችግር አጋጥሟል። እባክዎ እንደገና ይሞክሩ።";
+          errEl.style.display = "block";
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "✅ አረጋግጥና ጀምር (Confirm & Play)";
+        }
+      }
+    });
+  }
+}
+
 checkAdminAccess();
 applyTheme(currentTheme);
 setLanguage(currentLang);
 window.addEventListener("DOMContentLoaded", () => {
   checkAdminAccess();
   initBalancePill();
+  initPhoneGate();
+  setTimeout(() => checkUserPhoneGate(), 600);
   applyTheme(currentTheme);
   setLanguage(currentLang);
 });

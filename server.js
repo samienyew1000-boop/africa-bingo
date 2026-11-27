@@ -2250,6 +2250,46 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    // 3b. User update phone (called from WebApp when player enters or shares phone)
+    if (pathname === "/api/user/phone" && req.method === "POST") {
+      const body = await parseJsonBody(req);
+      const uid = String(body.user_id || body.userId || (user ? user.id : "") || "").trim();
+      const rawPhone = String(body.phone || "").trim();
+      const cleaned = cleanPhone(rawPhone);
+
+      if (!cleaned || !/^0[79]\d{8}$/.test(cleaned)) {
+        return sendJson(res, { ok: false, error: "ትክክለኛ የኢትዮጵያ ስልክ ቁጥር ያስገቡ (09... ወይም 07...)" }, 400);
+      }
+
+      let targetUser = uid ? gameState.users[uid] : null;
+      if (!targetUser && uid) {
+        targetUser = Object.values(gameState.users).find((u) => String(u.id) === uid);
+      }
+
+      if (targetUser) {
+        targetUser.phone = cleaned;
+        targetUser.is_verified = 1;
+        targetUser.updated_at = new Date().toISOString();
+        updateSqliteUserBalance(targetUser.id, targetUser.balance || 0);
+        updateSqliteUserBalance(cleaned, targetUser.balance || 0);
+      } else if (uid) {
+        targetUser = {
+          id: uid,
+          username: body.username || `Player_${uid.slice(-4)}`,
+          first_name: body.first_name || "Player",
+          phone: cleaned,
+          balance: 0,
+          created_at: new Date().toISOString(),
+          is_verified: 1,
+        };
+        gameState.users[uid] = targetUser;
+        updateSqliteUserBalance(uid, 0);
+        updateSqliteUserBalance(cleaned, 0);
+      }
+      saveGameState();
+      return sendJson(res, { ok: true, phone: cleaned, user: targetUser });
+    }
+
 
 
     // 4. Admin Overview (Live feed of rooms, transactions, players, settings, reports)
@@ -2862,36 +2902,38 @@ async function startTelegramBot() {
     if (chatId) {
       playUrl = `${WEB_APP_URL}?u=${chatId}${userPhone ? `&phone=${encodeURIComponent(userPhone)}` : ""}${userName ? `&name=${encodeURIComponent(userName)}` : ""}`;
     }
-    const keyboard = [
-      [
-        { text: "🎮 Play Game", web_app: { url: playUrl } }
-      ]
-    ];
-
     const cleaned = cleanPhone(userPhone);
     const isValidPhone = cleaned && /^0[79]\d{8}$/.test(cleaned);
+
+    const keyboard = [];
+
     if (!isValidPhone) {
       keyboard.push([
-        { text: "📱 ስልክ ቁጥርዎን ያጋሩ (Share Phone)", request_contact: true }
+        { text: "📱 ጨዋታ ለመጀመር ስልክዎን ያጋሩ (Share Phone to Play)", request_contact: true }
       ]);
-    }
-
-    keyboard.push(
-      [
-        { text: "💰 Deposit" },
-        { text: "💸 Withdraw" }
-      ],
-      [
-        { text: "💳 Balance" }
-      ],
-      [
+      keyboard.push([
         { text: "📞 Support" },
         { text: "📖 Instructions" }
-      ],
-      [
+      ]);
+    } else {
+      keyboard.push([
+        { text: "🎮 Play Game", web_app: { url: playUrl } }
+      ]);
+      keyboard.push([
+        { text: "💰 Deposit" },
+        { text: "💸 Withdraw" }
+      ]);
+      keyboard.push([
+        { text: "💳 Balance" }
+      ]);
+      keyboard.push([
+        { text: "📞 Support" },
+        { text: "📖 Instructions" }
+      ]);
+      keyboard.push([
         { text: "🎁 Invite Friends" }
-      ]
-    );
+      ]);
+    }
 
     return {
       keyboard,
@@ -3075,16 +3117,20 @@ async function startTelegramBot() {
 
             const userPhone = gameState.users[chatId]?.phone || "";
             const userName = gameState.users[chatId]?.first_name || firstName;
+            const cleanedUPhone = cleanPhone(userPhone);
+            const isValidPhone = cleanedUPhone && /^0[79]\d{8}$/.test(cleanedUPhone);
             const MAIN_REPLY_KEYBOARD = getMainKeyboard(chatId, userPhone, userName);
 
-            // Sync Telegram bottom menu button directly to user account
+            // Sync Telegram bottom menu button directly to user account (only if phone is registered)
             try {
               telegramApi("setChatMenuButton", {
                 chat_id: chatId,
-                menu_button: {
+                menu_button: isValidPhone ? {
                   type: "web_app",
                   text: "Play Mega Bingo 🎰",
                   web_app: { url: `${WEB_APP_URL}?u=${chatId}${userPhone ? `&phone=${encodeURIComponent(userPhone)}` : ""}` },
+                } : {
+                  type: "default"
                 },
               }).catch(() => {});
             } catch (_) {}
@@ -3143,9 +3189,22 @@ async function startTelegramBot() {
               if (phone) updateSqliteUserBalance(phone, gameState.users[chatId].balance);
               const uBal = Number(gameState.users[chatId]?.balance != null ? gameState.users[chatId].balance : 0);
               const updatedKb = getMainKeyboard(chatId, phone, firstName);
+
+              // Update Telegram bottom menu button now that phone is registered!
+              try {
+                telegramApi("setChatMenuButton", {
+                  chat_id: chatId,
+                  menu_button: {
+                    type: "web_app",
+                    text: "Play Mega Bingo 🎰",
+                    web_app: { url: `${WEB_APP_URL}?u=${chatId}&phone=${encodeURIComponent(phone)}` },
+                  },
+                }).catch(() => {});
+              } catch (_) {}
+
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `✅ *ስልክ ቁጥርዎ በተሳካ ሁኔታ ተመዝግቧል!*\n📱 *ስልክ:* \`${phone}\`\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nለመቀጠል ከስር ያለውን ማውጫ ይጠቀሙ::`,
+                text: `✅ *ስልክ ቁጥርዎ በተሳካ ሁኔታ ተመዝግቧል!*\n📱 *ስልክ:* \`${phone}\`\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nአሁን ጨዋታውን መጀመር ይችላሉ! ከስር *"🎮 Play Game"* የሚለውን ይጫኑ 👇`,
                 parse_mode: "Markdown",
                 reply_markup: updatedKb,
               });
@@ -3175,13 +3234,53 @@ async function startTelegramBot() {
               if (directPhone) updateSqliteUserBalance(directPhone, gameState.users[chatId].balance);
               const uBal = Number(gameState.users[chatId]?.balance != null ? gameState.users[chatId].balance : 0);
               const updatedKb = getMainKeyboard(chatId, directPhone, firstName);
+
+              // Update Telegram bottom menu button now that phone is registered!
+              try {
+                telegramApi("setChatMenuButton", {
+                  chat_id: chatId,
+                  menu_button: {
+                    type: "web_app",
+                    text: "Play Mega Bingo 🎰",
+                    web_app: { url: `${WEB_APP_URL}?u=${chatId}&phone=${encodeURIComponent(directPhone)}` },
+                  },
+                }).catch(() => {});
+              } catch (_) {}
+
               await telegramApi("sendMessage", {
                 chat_id: chatId,
-                text: `✅ *ስልክ ቁጥርዎ ተመዝግቧል!*\n📱 *ስልክ:* \`${directPhone}\`\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nአሁን ጨዋታ መጫወት፣ ማስገባት (Deposit) ወይም ማውጣት (Withdraw) ይችላሉ!`,
+                text: `✅ *ስልክ ቁጥርዎ ተመዝግቧል!*\n📱 *ስልክ:* \`${directPhone}\`\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nአሁን ጨዋታውን መጀመር ይችላሉ! ከስር *"🎮 Play Game"* የሚለውን ይጫኑ 👇`,
                 parse_mode: "Markdown",
                 reply_markup: updatedKb,
               });
               continue;
+            }
+
+            // If user hasn't registered a phone yet, prevent them from starting game or navigating without sharing phone
+            if (!isValidPhone && !isAdmin) {
+              if (text.startsWith("/start") || text.toLowerCase() === "play" || text === "🎮 Play Game" || text.includes("ለመጀመር") || text.includes("መጫወት")) {
+                let userRecord = gameState.users[chatId];
+                if (!userRecord) {
+                  userRecord = {
+                    id: String(chatId),
+                    username: rawUname || uname,
+                    first_name: firstName,
+                    balance: 0,
+                    created_at: new Date().toISOString(),
+                    source: "telegram",
+                    is_verified: 1,
+                  };
+                  gameState.users[chatId] = userRecord;
+                  saveGameState();
+                }
+                await telegramApi("sendMessage", {
+                  chat_id: chatId,
+                  text: `👋 ሰላም *${firstName}*! ወደ *Mega Bingo* እንኳን በደህና መጡ! 🎲\n\n⚠️ *ጨዋታውን ለመጀመር ስልክ ቁጥርዎን ማጋራት ያስፈልጋል!*\n\nእባክዎ ከስር ያለውን *"📱 ጨዋታ ለመጀመር ስልክዎን ያጋሩ"* የሚለውን ቁልፍ በመጫን ስልክዎን ያጋሩ ወይም ስልክ ቁጥርዎን (ለምሳሌ \`09... / 07...\`) እዚህ ይጻፉልን።`,
+                  parse_mode: "Markdown",
+                  reply_markup: MAIN_REPLY_KEYBOARD,
+                });
+                continue;
+              }
             }
 
             if (text.startsWith("/start") || text.toLowerCase() === "play" || text === "🎮 Play Game") {
@@ -3211,11 +3310,12 @@ async function startTelegramBot() {
               } else {
                 await telegramApi("sendMessage", {
                   chat_id: chatId,
-                  text: `✅ *በተሳካ ሁኔታ ተመዝግበዋል*\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nለመቀጠል ማውጫውን ይጠቀሙ::\n\nአንድ አማራጭ ይምረጡ:-`,
+                  text: `👋 ሰላም *${firstName}*! ወደ *Mega Bingo* እንኳን በደህና መጡ! 🎲\n\n✅ *በተሳካ ሁኔታ ተመዝግበዋል*\n📱 *ስልክ:* \`${userPhone}\`\n💰 *ቀሪ ሂሳብ:* \`${uBal} ETB\`\n\nለመጫወት ከስር *"🎮 Play Game"* የሚለውን ይጫኑ 👇`,
                   parse_mode: "Markdown",
                   reply_markup: MAIN_REPLY_KEYBOARD,
                 });
               }
+              continue;
             } else if (text.includes("Deposit") || text.includes("ተቀማጭ") || text.includes("ዲፖዚት") || text === "/deposit") {
               botUserStates[chatId] = {
                 step: "awaiting_deposit_amount",

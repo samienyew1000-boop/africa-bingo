@@ -440,6 +440,34 @@ const LuckyBingoAPI = (() => {
     });
   }
 
+  async function updateUserPhone(phone) {
+    const user = getActiveUser();
+    const uid = user ? (user.id || "") : "";
+    const res = await apiRequest("/api/user/phone", {
+      method: "POST",
+      body: JSON.stringify({
+        user_id: String(uid),
+        phone: String(phone).trim(),
+        first_name: user?.first_name || "",
+        username: user?.username || "",
+      }),
+    });
+    if (res && res.ok && res.phone) {
+      if (user) {
+        user.phone = res.phone;
+        localStorage.setItem("lb_tg_user", JSON.stringify(user));
+      }
+      try {
+        const m = JSON.parse(localStorage.getItem("lb_mobile_user") || "null");
+        if (m) {
+          m.phone = res.phone;
+          localStorage.setItem("lb_mobile_user", JSON.stringify(m));
+        }
+      } catch (_) {}
+    }
+    return res;
+  }
+
   async function getSettings() {
     return apiRequest("/api/settings");
   }
@@ -521,6 +549,7 @@ const LuckyBingoAPI = (() => {
     updateAdminRoom,
     updateAdminTransaction,
     updateAdminUser,
+    updateUserPhone,
     getSettings,
     updateAdminSettings,
     startAdminPoll,
