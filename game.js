@@ -4670,8 +4670,9 @@ function botWins() {
   clearInterval(callTimer);
   callTimer = null;
   const BOT_WINNER_NAMES = [
-    "Abebe T.", "Sara M.", "Dawit K.", "Hanan A.", "Yonas B.",
-    "Selam W.", "Tigist G.", "Bereket F.", "Kidus N.", "Bethlehem D."
+    "Abebe T.", "Dawit K.", "Yonas B.", "Bereket F.", "Kidus N.",
+    "Henok A.", "Samuel G.", "Daniel M.", "Natnael D.", "Ermias B.",
+    "Robel H.", "Binyam Y.", "Solomon K.", "Nahom E.", "Abel D."
   ];
   const winnerName = BOT_WINNER_NAMES[Math.floor(Math.random() * BOT_WINNER_NAMES.length)] || "Dawit K.";
   const botCardId = [...takenByOthers][0] || Math.floor(Math.random() * CARD_COUNT) + 1;

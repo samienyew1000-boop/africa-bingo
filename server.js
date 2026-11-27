@@ -224,10 +224,11 @@ function seedInitialRoundHistory() {
     .map((u) => u.first_name || u.username)
     .filter(Boolean);
   const fallbackNames = [
-    "Almaz T.", "Dawit K.", "Selam G.", "Kalkidan E.", "Yonas B.",
-    "Betelehem M.", "Henok A.", "Marta S.", "Ephrem T.", "Tigist D.",
-    "Samuel T.", "Rahel F.", "Natnael Z.", "Tsion W.", "Abebe B.",
-    "Amanuel D.", "Fikru M.", "Genet B.", "Haile K.", "Kidus T."
+    "Abebe T.", "Dawit K.", "Yonas B.", "Henok A.", "Ephrem T.",
+    "Samuel T.", "Natnael Z.", "Amanuel D.", "Fikru M.", "Haile K.",
+    "Kidus T.", "Bereket F.", "Yohannes A.", "Eyob T.", "Robel H.",
+    "Alazar B.", "Daniel M.", "Binyam Y.", "Solomon K.", "Nahom E.",
+    "Abel D.", "Ermias B.", "Fitsum T.", "Kirubel A.", "Tamirat B."
   ];
   const namePool = userNames.length >= 5 ? userNames : fallbackNames;
 
@@ -629,18 +630,18 @@ const BINGO_PATTERNS = [
 ];
 
 const HABESHA_NAMES = [
-  "Abebe T.", "Dawit K.", "Tigist M.", "Kalkidan E.", "Bereket F.",
-  "Selamawit T.", "Yohannes A.", "Samuel G.", "Sara B.", "Henok L.",
-  "Meron K.", "Feven M.", "Natnael D.", "Eden W.", "Eyob T.",
-  "Bethlehem D.", "Robel H.", "Hanan S.", "Alazar B.", "Hiwot Z.",
-  "Daniel M.", "Tsion A.", "Binyam Y.", "Marta G.", "Solomon K.",
-  "Nahom E.", "Lidia S.", "Abel D.", "Rahel T.", "Ermias B.",
-  "Sosina H.", "Fitsum T.", "Genet A.", "Kirubel A.", "Desta W.",
-  "Meseret T.", "Tamirat B.", "Eyerusalem W.", "Girma A.", "Senait K.",
-  "Kassahun M.", "Danait G.", "Mulugeta T.", "Blen S.", "Fikirte N.",
-  "Hermela A.", "Zelalem F.", "Amanuel G.", "Aster T.", "Getachew D.",
-  "Worku B.", "Tewodros K.", "Helen S.", "Mahlet T.", "Elias M.",
-  "Nebiyu A.", "Saron T.", "Biruk D.", "Rediet M.", "Yared B."
+  "Abebe T.", "Dawit K.", "Bereket F.", "Yohannes A.", "Samuel G.",
+  "Henok L.", "Natnael D.", "Eyob T.", "Robel H.", "Alazar B.",
+  "Daniel M.", "Binyam Y.", "Solomon K.", "Nahom E.", "Abel D.",
+  "Ermias B.", "Fitsum T.", "Kirubel A.", "Tamirat B.", "Girma A.",
+  "Kassahun M.", "Mulugeta T.", "Zelalem F.", "Amanuel G.", "Getachew D.",
+  "Worku B.", "Tewodros K.", "Elias M.", "Nebiyu A.", "Biruk D.",
+  "Yared B.", "Yonas B.", "Ephrem T.", "Fikru S.", "Tadesse M.",
+  "Dagmawi Y.", "Kidus T.", "Haile K.", "Tekle W.", "Moges B.",
+  "Surafel N.", "Anteneh Z.", "Belayneh K.", "Ashenafi M.", "Melaku T.",
+  "Wondwossen A.", "Berhanu G.", "Tsegaye D.", "Mekonnen H.", "Tesfaye B.",
+  "Kassaye S.", "Alemayehu T.", "Demisse W.", "Tariku K.", "Fasil M.",
+  "Baye G.", "Nega T.", "Dereje A.", "Mesfin B.", "Gashaw D."
 ];
 
 function getCardCompletedLines(cardNumbers, calledSet) {
@@ -2698,9 +2699,9 @@ const server = http.createServer(async (req, res) => {
       if (room) {
         room.status = "open";
         room.players = [
-          { user_id: "bot_101", username: "Almaz_B", first_name: "Almaz", card_ids: [12, 14] },
+          { user_id: "bot_101", username: "Yonas_B", first_name: "Yonas", card_ids: [12, 14] },
           { user_id: "bot_102", username: "Dawit_K", first_name: "Dawit", card_ids: [45, 88] },
-          { user_id: "bot_103", username: "Selam_T", first_name: "Selam", card_ids: [102, 115] },
+          { user_id: "bot_103", username: "Ermias_T", first_name: "Ermias", card_ids: [102, 115] },
         ];
         room.startCountdown();
         return sendJson(res, { ok: true, message: `Started demo countdown for room ${rId}`, room: room.getState() });
