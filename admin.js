@@ -814,6 +814,7 @@ function updateTransaction(id, nextStatus) {
           localStorage.setItem("mega-bingo-balance", String(res.user.balance));
         }
         renderPlayers();
+      populateBalanceModalPlayers();
         renderDashboard();
         renderFinanceSummary();
       }
@@ -1366,45 +1367,154 @@ function setBalanceMode(mode) {
   updateBalanceModalPreview();
 }
 
-function openBalanceModal(player = null) {
-  const selectorWrap = $("balance-modal-player-selector");
+function populateBalanceModalPlayers() {
   const selectPlayerEl = $("balance-modal-select-player");
+  if (!selectPlayerEl) return;
+  const playerPool = state.players.length > 0 ? state.players : (() => {
+    try {
+      return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
+    } catch (_) { return []; }
+  })();
+
+  selectPlayerEl.innerHTML = '<option value="">-- ወይም ከተጫዋቾች ዝርዝር ይምረጡ (Choose from list) --</option>' +
+    playerPool.map(p => {
+      const ph = p.phone && p.phone !== "—" ? p.phone : (p.username ? `@${p.username}` : `ID: ${p.id}`);
+      return `<option value="${p.id}">${escapeHTML(p.name)} (${ph}) - Bal: ${Number(p.balance||0).toFixed(2)} ETB</option>`;
+    }).join("");
+}
+
+function selectBalancePlayer(player) {
+  if (!player) return;
   const idInput = $("balance-form-player-id");
   const nameEl = $("balance-modal-player-name");
   const phoneEl = $("balance-modal-player-phone");
+  const searchInput = $("balance-modal-player-search");
+  const resultsDiv = $("balance-modal-search-results");
+  const selectPlayerEl = $("balance-modal-select-player");
+
+  if (idInput) idInput.value = player.id;
+  if (nameEl) nameEl.textContent = player.name;
+  if (phoneEl) {
+    phoneEl.textContent = player.phone && player.phone !== "—" ? player.phone : (player.username ? "@" + player.username : "ID: " + player.id);
+  }
+  if (searchInput) searchInput.value = `${player.name} (${player.phone && player.phone !== "—" ? player.phone : player.id})`;
+  if (selectPlayerEl) selectPlayerEl.value = player.id;
+  if (resultsDiv) resultsDiv.style.display = "none";
+  updateBalanceModalPreview();
+}
+
+function setupBalanceModalSearch() {
+  const searchInput = $("balance-modal-player-search");
+  const resultsDiv = $("balance-modal-search-results");
+  if (!searchInput || !resultsDiv) return;
+
+  searchInput.addEventListener("input", () => {
+    const q = searchInput.value.trim().toLowerCase();
+    if (!q) {
+      resultsDiv.style.display = "none";
+      return;
+    }
+
+    const qNorm = q.replace(/[\s\-()]+/g, "").replace(/^(\+251|251)/, "0");
+    const qClean = qNorm.replace(/^0/, "");
+
+    const playerPool = state.players.length > 0 ? state.players : (() => {
+      try {
+        return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
+      } catch (_) { return []; }
+    })();
+
+    const matches = playerPool.filter((p) => {
+      const pPhone = String(p.phone || "").replace(/[\s\-()]+/g, "").replace(/^(\+251|251)/, "0");
+      const pClean = pPhone.replace(/^0/, "");
+      const pName = String(p.name || "").toLowerCase();
+      const pId = String(p.id || "");
+      const pUname = String(p.username || "").toLowerCase();
+      return (
+        (qNorm && pPhone.includes(qNorm)) ||
+        (qClean && pClean.includes(qClean)) ||
+        pName.includes(q) ||
+        pId.includes(q) ||
+        pUname.includes(q)
+      );
+    });
+
+    if (matches.length === 0) {
+      resultsDiv.innerHTML = `<div style="padding:12px; color:#94a3b8; font-size:13px; text-align:center;">ተጫዋች አልተገኘም (No player found)</div>`;
+      resultsDiv.style.display = "block";
+      return;
+    }
+
+    resultsDiv.innerHTML = matches.slice(0, 15).map((p) => {
+      const ph = p.phone && p.phone !== "—" ? p.phone : (p.username ? `@${p.username}` : `ID: ${p.id}`);
+      return `
+        <div class="balance-search-result-row" data-search-id="${escapeHTML(p.id)}" style="padding:10px 12px; border-bottom:1px solid #f1f5f9; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <strong style="color:#0f172a; font-size:14px;">${escapeHTML(p.name)}</strong>
+            <span style="font-family:monospace; font-weight:800; color:#2563eb; margin-left:8px; font-size:13px; background:#eff6ff; padding:2px 6px; border-radius:4px;">📱 ${escapeHTML(ph)}</span>
+          </div>
+          <span style="color:#16a34a; font-weight:800; font-size:13px; font-family:monospace;">${Number(p.balance || 0).toFixed(2)} ETB</span>
+        </div>
+      `;
+    }).join("");
+    resultsDiv.style.display = "block";
+  });
+
+  resultsDiv.addEventListener("click", (e) => {
+    const row = e.target.closest("[data-search-id]");
+    if (row) {
+      const pid = row.dataset.searchId;
+      const playerPool = state.players.length > 0 ? state.players : (() => {
+        try {
+          return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
+        } catch (_) { return []; }
+      })();
+      const found = playerPool.find((p) => p.id === pid);
+      if (found) {
+        selectBalancePlayer(found);
+      }
+    }
+  });
+}
+
+function openBalanceModal(player = null) {
+  const selectorWrap = $("balance-modal-player-selector");
+  const searchInput = $("balance-modal-player-search");
+  const resultsDiv = $("balance-modal-search-results");
   const amtInput = $("balance-form-amount");
 
   if (amtInput) amtInput.value = "";
+  if (resultsDiv) resultsDiv.style.display = "none";
 
   if (player) {
     if (selectorWrap) selectorWrap.style.display = "none";
-    if (idInput) idInput.value = player.id;
-    if (nameEl) nameEl.textContent = player.name;
-    if (phoneEl) {
-      phoneEl.textContent = player.phone && player.phone !== "—" ? player.phone : (player.username ? "@" + player.username : "ID: " + player.id);
-    }
+    selectBalancePlayer(player);
   } else {
     if (selectorWrap) selectorWrap.style.display = "block";
-    if (selectPlayerEl) {
-      selectPlayerEl.innerHTML = '<option value="">-- Choose player by Phone or Name --</option>' +
-        state.players.map(p => {
-          const ph = p.phone && p.phone !== "—" ? p.phone : (p.username ? `@${p.username}` : `ID:${p.id}`);
-          return `<option value="${p.id}">${escapeHTML(p.name)} (${ph}) - Bal: ${Number(p.balance||0).toFixed(2)} ETB</option>`;
-        }).join("");
+    if (searchInput) searchInput.value = "";
+    populateBalanceModalPlayers();
 
-      if (state.players.length > 0) {
-        selectPlayerEl.value = state.players[0].id;
-        const firstP = state.players[0];
-        if (idInput) idInput.value = firstP.id;
-        if (nameEl) nameEl.textContent = firstP.name;
-        if (phoneEl) phoneEl.textContent = firstP.phone && firstP.phone !== "—" ? firstP.phone : (firstP.username ? "@" + firstP.username : "ID: " + firstP.id);
-      }
+    // If state.players is empty, trigger overview fetch immediately!
+    if (state.players.length === 0 && typeof LuckyBingoAPI !== "undefined" && LuckyBingoAPI.getAdminOverview) {
+      LuckyBingoAPI.getAdminOverview().then((data) => {
+        if (data && (data.players || data.users)) {
+          populateBalanceModalPlayers();
+        }
+      }).catch(() => {});
+    }
+
+    if (state.players.length > 0) {
+      selectBalancePlayer(state.players[0]);
     }
   }
 
   setBalanceMode("deposit");
   openModal("balance-modal");
-  if (amtInput) amtInput.focus();
+  if (!player && searchInput) {
+    setTimeout(() => searchInput.focus(), 150);
+  } else if (amtInput) {
+    setTimeout(() => amtInput.focus(), 150);
+  }
 }
 
 function adjustPlayerBalance(player) {
@@ -1942,16 +2052,20 @@ function bindEvents() {
   if (balAmtInput) {
     balAmtInput.addEventListener("input", updateBalanceModalPreview);
   }
+  setupBalanceModalSearch();
+
   const playerSelectEl = $("balance-modal-select-player");
   if (playerSelectEl) {
     playerSelectEl.addEventListener("change", (e) => {
       const selId = e.target.value;
-      const p = state.players.find((x) => x.id === selId);
+      const playerPool = state.players.length > 0 ? state.players : (() => {
+        try {
+          return JSON.parse(localStorage.getItem("lb_admin_cached_players") || "[]");
+        } catch (_) { return []; }
+      })();
+      const p = playerPool.find((x) => x.id === selId);
       if (p) {
-        $("balance-form-player-id").value = p.id;
-        $("balance-modal-player-name").textContent = p.name;
-        $("balance-modal-player-phone").textContent = p.phone && p.phone !== "—" ? p.phone : (p.username ? "@" + p.username : "ID: " + p.id);
-        updateBalanceModalPreview();
+        selectBalancePlayer(p);
       }
     });
   }
@@ -2140,6 +2254,7 @@ function _startAdminDataPoll() {
         localStorage.setItem("lb_admin_cached_players", JSON.stringify(state.players));
       } catch (e) {}
       renderPlayers();
+      populateBalanceModalPlayers();
     }
 
     // 4. Sync metrics

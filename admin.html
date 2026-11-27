@@ -509,14 +509,16 @@
         <form id="balance-form">
           <input type="hidden" id="balance-form-player-id" />
 
-          <!-- Quick player selector if opened via main quick button -->
-          <div id="balance-modal-player-selector" style="display:none; margin-bottom: 12px;">
-            <label class="admin-form-wide">
-              <span>Select Player by Phone or Name (ተጫዋች ይምረጡ)</span>
-              <select id="balance-modal-select-player" class="admin-select" style="width:100%; font-size:14px; padding:8px 12px;">
-                <option value="">-- Choose player by Phone or Name --</option>
-              </select>
+          <!-- Quick player search & selector if opened via main quick button -->
+          <div id="balance-modal-player-selector" style="display:none; margin-bottom: 14px;">
+            <label class="admin-form-wide" style="margin-bottom:6px;">
+              <span style="font-weight:700; color:#1e293b;">🔍 Search Player by Phone (በስልክ ቁጥር ፈልገው ይምረጡ):</span>
+              <input type="search" id="balance-modal-player-search" autocomplete="off" placeholder="ስልክ ቁጥር (09... ወይም 07...) ወይም ስም ይጻፉ..." style="width:100%; box-sizing:border-box; font-size:15px; font-weight:700; padding:11px 12px; border:2px solid #2563eb; border-radius:8px; outline:none; background:#f0f7ff;" />
             </label>
+            <div id="balance-modal-search-results" style="max-height:160px; overflow-y:auto; border:1.5px solid #93c5fd; border-radius:8px; background:#fff; display:none; margin-bottom:8px; box-shadow:0 8px 16px rgba(0,0,0,0.12);"></div>
+            <select id="balance-modal-select-player" class="admin-select" style="width:100%; font-size:13px; padding:7px 10px; color:#475569;">
+              <option value="">-- ወይም ከተጫዋቾች ዝርዝር ይምረጡ (Choose from list) --</option>
+            </select>
           </div>
 
           <!-- Player Info Card -->
